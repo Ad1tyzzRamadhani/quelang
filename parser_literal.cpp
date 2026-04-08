@@ -2,6 +2,8 @@ std::unique_ptr<Literal> parseLiteral( const Token& tok) {
     auto lit = std::make_unique<Literal>();
     lit->line_start = tok.line;
     lit->column_start = tok.column;
+    lit->line_end = tok.line;
+    lit->column_end = tok.column;
 
     switch(tok.type) {
         case TokenType::NUMBER:
