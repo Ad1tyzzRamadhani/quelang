@@ -67,7 +67,7 @@ enum class BinaryOp {
 };
 
 enum class UnaryOp {
-    Neg, Deref, Ref, Not, BitNot
+    Neg, Deref, Ref, Not, BitNot, Move
 };
 
 enum class AssignOp {
@@ -383,6 +383,7 @@ struct ClassDef : Node {
     std::unique_ptr<Destructor> dtor;
     std::unique_ptr<QualifiedName> base;
     std::vector<std::unique_ptr<Node>> members;
+    std::optional<int> align;
 };
 
 // Enum ( Enum Union & Constant Enum )
