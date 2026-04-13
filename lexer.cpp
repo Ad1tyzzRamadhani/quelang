@@ -28,7 +28,7 @@ enum class TokenType {
     KW_SIZEOF, KW_ALIGNOF, KW_SWITCH, KW_EXTERN, KW_NORETURN,
     KW_CASE, KW_DEFAULT, KW_SUPER, KW_CONSTRUCT,
     KW_PACKED, KW_ALIGN, KW_OFFSETOF, KW_JUMPTO,
-    KW_NEW, KW_DELETE, KW_NOT, KW_MOVE,
+    KW_NEW, KW_DELETE, KW_NOT, KW_MOVE, KW_NOCOPY,
 
     PLUS, MINUS, STAR, SLASH, PERCENT,
     EQ, EQEQ, NEQ, SCOPE,
@@ -333,7 +333,7 @@ const std::unordered_map<std::string,TokenType> Lexer::keyword_map={
     {"if",TokenType::KW_IF},{"elif",TokenType::KW_ELIF},{"else",TokenType::KW_ELSE},
     {"while",TokenType::KW_WHILE},{"do",TokenType::KW_DO},{"for",TokenType::KW_FOR},
     {"return",TokenType::KW_RETURN},{"break",TokenType::KW_BREAK},{"union",TokenType::KW_UNION},
-    {"continue",TokenType::KW_CONTINUE},{"extern",TokenType::KW_EXTERN},
+    {"continue",TokenType::KW_CONTINUE},{"extern",TokenType::KW_EXTERN},{"nocopy",TokenType::KW_NOCOPY},
     {"struct",TokenType::KW_STRUCT},{"enum",TokenType::KW_ENUM},{"drop",TokenType::KW_DROP},
     {"package",TokenType::KW_PACKAGE},{"use",TokenType::KW_USE},{"as",TokenType::KW_AS},
     {"true",TokenType::KW_TRUE},{"false",TokenType::KW_FALSE},{"null",TokenType::KW_NULL},
