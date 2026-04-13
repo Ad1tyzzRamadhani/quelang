@@ -373,6 +373,7 @@ struct StructDef : Node {
 
     std::optional<int> align;
     bool is_packed = false;
+    bool is_nocopy = false;
 };
 
 struct ClassDef : Node {
@@ -384,6 +385,7 @@ struct ClassDef : Node {
     std::unique_ptr<QualifiedName> base;
     std::vector<std::unique_ptr<Node>> members;
     std::optional<int> align;
+    bool is_nocopy = false;
 };
 
 // Enum ( Enum Union & Constant Enum )
