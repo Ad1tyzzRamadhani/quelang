@@ -183,7 +183,7 @@ struct Expr : Node {
 struct Stmt : Node {
     enum class Kind {
         VarDecl, If, While, DoWhile, For, Switch,
-        Return, Break, Continue,
+        Return, Break, Continue, Match,
         ExprStmt, Block,
         Label, Jump,
         Delete
@@ -255,6 +255,18 @@ struct Stmt : Node {
         std::vector<std::unique_ptr<Stmt>> default_block;
     } switch_stmt;
 
+    struct {
+        std::unique_ptr<Expr> expr;
+
+        struct Case {
+            std::string tag;
+            std::optional<std::string> bind;
+            std::unique_ptr<Stmt> body;
+        };
+
+        std::vector<Case> cases;
+    } match_stmt;
+
     std::unique_ptr<Expr> expr_stmt;
 
     struct {
@@ -264,11 +276,6 @@ struct Stmt : Node {
 
     std::string label;
     std::string jump_target;
-
-    struct {
-        std::string code;
-        std::vector<std::string> args;
-    } asm_stmt;
 
     std::unique_ptr<Expr> ret;
 };
