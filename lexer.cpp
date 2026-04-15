@@ -137,7 +137,7 @@ private:
 
         bool isFloat = false;
 
-        if (peek() == '.') {
+        if (peek() == '.' && peek(1) != '.') {
             isFloat = true;
             s += advance();
             while (std::isdigit((unsigned char)peek()) || peek()=='_') {
