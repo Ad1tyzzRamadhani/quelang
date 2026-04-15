@@ -27,7 +27,7 @@ enum class TokenType {
     KW_AND, KW_OR, KW_XOR, KW_OVERRIDE, KW_PROTECT,
     KW_ALIGNOF, KW_SWITCH, KW_EXTERN,
     KW_CASE, KW_DEFAULT, KW_SUPER, KW_CONSTRUCT,
-    KW_ALIGN, KW_JUMPTO,
+    KW_ALIGN, KW_JUMPTO, KW_MATCH,
     KW_NEW, KW_DELETE, KW_NOT,
 
     PLUS, MINUS, STAR, SLASH, PERCENT,
@@ -342,7 +342,7 @@ const std::unordered_map<std::string,TokenType> Lexer::keyword_map={
     {"and",TokenType::KW_AND},{"or",TokenType::KW_OR},{"xor",TokenType::KW_XOR},
     {"switch",TokenType::KW_SWITCH},{"case",TokenType::KW_CASE},{"override",TokenType::KW_OVERRIDE},
     {"default",TokenType::KW_DEFAULT},{"delete",TokenType::KW_DELETE},{"virtual",TokenType::KW_VIRTUAL},
-    {"not", TokenType::KW_NOT},{"in",TokenType::KW_IN},
+    {"not", TokenType::KW_NOT},{"in",TokenType::KW_IN},{"match",TokenType::KW_MATCH},
     {"jumpto",TokenType::KW_JUMPTO},{"super",TokenType::KW_SUPER},
     {"alignof",TokenType::KW_ALIGNOF},
     {"new",TokenType::KW_NEW},{"protect",TokenType::KW_PROTECT},
