@@ -67,7 +67,7 @@ enum class BinaryOp {
 };
 
 enum class UnaryOp {
-    Neg, Deref, Ref, Not, BitNot, Move
+    Neg, Deref, Ref, Not, BitNot
 };
 
 enum class AssignOp {
@@ -83,7 +83,6 @@ struct Expr : Node {
         Assign,
 
         Ternary,
-        IfExpr,
         Range,
 
         Postfix,
@@ -93,10 +92,7 @@ struct Expr : Node {
 
         Cast,
         New,
-
-        SizeOf,
         AlignOf,
-        OffsetOf,
 
         StructInit,
         ArrayLiteral
@@ -173,13 +169,7 @@ struct Expr : Node {
         std::vector<std::unique_ptr<Expr>> array_dims;
     } new_expr;
 
-    std::unique_ptr<Type> sizeof_type;
     std::unique_ptr<Type> alignof_type;
-
-    struct {
-        std::unique_ptr<Type> type;
-        std::vector<std::string> fields;
-    } offsetof_expr;
 
     struct {
         std::vector<std::pair<std::optional<std::string>, std::unique_ptr<Expr>>> fields;
@@ -196,7 +186,7 @@ struct Stmt : Node {
         Return, Break, Continue,
         ExprStmt, Block,
         Label, Jump,
-        Delete, Asm
+        Delete
     } kind;
 
     struct {
@@ -372,8 +362,6 @@ struct StructDef : Node {
     std::unique_ptr<Destructor> dtor;
 
     std::optional<int> align;
-    bool is_packed = false;
-    bool is_nocopy = false;
 };
 
 struct ClassDef : Node {
@@ -385,7 +373,6 @@ struct ClassDef : Node {
     std::unique_ptr<QualifiedName> base;
     std::vector<std::unique_ptr<Node>> members;
     std::optional<int> align;
-    bool is_nocopy = false;
 };
 
 // Enum ( Enum Union & Constant Enum )
