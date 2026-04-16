@@ -246,11 +246,13 @@ struct Stmt : Node {
 
         struct Pattern {
             enum class Kind {
-                Default, Ident, Literal, Range, Constructor } kind;
-            std::unique_ptr<Expr> value;
+                Default, Literal, Constructor, Binding } kind;
+            std::unique_ptr<Expr> literal;
+            std::unique_ptr<QualifiedName> ctor;
             std::vector<std::unique_ptr<Pattern>> args;
-            std::unique_ptr<Expr> range_end;
+            std::string bind_name;
         };
+
         std::vector<Case> cases;
     } match_stmt;
 
