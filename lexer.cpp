@@ -34,7 +34,7 @@ enum class TokenType {
     EQ, EQEQ, NEQ, SCOPE,
     LT, LTE, GT, GTE, RANGE,
     PLUS_EQ, MINUS_EQ, STAR_EQ, SLASH_EQ, PERCENT_EQ,
-    AMP,PIPE, CARET, TILDE,
+    AMP,PIPE, CARET, TILDE, PIPE,
     LSHIFT, RSHIFT,
     QUESTION, QUESTION_EQ, COALESCE,
     BANG, DOLLAR,
@@ -280,6 +280,7 @@ private:
         if(a=='>'&&b=='>'){advance();advance();emit(TokenType::RSHIFT,"",l,c);return;}
         if(a=='?'&&b=='?'){advance();advance();emit(TokenType::COALESCE,"",l,c);return;}
         if(a=='.'&&b=='.'){advance();advance();emit(TokenType::RANGE,"",l,c);return;}
+        if(a=='|'&&b=='>'){advance();advance();emit(TokenType::PIPE,"",l,c);return;}
 
         char ch=advance();
 
