@@ -78,6 +78,7 @@ struct Expr : Node {
     enum class Kind {
         Literal, Ident,
 
+        Pipe,
         Unary,
         Binary,
         Assign,
@@ -128,6 +129,12 @@ struct Expr : Node {
         std::unique_ptr<Expr> then_expr;
         std::unique_ptr<Expr> else_expr;
     } ternary;
+
+    // Pipe Expr
+    struct {
+        std::unique_ptr<Expr> left;
+        std::unique_ptr<Expr> right;
+    } pipe;
 
     // If Expr , Just a Plan and staying here temporarily! Not Official & cannot be used 
     struct {
