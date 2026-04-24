@@ -402,7 +402,7 @@ struct UseDecl : Node {
 };
 
 struct PackageDecl : Node {
-    std::string name;
+    std::unique_ptr<QualifiedName> name;
     std::vector<std::unique_ptr<Node>> items;
 };
 
