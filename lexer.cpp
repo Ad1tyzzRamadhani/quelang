@@ -24,10 +24,9 @@ enum class TokenType {
     KW_USE, KW_AS, KW_DROP, KW_CLASS, KW_UNION,
     KW_TRUE, KW_FALSE, KW_NULL, KW_THIS, KW_VIRTUAL,
     KW_PUBLIC, KW_STATIC, KW_CONST, KW_VOLATILE, KW_EXTEND,
-    KW_AND, KW_OR, KW_XOR, KW_OVERRIDE, KW_PROTECT,
-    KW_ALIGNOF, KW_SWITCH, KW_EXTERN,
-    KW_CASE, KW_DEFAULT, KW_SUPER, KW_CONSTRUCT,
-    KW_ALIGN, KW_JUMPTO, KW_MATCH,
+    KW_AND, KW_OR, KW_XOR, KW_OVERRIDE, KW_PROTECT, KW_EXTERN,
+    KW_DEFAULT, KW_SUPER, KW_CONSTRUCT,
+    KW_JUMPTO, KW_MATCH,
     KW_NEW, KW_DELETE, KW_NOT,
 
     PLUS, MINUS, STAR, SLASH, PERCENT,
@@ -341,13 +340,12 @@ const std::unordered_map<std::string,TokenType> Lexer::keyword_map={
     {"public",TokenType::KW_PUBLIC},{"static",TokenType::KW_STATIC},{"this",TokenType::KW_THIS},
     {"const",TokenType::KW_CONST},{"volatile",TokenType::KW_VOLATILE},{"extend",TokenType::KW_EXTEND},
     {"and",TokenType::KW_AND},{"or",TokenType::KW_OR},{"xor",TokenType::KW_XOR},
-    {"switch",TokenType::KW_SWITCH},{"case",TokenType::KW_CASE},{"override",TokenType::KW_OVERRIDE},
+    {"override",TokenType::KW_OVERRIDE},
     {"default",TokenType::KW_DEFAULT},{"delete",TokenType::KW_DELETE},{"virtual",TokenType::KW_VIRTUAL},
-    {"not", TokenType::KW_NOT},{"in",TokenType::KW_IN},{"match",TokenType::KW_MATCH},
-    {"jumpto",TokenType::KW_JUMPTO},{"super",TokenType::KW_SUPER},
-    {"alignof",TokenType::KW_ALIGNOF},
+    {"not", TokenType::KW_NOT},{"match",TokenType::KW_MATCH},
+    {"jumpto",TokenType::KW_JUMPTO},{"super",TokenType::KW_SUPER},{"class",TokenType::KW_CLASS},
     {"new",TokenType::KW_NEW},{"protect",TokenType::KW_PROTECT},
-    {"align",TokenType::KW_ALIGN},{"construct",TokenType::KW_CONSTRUCT}
+    {"construct",TokenType::KW_CONSTRUCT}
 };
 
 std::vector<Token> Lexer::tokenize() {
