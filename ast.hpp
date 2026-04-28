@@ -93,7 +93,6 @@ struct Expr : Node {
 
         Cast,
         New,
-        AlignOf,
 
         StructInit,
         ArrayLiteral
@@ -175,8 +174,6 @@ struct Expr : Node {
         std::vector<std::unique_ptr<Expr>> args;
         std::vector<std::unique_ptr<Expr>> array_dims;
     } new_expr;
-
-    std::unique_ptr<Type> alignof_type;
 
     struct {
         std::vector<std::pair<std::optional<std::string>, std::unique_ptr<Expr>>> fields;
@@ -266,7 +263,6 @@ struct Stmt : Node {
     std::unique_ptr<Expr> expr_stmt;
 
     struct {
-        bool is_array;
         std::unique_ptr<Expr> expr;
     } delete_stmt;
 
@@ -363,8 +359,6 @@ struct StructDef : Node {
     std::vector<std::unique_ptr<Node>> items;
     std::unique_ptr<Constructor> ctor;
     std::unique_ptr<Destructor> dtor;
-
-    std::optional<int> align;
 };
 
 struct ClassDef : Node {
@@ -375,7 +369,6 @@ struct ClassDef : Node {
     std::unique_ptr<Destructor> dtor;
     std::unique_ptr<QualifiedName> base;
     std::vector<std::unique_ptr<Node>> members;
-    std::optional<int> align;
 };
 
 // Enum ( Enum Union & Constant Enum )
