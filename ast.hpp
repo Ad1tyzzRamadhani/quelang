@@ -277,15 +277,27 @@ struct Stmt : Node {
 
 enum class Visibility { Private, Public, Protect };
 
-struct TopLevel : Node {
-    bool is_exported = false;
+struct Symbol {
+    enum class SymbolKind {
+        Function,
+        Struct,
+        Class,
+        Enum,
+        Union,
+        GlobalVar
+    };
+    SymbolKind kind;
+    Visibility visibility;
+    bool exported = false;
+
+    std::string qualified_name;
+    std::string signature;
+    std::string mangled_name;
+    std::vector<const Symbol*> dependencies;
+    const Node* decl;
 };
 
-struct OpaqueClassDecl : TopLevel {
-    std::unique_ptr<QualifiedName> name;
-};
-
-struct ForwardDecl : TopLevel {
+struct ForwardDecl : Node {
     Visibility visibility = Visibility::Private;
     enum class Kind { Struct, Class, Function } kind;
     std::unique_ptr<QualifiedName> name;
@@ -295,7 +307,7 @@ struct ForwardDecl : TopLevel {
     bool is_virtual = false;
 };
 
-struct ExternDecl : TopLevel {
+struct ExternDecl : Node {
     enum class Kind { Function, GlobalVar } kind;
 
     std::unique_ptr<Type> return_type;
@@ -307,7 +319,7 @@ struct ExternDecl : TopLevel {
     bool is_static = false;
 };
 
-struct Function : TopLevel {
+struct Function : Node {
     Visibility visibility = Visibility::Private;
 
     std::unique_ptr<Type> return_type;
@@ -333,7 +345,7 @@ struct Function : TopLevel {
 
 // Data Structure
 
-struct UnionDef : TopLevel {
+struct UnionDef : Node {
     Visibility visibility = Visibility::Private;
     std::string name;
 
@@ -359,7 +371,7 @@ struct Destructor : Node {
     std::unique_ptr<Stmt> body;
 };
 
-struct StructDef : TopLevel {
+struct StructDef : Node {
     Visibility visibility = Visibility::Private;
     std::unique_ptr<QualifiedName> name;
     std::vector<std::unique_ptr<Node>> members;
@@ -367,7 +379,7 @@ struct StructDef : TopLevel {
     std::unique_ptr<Destructor> dtor;
 };
 
-struct ClassDef : TopLevel {
+struct ClassDef : Node {
     Visibility visibility = Visibility::Private;
     std::unique_ptr<QualifiedName> name;
 
@@ -379,7 +391,7 @@ struct ClassDef : TopLevel {
 
 // Enum ( Enum Union & Constant Enum )
 
-struct EnumDef : TopLevel {
+struct EnumDef : Node {
     Visibility visibility = Visibility::Private;
     bool is_union = false;
     std::unique_ptr<QualifiedName> name;
