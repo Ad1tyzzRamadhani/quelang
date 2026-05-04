@@ -201,7 +201,7 @@ struct Stmt : Node {
         std::unique_ptr<Type> type;
 
         struct Item {
-            std::string name;
+            std::unique_ptr<QualifiedName> name;
             std::unique_ptr<Expr> init;
             std::unique_ptr<Expr> ctor;
         };
@@ -276,10 +276,6 @@ struct Stmt : Node {
 
 enum class Visibility { Private, Public, Protect };
 
-struct VisibilityLabel : Node {
-    Visibility visibility;
-};
-
 struct TopLevel : Node {
     bool is_exported = false;
 };
@@ -288,25 +284,25 @@ struct OpaqueClassDecl : TopLevel {
     std::unique_ptr<QualifiedName> name;
 };
 
-struct ForwardDecl : Node {
+struct ForwardDecl : TopLevel {
     Visibility visibility = Visibility::Private;
     enum class Kind { Struct, Class, Function } kind;
-    std::string name;
+    std::unique_ptr<QualifiedName> name;
     std::unique_ptr<Type> return_type;
     std::vector<std::unique_ptr<Type>> params;
     bool is_static = false;
     bool is_virtual = false;
 };
 
-struct ExternDecl : Node {
+struct ExternDecl : TopLevel {
     enum class Kind { Function, GlobalVar } kind;
 
     std::unique_ptr<Type> return_type;
-    std::string func_name;
+    std::unique_ptr<QualifiedName> func_name;
     std::vector<std::unique_ptr<Type>> func_params;
 
     std::unique_ptr<Type> var_type;
-    std::string var_name;
+    std::unique_ptr<QualifiedName> var_name;
     bool is_static = false;
 };
 
@@ -352,26 +348,27 @@ struct Constructor : Node {
     std::vector<std::unique_ptr<Type>> param_types;
     std::vector<std::string> param_names;
     std::unique_ptr<Stmt> body;
+    bool is_deleted = false;
 };
 
 struct Destructor : Node {
     bool is_virtual = false;
     bool is_override = false;
+    bool is_deleted = false;
     std::unique_ptr<Stmt> body;
 };
 
 struct StructDef : TopLevel {
     Visibility visibility = Visibility::Private;
-    std::string name;
-    std::unique_ptr<QualifiedName> base;
-    std::vector<std::unique_ptr<Node>> items;
+    std::unique_ptr<QualifiedName> name;
+    std::vector<std::unique_ptr<Node>> members;
     std::unique_ptr<Constructor> ctor;
     std::unique_ptr<Destructor> dtor;
 };
 
 struct ClassDef : TopLevel {
     Visibility visibility = Visibility::Private;
-    std::string name;
+    std::unique_ptr<QualifiedName> name;
 
     std::unique_ptr<Constructor> ctor;
     std::unique_ptr<Destructor> dtor;
@@ -381,10 +378,10 @@ struct ClassDef : TopLevel {
 
 // Enum ( Enum Union & Constant Enum )
 
-struct EnumDef : Node {
+struct EnumDef : TopLevel {
     Visibility visibility = Visibility::Private;
     bool is_union = false;
-    std::string name;
+    std::unique_ptr<QualifiedName> name;
 
     struct Item {
         std::string name;
