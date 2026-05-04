@@ -208,6 +208,7 @@ struct Stmt : Node {
 
         std::vector<Item> items;
         bool is_static = false;
+        bool is_exported = false;
     } var_decl;
 
     struct {
