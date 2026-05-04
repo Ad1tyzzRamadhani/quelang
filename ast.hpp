@@ -280,6 +280,14 @@ struct VisibilityLabel : Node {
     Visibility visibility;
 };
 
+struct TopLevel : Node {
+    bool is_exported = false;
+};
+
+struct OpaqueClassDecl : TopLevel {
+    std::unique_ptr<QualifiedName> name;
+};
+
 struct ForwardDecl : Node {
     Visibility visibility = Visibility::Private;
     enum class Kind { Struct, Class, Function } kind;
@@ -302,7 +310,7 @@ struct ExternDecl : Node {
     bool is_static = false;
 };
 
-struct Function : Node {
+struct Function : TopLevel {
     Visibility visibility = Visibility::Private;
 
     std::unique_ptr<Type> return_type;
@@ -328,7 +336,7 @@ struct Function : Node {
 
 // Data Structure
 
-struct UnionDef : Node {
+struct UnionDef : TopLevel {
     Visibility visibility = Visibility::Private;
     std::string name;
 
@@ -352,7 +360,7 @@ struct Destructor : Node {
     std::unique_ptr<Stmt> body;
 };
 
-struct StructDef : Node {
+struct StructDef : TopLevel {
     Visibility visibility = Visibility::Private;
     std::string name;
     std::unique_ptr<QualifiedName> base;
@@ -361,7 +369,7 @@ struct StructDef : Node {
     std::unique_ptr<Destructor> dtor;
 };
 
-struct ClassDef : Node {
+struct ClassDef : TopLevel {
     Visibility visibility = Visibility::Private;
     std::string name;
 
