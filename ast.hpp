@@ -278,23 +278,23 @@ struct Stmt : Node {
 enum class Visibility { Private, Public, Protect };
 
 struct Symbol {
-    enum class SymbolKind {
+    enum class SymbolOrigin {Source, Contract};
+    enum class Kind {
         Function,
         Struct,
         Class,
         Enum,
         Union,
         GlobalVar
-    };
-    SymbolKind kind;
+    } kind;
     Visibility visibility;
     bool exported = false;
-
+    SymbolOrigin origin;
     std::string qualified_name;
     std::string signature;
     std::string mangled_name;
-    std::vector<const Symbol*> dependencies;
-    const Node* decl;
+    std::vector<std::string> dependency_ids;
+    const Node* decl = nullptr;
 };
 
 struct ForwardDecl : Node {
