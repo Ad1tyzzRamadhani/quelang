@@ -289,6 +289,7 @@ struct Symbol {
     } kind;
     Visibility visibility;
     bool exported = false;
+    bool is_extern = false;
     SymbolOrigin origin;
     std::string qualified_name;
     std::string signature;
