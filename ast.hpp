@@ -188,7 +188,7 @@ struct Stmt : Node {
     enum class Kind {
         VarDecl, If, While, DoWhile, For,
         Return, Break, Continue, SwitchCase,
-        ExprStmt, Block,
+        ExprStmt, Block, Defer,
         Label, Jump,
         Drop
     } kind;
@@ -258,6 +258,10 @@ struct Stmt : Node {
     struct {
         std::unique_ptr<Expr> expr;
     } drop_stmt;
+
+    struct {
+        std::unique_ptr<Stmt> stmt;
+    } defer_stmt;
 
     std::string label;
     std::string jump_target;
@@ -332,7 +336,7 @@ struct Function : Node {
     bool is_virtual = false;
     bool is_const = false;
     bool is_override = false;
-    bool is_deleted = false;
+    bool is_dropped = false;
     bool is_pure = false;
 };
 
@@ -354,13 +358,13 @@ struct Constructor : Node {
     std::vector<std::unique_ptr<Type>> param_types;
     std::vector<std::string> param_names;
     std::unique_ptr<Stmt> body;
-    bool is_deleted = false;
+    bool is_dropped = false;
 };
 
 struct Destructor : Node {
     bool is_virtual = false;
     bool is_override = false;
-    bool is_deleted = false;
+    bool is_dropped = false;
     std::unique_ptr<Stmt> body;
 };
 
@@ -370,6 +374,7 @@ struct StructDef : Node {
     std::vector<std::unique_ptr<Node>> members;
     std::unique_ptr<Constructor> ctor;
     std::unique_ptr<Destructor> dtor;
+    std::unique_ptr<QualifiedName> base;
 };
 
 struct ClassDef : Node {
