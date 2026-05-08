@@ -187,10 +187,10 @@ struct Expr : Node {
 struct Stmt : Node {
     enum class Kind {
         VarDecl, If, While, DoWhile, For,
-        Return, Break, Continue, Match,
+        Return, Break, Continue, SwitchCase,
         ExprStmt, Block,
         Label, Jump,
-        Delete
+        Drop
     } kind;
 
     struct {
@@ -245,27 +245,19 @@ struct Stmt : Node {
         std::unique_ptr<Expr> expr;
 
         struct Case {
-            Pattern pattern;
+            bool is_default = false;
+            std::vector<std::unique_ptr<Expr>> values;
             std::unique_ptr<Stmt> body;
         };
 
-        struct Pattern {
-            enum class Kind {
-                Default, Literal, Constructor, Binding } kind;
-            std::unique_ptr<Expr> literal;
-            std::unique_ptr<QualifiedName> ctor;
-            std::vector<std::unique_ptr<Pattern>> args;
-            std::string bind_name;
-        };
-
         std::vector<Case> cases;
-    } match_stmt;
+    } switch_stmt;
 
     std::unique_ptr<Expr> expr_stmt;
 
     struct {
         std::unique_ptr<Expr> expr;
-    } delete_stmt;
+    } drop_stmt;
 
     std::string label;
     std::string jump_target;
