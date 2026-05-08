@@ -386,13 +386,11 @@ struct ClassDef : Node {
 
 struct EnumDef : Node {
     Visibility visibility = Visibility::Private;
-    bool is_union = false;
     std::unique_ptr<QualifiedName> name;
 
     struct Item {
         std::string name;
-        std::unique_ptr<Expr> value; // const enum
-        std::vector<std::unique_ptr<Type>> params; // union enum
+        std::unique_ptr<Expr> value;
     };
 
     std::vector<Item> items;
