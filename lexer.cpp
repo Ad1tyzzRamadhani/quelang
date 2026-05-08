@@ -333,7 +333,7 @@ const std::unordered_map<std::string,TokenType> Lexer::keyword_map={
     {"if",TokenType::KW_IF},{"elif",TokenType::KW_ELIF},{"else",TokenType::KW_ELSE},
     {"while",TokenType::KW_WHILE},{"do",TokenType::KW_DO},{"for",TokenType::KW_FOR},
     {"return",TokenType::KW_RETURN},{"break",TokenType::KW_BREAK},{"union",TokenType::KW_UNION},
-    {"continue",TokenType::KW_CONTINUE},{"noreturn",TokenType::KW_NORETURN},
+    {"continue",TokenType::KW_CONTINUE},
     {"struct",TokenType::KW_STRUCT},{"enum",TokenType::KW_ENUM},{"drop",TokenType::KW_DROP},
     {"package",TokenType::KW_PACKAGE},{"use",TokenType::KW_USE},{"as",TokenType::KW_AS},
     {"true",TokenType::KW_TRUE},{"false",TokenType::KW_FALSE},{"null",TokenType::KW_NULL},
