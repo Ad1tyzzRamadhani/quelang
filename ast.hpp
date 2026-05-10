@@ -392,6 +392,7 @@ struct ClassDef : Node {
 struct EnumDef : Node {
     Visibility visibility = Visibility::Private;
     std::unique_ptr<QualifiedName> name;
+    std::unique_ptr<Type> underlying_type;
 
     struct Item {
         std::string name;
