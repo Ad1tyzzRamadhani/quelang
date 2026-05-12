@@ -184,11 +184,12 @@ struct Expr : Node {
 
 // Statement
 
+struct UseDecl;
 struct Stmt : Node {
     enum class Kind {
         VarDecl, If, While, DoWhile, For,
         Return, Break, Continue, SwitchCase,
-        ExprStmt, Block, Defer,
+        ExprStmt, Block, Defer, UseStmt,
         Label, Jump,
         Drop
     } kind;
@@ -265,6 +266,7 @@ struct Stmt : Node {
 
     std::string label;
     std::string jump_target;
+    std::unique_ptr<UseDecl> use_stmt;
 
     std::unique_ptr<Expr> ret;
 };
@@ -302,18 +304,6 @@ struct ForwardDecl : Node {
     std::vector<std::unique_ptr<Type>> params;
     bool is_static = false;
     bool is_virtual = false;
-};
-
-struct ExternDecl : Node {
-    enum class Kind { Function, GlobalVar } kind;
-
-    std::unique_ptr<Type> return_type;
-    std::unique_ptr<QualifiedName> func_name;
-    std::vector<std::unique_ptr<Type>> func_params;
-
-    std::unique_ptr<Type> var_type;
-    std::unique_ptr<QualifiedName> var_name;
-    bool is_static = false;
 };
 
 struct Function : Node {
