@@ -285,6 +285,16 @@ struct Symbol {
         Union,
         GlobalVar
     } kind;
+    struct EnumInfo {
+        struct EnumValue {
+            std::string name;
+            int64_t value;
+        };
+        bool is_opaque = false;
+        std::string underlying_type;
+
+        std::vector<EnumValue> values;
+    };
     Visibility visibility;
     bool exported = false;
     bool is_extern = false;
@@ -293,6 +303,7 @@ struct Symbol {
     std::string signature;
     std::string mangled_name;
     std::vector<std::string> dependency_ids;
+    std::optional<EnumInfo> enum_info;
     const Node* decl = nullptr;
 };
 
