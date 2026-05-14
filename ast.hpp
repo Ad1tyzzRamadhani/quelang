@@ -360,7 +360,6 @@ struct UnionDef : Node {
     };
 
     std::vector<Field> fields;
-    bool has_rtti = false;
 };
 
 struct Constructor : Node {
@@ -384,7 +383,6 @@ struct StructDef : Node {
     std::unique_ptr<Constructor> ctor;
     std::unique_ptr<Destructor> dtor;
     std::unique_ptr<QualifiedName> base;
-    bool has_rtti = false;
 };
 
 struct ClassDef : Node {
@@ -395,7 +393,6 @@ struct ClassDef : Node {
     std::unique_ptr<Destructor> dtor;
     std::unique_ptr<QualifiedName> base;
     std::vector<std::unique_ptr<Node>> members;
-    bool has_rtti = false;
 };
 
 // Enum ( Enum Union & Constant Enum )
