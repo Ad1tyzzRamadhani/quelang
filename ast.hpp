@@ -215,6 +215,7 @@ struct Stmt : Node {
         };
 
         std::vector<Item> items;
+        std::optional<int> slot_id;
         bool is_static = false;
         bool is_exported = false;
     } var_decl;
