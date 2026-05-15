@@ -204,7 +204,7 @@ struct Stmt : Node {
         std::vector<std::unique_ptr<Stmt>> stmts;
     } block;
 
-    struct {
+    struct VarDecl {
         std::unique_ptr<Type> type;
         StorageKind storage = StorageKind::Normal;
 
@@ -219,6 +219,15 @@ struct Stmt : Node {
         bool is_static = false;
         bool is_exported = false;
     } var_decl;
+
+    struct {
+        std::vector<std::unique_ptr<Node>> members;
+        std::unique_ptr<Constructor> ctor;
+        std::unique_ptr<QualifiedName> var_name;
+        std::unique_ptr<Expr> init_expr;
+        std::vector<TypeQualifier> qualifiers;
+        std::vector<TypeModifier> modifiers;
+    } inline_struct;
 
     struct {
         std::unique_ptr<Expr> cond;
