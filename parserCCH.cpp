@@ -400,7 +400,7 @@ private:
         if (is_uniform)
             stmt->var_decl.storage = StorageKind::Uniform;
 
-        Stmt::var_decl::Item item;
+        Stmt::VarDecl::Item item;
 
         item.name = std::make_unique<QualifiedName>();
         item.name->parts.push_back(name.value);
