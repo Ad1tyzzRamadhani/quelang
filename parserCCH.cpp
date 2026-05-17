@@ -159,7 +159,7 @@ private:
                 mod.kind = TypeModifier::Kind::Array;
 
                 if (!is(TokenType::RBRACKET)) {
-                    mod.array_dims.push_back(parseDummyExpr());
+                    mod.array_dims.push_back(parseLiteral());
                 }
 
                 expect(TokenType::RBRACKET, "expected ']'");
@@ -199,7 +199,7 @@ private:
         return ty;
     }
 
-    std::unique_ptr<Expr> parseDummyExpr() {
+    std::unique_ptr<Expr> parseLiteral() {
 
         auto e = std::make_unique<Expr>();
 
@@ -235,7 +235,7 @@ private:
         return e;
     }
 
-    std::unique_ptr<Node> parseStructForward(Visibility vis) {
+    std::unique_ptr<ForwardDecl> parseStructForward(Visibility vis) {
 
         advance();
 
@@ -251,7 +251,7 @@ private:
         return f;
     }
 
-    std::unique_ptr<Node> parseClassForward(Visibility vis) {
+    std::unique_ptr<ForwardDecl> parseClassForward(Visibility vis) {
 
         advance();
 
@@ -267,7 +267,7 @@ private:
         return f;
     }
 
-    std::unique_ptr<Node> parseEnum(Visibility vis) {
+    std::unique_ptr<EnumDef> parseEnum(Visibility vis) {
 
         expect(TokenType::KW_ENUM, "expected enum");
 
@@ -300,7 +300,7 @@ private:
             item.name = name.value;
 
             if (match(TokenType::EQ)) {
-                item.value = parseDummyExpr();
+                item.value = parseLiteral();
             }
 
             en->items.push_back(std::move(item));
@@ -317,8 +317,6 @@ private:
     std::unique_ptr<Node> parseVarOrFunction(Visibility vis) {
 
         bool is_static = false;
-        bool is_uniform = false;
-        bool is_virtual = false;
 
         while (true) {
 
@@ -328,12 +326,12 @@ private:
             }
 
             if (match(TokenType::KW_UNIFORM)) {
-                is_uniform = true;
+                error("can't use uniform variable in Contract");
                 continue;
             }
 
             if (match(TokenType::KW_VIRTUAL)) {
-                is_virtual = true;
+                error("can't use virtual in Contract");
                 continue;
             }
 
@@ -358,7 +356,6 @@ private:
             fn->name->parts.push_back(name.value);
 
             fn->is_static = is_static;
-            fn->is_virtual = is_virtual;
 
             if (!is(TokenType::RPAREN)) {
 
@@ -396,9 +393,6 @@ private:
 
         if (is_static)
             stmt->var_decl.storage = StorageKind::Static;
-
-        if (is_uniform)
-            stmt->var_decl.storage = StorageKind::Uniform;
 
         Stmt::VarDecl::Item item;
 
