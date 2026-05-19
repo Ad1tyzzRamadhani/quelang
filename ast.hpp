@@ -196,7 +196,7 @@ struct Stmt : Node {
         VarDecl, If, While, DoWhile, For,
         Return, Break, Continue, SwitchCase,
         ExprStmt, Block, Defer, UseStmt,
-        Label, Jump,
+        Label, Jump, InlineStruct,
         Drop
     } kind;
 
@@ -291,38 +291,6 @@ struct Stmt : Node {
 // Top Level Scope Program
 
 enum class Visibility { Private, Public, Protect };
-
-struct Symbol {
-    enum class SymbolOrigin {Source, Contract};
-    enum class Kind {
-        Function,
-        Struct,
-        Class,
-        Enum,
-        Union,
-        GlobalVar
-    } kind;
-    struct EnumInfo {
-        struct EnumValue {
-            std::string name;
-            int64_t value;
-        };
-        bool is_opaque = false;
-        std::string underlying_type;
-
-        std::vector<EnumValue> values;
-    };
-    Visibility visibility;
-    bool exported = false;
-    bool is_extern = false;
-    SymbolOrigin origin;
-    std::string qualified_name;
-    std::string signature;
-    std::string mangled_name;
-    std::vector<std::string> dependency_ids;
-    std::optional<EnumInfo> enum_info;
-    const Node* decl = nullptr;
-};
 
 struct ForwardDecl : Node {
     Visibility visibility = Visibility::Private;
