@@ -243,6 +243,7 @@ private:
 
         f->visibility = vis;
         f->kind = ForwardDecl::Kind::Struct;
+        if (vis == Visibility::Private) f->is_extern = true;
 
         f->name = parseQualifiedName();
 
@@ -259,6 +260,7 @@ private:
 
         f->visibility = vis;
         f->kind = ForwardDecl::Kind::Class;
+        if (vis == Visibility::Private) f->is_extern = true;
 
         f->name = parseQualifiedName();
 
@@ -275,6 +277,7 @@ private:
 
         en->visibility = vis;
         en->name = parseQualifiedName();
+        if (vis == Visibility::Private) f->is_extern = true;
 
         // underlying type
 
@@ -351,6 +354,7 @@ private:
 
             fn->visibility = vis;
             fn->return_type = std::move(type);
+            if (vis == Visibility::Private) f->is_extern = true;
 
             fn->name = std::make_unique<QualifiedName>();
             fn->name->parts.push_back(name.value);
