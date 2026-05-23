@@ -95,6 +95,7 @@ struct Expr : Node {
         New,
 
         StructInit,
+        AnonymousFunc,
         ArrayLiteral
     } kind;
 
@@ -135,19 +136,6 @@ struct Expr : Node {
         std::unique_ptr<Expr> right;
     } pipe;
 
-    // If Expr , Just a Plan and staying here temporarily! Not Official & cannot be used 
-    struct {
-        std::unique_ptr<Expr> cond;
-        std::unique_ptr<Expr> then_expr;
-        std::unique_ptr<Expr> else_expr;
-    } if_expr;
-
-    // Range Expr System Literal & Dynamic
-    struct {
-        std::unique_ptr<Expr> start;
-        std::unique_ptr<Expr> end;
-    } range;
-
     // PostFix Op
     struct PostfixOp {
         enum class Kind { Field, NullField, Scope, Arrow, Call, Index } kind;
@@ -165,7 +153,7 @@ struct Expr : Node {
     // cast
     struct {
         std::unique_ptr<Expr> base;
-        std::vector<std::unique_ptr<Type>> chain;
+        std::unique_ptr<Type> target;
     } cast;
 
     // new
@@ -178,6 +166,18 @@ struct Expr : Node {
     struct {
         std::vector<std::pair<std::optional<std::string>, std::unique_ptr<Expr>>> fields;
     } struct_init;
+
+    struct {
+        std::unique_ptr<Type> return_type;
+        struct Param {
+            std::unique_ptr<Type> type;
+            std::string name;
+            std::unique_ptr<Expr> init;
+        };
+
+        std::vector<Param> params;
+        std::unique_ptr<Stmt> body;
+    } anonymous_func;
 
     std::vector<std::unique_ptr<Expr>> array_items;
 };
