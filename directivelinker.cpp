@@ -64,8 +64,8 @@ std::string processFile(
     std::string result;
     std::string code;
 
-    static const std::regex loadQuoted(R"(@load\s+["']([^"']+)["'])");
-    static const std::regex loadBracket(R"(@load\s+(?:\[)?([a-zA-Z_][a-zA-Z0-9_]*)\]?)");
+    static const std::regex loadQuoted(R"(import\s+["']([^"']+)["'])");
+    static const std::regex loadBracket(R"(import\s+(?:\[)?([a-zA-Z_][a-zA-Z0-9_]*)\]?)");
 
     while (std::getline(input, line)) {
         std::smatch match;
