@@ -40,10 +40,7 @@ struct Literal : Node {
 enum class TypeQualifier { Const, Volatile };
 
 struct TypeModifier {
-    enum class Kind { Pointer, Reference, Array, FuncPtr } kind;
-
-    std::vector<std::unique_ptr<Expr>> array_dims;
-
+    enum class Kind { Pointer, Reference, FuncPtr } kind;
     std::vector<std::unique_ptr<Type>> func_params;
     std::unique_ptr<Type> func_return;
 };
@@ -212,6 +209,7 @@ struct Stmt : Node {
             std::unique_ptr<QualifiedName> name;
             std::unique_ptr<Expr> init;
             std::unique_ptr<Expr> ctor;
+            std::vector<std::unique_ptr<Expr>> array_dims;
         };
 
         std::vector<Item> items;
