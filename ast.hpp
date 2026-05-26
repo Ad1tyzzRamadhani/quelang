@@ -178,11 +178,11 @@ enum class StorageKind {
 
 struct Stmt : Node {
     enum class Kind {
-        VarDecl, If, While, DoWhile, For,
+        VarDecl, If, While, DoWhile, For, Resume,
         Return, Break, Continue, SwitchCase,
         ExprStmt, Block, Defer, UseStmt,
         Label, Jump, InlineStruct,
-        Drop
+        Drop, Yield
     } kind;
 
     struct {
@@ -268,6 +268,10 @@ struct Stmt : Node {
         std::unique_ptr<Stmt> stmt;
     } defer_stmt;
 
+    struct {
+        std::unique_ptr<Expr> target;
+    } resume_stmt;
+
     std::string label;
     std::string jump_target;
     std::unique_ptr<UseDecl> use_stmt;
@@ -302,6 +306,11 @@ struct Function : Node {
         std::unique_ptr<Expr> init;
     };
 
+    struct CoroutineInfo {
+        std::unique_ptr<QualifiedName> state_type;
+    };
+
+    std::optional<CoroutineInfo> coroutine;
     std::vector<Param> params;
 
     std::unique_ptr<Stmt> body;
