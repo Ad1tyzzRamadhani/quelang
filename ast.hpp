@@ -164,18 +164,6 @@ struct Expr : Node {
         std::vector<std::pair<std::optional<std::string>, std::unique_ptr<Expr>>> fields;
     } struct_init;
 
-    struct {
-        std::unique_ptr<Type> return_type;
-        struct Param {
-            std::unique_ptr<Type> type;
-            std::string name;
-            std::unique_ptr<Expr> init;
-        };
-
-        std::vector<Param> params;
-        std::unique_ptr<Stmt> body;
-    } anonymous_func;
-
     std::vector<std::unique_ptr<Expr>> array_items;
 };
 
