@@ -80,20 +80,16 @@ struct Expr : Node {
         Binary,
         Assign,
         MultiAssign,
-
         Ternary,
-        Range,
-
         Postfix,
 
         Call,
         Index,
 
-        Cast,
+        UnsafeCast,
         New,
 
         StructInit,
-        AnonymousFunc,
         ArrayLiteral
     } kind;
 
@@ -114,14 +110,14 @@ struct Expr : Node {
         std::unique_ptr<Expr> rhs;
     } binary;
 
-    // Single Assign Expr
+    // Single Assign Expr -> a = add(5,7);
     struct {
         AssignOp op;
         std::unique_ptr<Expr> lhs;
         std::unique_ptr<Expr> rhs;
     } single_assign;
 
-    // Multiple Assign Expr
+    // Multiple Assign Expr -> a, b = foo();
     struct {
         std::vector<std::unique_ptr<Expr>> lhs;
         std::vector<std::unique_ptr<Expr>> rhs;
@@ -134,7 +130,7 @@ struct Expr : Node {
         std::unique_ptr<Expr> else_expr;
     } ternary;
 
-    // Pipe Expr
+    // Pipe Expr -> 9 |> count;
     struct {
         std::unique_ptr<Expr> left;
         std::unique_ptr<Expr> right;
@@ -154,11 +150,11 @@ struct Expr : Node {
         std::vector<PostfixOp> ops;
     } postfix;
 
-    // cast
+    // cast -> foo as! T;
     struct {
         std::unique_ptr<Expr> base;
         std::unique_ptr<Type> target;
-    } cast;
+    } unsafe_cast;
 
     // new
     struct {
@@ -320,13 +316,13 @@ struct Function : Node {
 
     std::unique_ptr<Stmt> body;
 
-    bool is_static = false;
-    bool is_virtual = false;
-    bool is_const = false;
-    bool is_override = false;
-    bool is_dropped = false;
-    bool is_pure = false;
-    bool is_extern = false;
+    bool is_static = false; // static void foo();
+    bool is_virtual = false; // virtual void foo();
+    bool is_const = false; // void foo() const;
+    bool is_override = false; // void foo() override;
+    bool is_dropped = false; // virtual void foo() = drop;
+    bool is_pure = false; // virtual void foo() = 0;
+    bool is_extern = false; // extern void foo();
 };
 
 // Data Structure
