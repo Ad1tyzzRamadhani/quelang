@@ -210,7 +210,6 @@ struct Stmt : Node {
         std::vector<Item> items;
         std::optional<int> slot_id;
         bool is_static = false;
-        bool is_exported = false;
         bool is_extern = false;
     } var_decl;
 
@@ -327,7 +326,6 @@ struct Function : Node {
     bool is_override = false;
     bool is_dropped = false;
     bool is_pure = false;
-    bool is_exported = false;
     bool is_extern = false;
 };
 
