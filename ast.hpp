@@ -204,7 +204,6 @@ struct Stmt : Node {
         std::optional<int> slot_id;
         bool is_static = false;
         bool is_exported = false;
-        bool is_extern = false;
     } var_decl;
 
     struct {
@@ -291,7 +290,6 @@ struct ForwardDecl : Node {
     std::vector<std::unique_ptr<Type>> params;
     bool is_static = false;
     bool is_virtual = false;
-    bool is_extern = false;
 };
 
 struct Function : Node {
@@ -321,7 +319,7 @@ struct Function : Node {
     bool is_override = false;
     bool is_dropped = false;
     bool is_pure = false;
-    bool is_extern = false;
+    bool is_exported = false;
 };
 
 // Data Structure
@@ -359,7 +357,6 @@ struct StructDef : Node {
     std::unique_ptr<Constructor> ctor;
     std::unique_ptr<Destructor> dtor;
     std::unique_ptr<QualifiedName> base;
-    bool is_extern = false;
 };
 
 struct ClassDef : Node {
@@ -370,7 +367,6 @@ struct ClassDef : Node {
     std::unique_ptr<Destructor> dtor;
     std::unique_ptr<QualifiedName> base;
     std::vector<std::unique_ptr<Node>> members;
-    bool is_extern = false;
 };
 
 // Enum ( Enum Union & Constant Enum )
@@ -386,7 +382,6 @@ struct EnumDef : Node {
     };
 
     std::vector<Item> items;
-    bool is_extern = false;
 };
 
 // Module & Program
@@ -396,7 +391,7 @@ struct UseDecl : Node {
     std::optional<std::string> alias;
 };
 
-struct PackageDecl : Node {
+struct NamespaceDecl : Node {
     std::unique_ptr<QualifiedName> name;
     std::vector<std::unique_ptr<Node>> items;
 };
