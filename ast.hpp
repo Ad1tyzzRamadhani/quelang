@@ -211,6 +211,7 @@ struct Stmt : Node {
         std::optional<int> slot_id;
         bool is_static = false;
         bool is_exported = false;
+        bool is_extern = false;
     } var_decl;
 
     struct {
@@ -327,6 +328,7 @@ struct Function : Node {
     bool is_dropped = false;
     bool is_pure = false;
     bool is_exported = false;
+    bool is_extern = false;
 };
 
 // Data Structure
