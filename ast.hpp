@@ -123,9 +123,8 @@ struct Expr : Node {
 
     // Multiple Assign Expr
     struct {
-        std::unique_ptr<Expr> lhs_first;
-        std::unique_ptr<Expr> lhs_second;
-        std::unique_ptr<Expr> rhs;
+        std::vector<std::unique_ptr<Expr>> lhs;
+        std::vector<std::unique_ptr<Expr>> rhs;
     } multi_assign;
 
     // Ternary
@@ -294,7 +293,7 @@ struct ForwardDecl : Node {
     Visibility visibility = Visibility::Private;
     enum class Kind { Struct, Class, Function } kind;
     std::unique_ptr<QualifiedName> name;
-    std::unique_ptr<Type> return_type;
+    std::vector<std::unique_ptr<Type>> return_types;
     std::vector<std::unique_ptr<Type>> params;
     bool is_static = false;
     bool is_virtual = false;
