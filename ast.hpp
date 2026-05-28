@@ -79,6 +79,7 @@ struct Expr : Node {
         Unary,
         Binary,
         Assign,
+        MultiAssign,
 
         Ternary,
         Range,
@@ -113,14 +114,21 @@ struct Expr : Node {
         std::unique_ptr<Expr> rhs;
     } binary;
 
-    // Assign Expr
+    // Single Assign Expr
     struct {
         AssignOp op;
         std::unique_ptr<Expr> lhs;
         std::unique_ptr<Expr> rhs;
-    } assign;
+    } single_assign;
 
-    // Ternary, You can use this for If Expr
+    // Multiple Assign Expr
+    struct {
+        std::unique_ptr<Expr> lhs_first;
+        std::unique_ptr<Expr> lhs_second;
+        std::unique_ptr<Expr> rhs;
+    } multi_assign;
+
+    // Ternary
     struct {
         std::unique_ptr<Expr> cond;
         std::unique_ptr<Expr> then_expr;
@@ -275,7 +283,7 @@ struct Stmt : Node {
     std::string jump_target;
     std::unique_ptr<UseDecl> use_stmt;
 
-    std::unique_ptr<Expr> ret;
+    std::vector<std::unique_ptr<Expr>> ret_values;
 };
 
 // Top Level Scope Program
@@ -295,7 +303,7 @@ struct ForwardDecl : Node {
 struct Function : Node {
     Visibility visibility = Visibility::Private;
 
-    std::unique_ptr<Type> return_type;
+    std::vector<std::unique_ptr<Type>> return_types;
     std::unique_ptr<QualifiedName> name;
 
     struct Param {
