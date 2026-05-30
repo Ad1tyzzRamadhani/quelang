@@ -111,16 +111,12 @@ std::unique_ptr<Type> parseFuncPtrType() {
                     type->modifiers.push_back(
                         std::move(mod)
                     );
-
-                    continue;
                 }
 
                 pos = backup;
-                break;
             }
             catch (...) {
                 pos = backup;
-                break;
             }
         }
     return type;
