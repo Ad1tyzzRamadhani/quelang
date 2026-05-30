@@ -1,4 +1,4 @@
-std::unique_ptr<Type> parseType() {
+std::unique_ptr<Type> ParserState::parseType() {
     auto type = std::make_unique<Type>();
     if (peek().type == TokenType::LPAREN) return parseFuncPtrType();
     while (true) {
@@ -49,7 +49,7 @@ std::unique_ptr<Type> parseType() {
     return type;
 }
 
-std::unique_ptr<Type> parseFuncPtrType() {
+std::unique_ptr<Type> ParserState::parseFuncPtrType() {
         // function pointer
     auto type = std::make_unique<Type>();
         if (match(TokenType::KW_CONST)) {
