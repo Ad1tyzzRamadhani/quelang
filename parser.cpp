@@ -2,8 +2,8 @@ struct ParseState {
     const std::vector<Token>& tokens;
     size_t pos = 0;
 
-    std::unique_ptr<Type> parseType();
     std::unique_ptr<Type> parseFuncPtrType();
+    std::unique_ptr<Type> parseType();
 
     const Token& peek(int offset = 0) const {
         if (pos + offset >= tokens.size()) return tokens.back();
