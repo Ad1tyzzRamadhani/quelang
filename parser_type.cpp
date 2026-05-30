@@ -6,11 +6,13 @@ std::unique_ptr<Type> parseType() {
             type->qualifiers.push_back(
                 TypeQualifier::Const
             );
+            continue;
         }
         if (match(TokenType::KW_VOLATILE)) {
             type->qualifiers.push_back(
                 TypeQualifier::Volatile
             );
+            continue;
         }
         break;
     }
