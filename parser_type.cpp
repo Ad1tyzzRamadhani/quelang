@@ -104,7 +104,7 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType() {
                         std::move(params);
 
                     if (!match(TokenType::STAR)) {
-                        consume(TokenType::STAR, "Expected "*" after (");
+                        consume(TokenType::STAR);
                     }
 
                     type->modifiers.push_back(
