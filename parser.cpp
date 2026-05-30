@@ -17,7 +17,7 @@ struct ParseState {
         return false;
     }
 
-    void consume(TokenType t, const std::string& msg) {
+    void consume(TokenType t, const std::string& msg = "") {
         if (!match(t)) {
             throw std::runtime_error(msg);
         }
