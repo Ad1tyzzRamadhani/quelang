@@ -14,6 +14,12 @@ struct ParseState {
         return false;
     }
 
+    void consume(TokenType t, const std::string& msg) {
+        if (!match(t)) {
+            throw std::runtime_error(msg);
+        }
+    }
+
     [[noreturn]] void error(const std::string& msg) const {
         const auto& tok = peek();
         throw std::runtime_error(tok.file + ":" +
