@@ -15,8 +15,7 @@ std::unique_ptr<Type> parseType() {
             break;
         }
     }
-
-    type->base = parseQualifiedName(tokens, pos);
+    
     while (true) {
 
         // pointer
@@ -118,6 +117,8 @@ std::unique_ptr<Type> parseType() {
 
         break;
     }
+    type->base = parseQualifiedName(tokens, pos);
+    if (check(TokenType::STAR) || check(TokenType::AMP)) parseType();
 
     return type;
 }
