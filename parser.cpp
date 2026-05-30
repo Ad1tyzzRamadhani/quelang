@@ -2,6 +2,9 @@ struct ParseState {
     const std::vector<Token>& tokens;
     size_t pos = 0;
 
+    std::unique_ptr<Type> parseType();
+    std::unique_ptr<Type> parseFuncPtrType();
+
     const Token& peek(int offset = 0) const {
         if (pos + offset >= tokens.size()) return tokens.back();
         return tokens[pos + offset];
@@ -18,6 +21,10 @@ struct ParseState {
         if (!match(t)) {
             throw std::runtime_error(msg);
         }
+    }
+
+    bool check(TokenType type) {
+        return peek().type == type;
     }
 
     [[noreturn]] void error(const std::string& msg) const {
