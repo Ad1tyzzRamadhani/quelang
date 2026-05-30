@@ -1,5 +1,5 @@
 std::unique_ptr<Type> parseType() {
-    if (peek() == LPAREN) parseFuncPtrType();
+    if (peek() == LPAREN) return parseFuncPtrType();
     auto type = std::make_unique<Type>();
     while (true) {
         if (match(TokenType::KW_CONST)) {
@@ -16,6 +16,8 @@ std::unique_ptr<Type> parseType() {
             break;
         }
     }
+
+    type->base = parseQualifiedName(tokens, pos);
     
     while (true) {
 
@@ -65,7 +67,7 @@ std::unique_ptr<Type> parseFuncPtrType() {
 
             try {
 
-                advance(); // (
+                consume(TokenType::LPAREN);
 
                 std::vector<std::unique_ptr<Type>> params;
 
@@ -120,8 +122,5 @@ std::unique_ptr<Type> parseFuncPtrType() {
                 break;
             }
         }
-
-        break;
-
     return type;
 }
