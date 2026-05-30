@@ -179,6 +179,7 @@ enum class StorageKind {
     Uniform
 };
 
+struct Constructor;
 struct Stmt : Node {
     enum class Kind {
         VarDecl, If, While, DoWhile, For, Resume,
