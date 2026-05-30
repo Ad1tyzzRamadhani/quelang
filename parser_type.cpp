@@ -52,6 +52,11 @@ std::unique_ptr<Type> parseType() {
 std::unique_ptr<Type> parseFuncPtrType() {
         // function pointer
     auto type = std::make_unique<Type>();
+        if (match(TokenType::KW_CONST)) {
+            type->qualifiers.push_back(
+                TypeQualifier::Const
+            );
+        }
         if (peek().type == TokenType::LPAREN) {
             TypeModifier mod;
             consume(TokenType::LPAREN);
@@ -98,14 +103,8 @@ std::unique_ptr<Type> parseFuncPtrType() {
                     mod.func_params =
                         std::move(params);
 
-                    if (match(TokenType::STAR)) {
-                        // func ptr
-                    }
-                    else {
-                        consume(
-                            TokenType::AMP,
-                            "expected * or & after function type"
-                        );
+                    if (!match(TokenType::STAR)) {
+                        consume(TokenType::STAR, "Expected "*" after (");
                     }
 
                     type->modifiers.push_back(
