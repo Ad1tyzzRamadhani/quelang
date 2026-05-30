@@ -52,7 +52,6 @@ std::unique_ptr<Type> parseType() {
 std::unique_ptr<Type> parseFuncPtrType() {
         // function pointer
     auto type = std::make_unique<Type>();
-    while (true) {
         if (peek().type == TokenType::LPAREN) {
             TypeModifier mod;
             consume(TokenType::LPAREN);
@@ -124,7 +123,5 @@ std::unique_ptr<Type> parseFuncPtrType() {
                 break;
             }
         }
-        break;
-    }
     return type;
 }
