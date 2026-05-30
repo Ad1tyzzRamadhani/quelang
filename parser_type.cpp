@@ -45,6 +45,16 @@ std::unique_ptr<Type> parseType() {
 
         // function pointer
         if (peek().type == TokenType::LPAREN) {
+            TypeModifier mod;
+            consume(TokenType::LPAREN);
+            do {
+                mod.func_return.push_back(
+                parseType()
+                );
+            }
+            while(match(TokenType::COMMA));
+
+            consume(TokenType::RPAREN);
 
             size_t backup = pos;
 
@@ -74,7 +84,6 @@ std::unique_ptr<Type> parseType() {
                     check(TokenType::AMP)
                 ) {
 
-                    TypeModifier mod;
                     mod.kind =
                         TypeModifier::Kind::FuncPtr;
 
