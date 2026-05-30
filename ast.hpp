@@ -42,7 +42,7 @@ enum class TypeQualifier { Const, Volatile };
 struct TypeModifier {
     enum class Kind { Pointer, Reference, FuncPtr } kind;
     std::vector<std::unique_ptr<Type>> func_params;
-    std::unique_ptr<Type> func_return;
+    std::vector<std::unique_ptr<Type>> func_return;
 };
 
 struct Type : Node {
