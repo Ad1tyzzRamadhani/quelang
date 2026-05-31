@@ -175,8 +175,7 @@ struct Expr : Node {
 struct UseDecl;
 enum class StorageKind {
     Normal,
-    Static,
-    Uniform
+    Static
 };
 
 struct Constructor;
@@ -185,7 +184,7 @@ struct Stmt : Node {
         VarDecl, If, While, DoWhile, For, Resume,
         Return, Break, Continue, SwitchCase,
         ExprStmt, Block, Defer, UseStmt,
-        Label, Jump, InlineStruct,
+        Label, Jump,
         Drop, Yield
     } kind;
 
@@ -205,19 +204,9 @@ struct Stmt : Node {
         };
 
         std::vector<Item> items;
-        std::optional<int> slot_id;
         bool is_static = false;
         bool is_extern = false;
     } var_decl;
-
-    struct {
-        std::vector<std::unique_ptr<Node>> members;
-        std::unique_ptr<Constructor> ctor;
-        std::unique_ptr<QualifiedName> var_name;
-        std::unique_ptr<Expr> init_expr;
-        std::vector<TypeQualifier> qualifiers;
-        std::vector<TypeModifier> modifiers;
-    } inline_struct;
 
     struct {
         std::unique_ptr<Expr> cond;
