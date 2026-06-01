@@ -3,12 +3,14 @@ std::unique_ptr<Type> ParseState::parseType() {
     if (peek().type == TokenType::LPAREN) return parseFuncPtrType();
     while (true) {
         if (match(TokenType::KW_CONST)) {
+            if (peek().type == TokenType::LPAREN) return parseFuncPtrType();
             type->qualifiers.push_back(
                 TypeQualifier::Const
             );
             continue;
         }
         if (match(TokenType::KW_VOLATILE)) {
+            if (peek().type == TokenType::LPAREN) return parseFuncPtrType();
             type->qualifiers.push_back(
                 TypeQualifier::Volatile
             );
@@ -57,6 +59,10 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType() {
                 TypeQualifier::Const
             );
         }
+        if (match(TokenType::KW_VOLATILE)) {
+            type->qualifiers.push_back(
+                TypeQualifier::Volatile
+            );
         if (peek().type == TokenType::LPAREN) {
             TypeModifier mod;
             consume(TokenType::LPAREN);
