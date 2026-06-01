@@ -1,6 +1,5 @@
 std::unique_ptr<Type> ParseState::parseType() {
     auto type = std::make_unique<Type>();
-    if (peek().type == TokenType::LPAREN) return parseFuncPtrType();
     while (true) {
         if (match(TokenType::KW_CONST)) {
             if (peek().type == TokenType::LPAREN) return parseFuncPtrType();
@@ -18,6 +17,7 @@ std::unique_ptr<Type> ParseState::parseType() {
         }
         break;
     }
+    if (peek().type == TokenType::LPAREN) return parseFuncPtrType();
 
     type->base = parseQualifiedName(tokens, pos);
     
