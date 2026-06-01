@@ -60,12 +60,14 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType() {
         if (peek().type == TokenType::LPAREN) {
             TypeModifier mod;
             consume(TokenType::LPAREN);
-            do {
-                mod.func_return.push_back(
-                parseType()
-                );
+            if (!check(TokenType::RPAREN)) {
+                do {
+                    mod.func_return.push_back(
+                    parseType()
+                    );
+                }
+                while(match(TokenType::COMMA));
             }
-            while(match(TokenType::COMMA));
 
             consume(TokenType::RPAREN);
 
@@ -93,8 +95,7 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType() {
                 );
 
                 if (
-                    check(TokenType::STAR) ||
-                    check(TokenType::AMP)
+                    check(TokenType::STAR)
                 ) {
 
                     mod.kind =
