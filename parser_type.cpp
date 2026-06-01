@@ -63,6 +63,7 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType() {
             type->qualifiers.push_back(
                 TypeQualifier::Volatile
             );
+        }
         if (peek().type == TokenType::LPAREN) {
             TypeModifier mod;
             consume(TokenType::LPAREN);
