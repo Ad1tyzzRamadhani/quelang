@@ -104,16 +104,12 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType() {
                     mod.func_params =
                         std::move(params);
 
-                    if (!match(TokenType::STAR)) {
-                        consume(TokenType::STAR);
-                    }
+                    consume(TokenType::STAR);
 
                     type->modifiers.push_back(
                         std::move(mod)
                     );
                 }
-
-                pos = backup;
             }
             catch (...) {
                 pos = backup;
