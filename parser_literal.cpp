@@ -3,7 +3,7 @@ std::unique_ptr<Literal> parseLiteral( const Token& tok) {
     lit->line_start = tok.line;
     lit->column_start = tok.column;
     lit->line_end = tok.line;
-    lit->column_end = tok.column;
+    lit->column_end = tok.column + tok.length - 1;
 
     switch(tok.type) {
         case TokenType::NUMBER:
