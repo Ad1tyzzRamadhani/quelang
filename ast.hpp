@@ -271,6 +271,8 @@ struct Stmt : Node {
     std::vector<std::unique_ptr<Expr>> ret_values;
 };
 
+struct DefaultField { std::string fieldname;}
+
 // Top Level Scope Program
 
 enum class Visibility { Private, Public, Protect };
