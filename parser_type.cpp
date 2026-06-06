@@ -2,14 +2,14 @@ std::unique_ptr<Type> ParseState::parseType() {
     auto type = std::make_unique<Type>();
     while (true) {
         if (match(TokenType::KW_CONST)) {
-            if (peek().type == TokenType::LPAREN) return parseFuncPtrType();
+            if (peek().type == TokenType::LPAREN) return parseFuncPtrType(TypeQualifier::Const, true);
             type->qualifiers.push_back(
                 TypeQualifier::Const
             );
             continue;
         }
         if (match(TokenType::KW_VOLATILE)) {
-            if (peek().type == TokenType::LPAREN) return parseFuncPtrType();
+            if (peek().type == TokenType::LPAREN) return parseFuncPtrType(TypeQualifier::Volatile, true);
             type->qualifiers.push_back(
                 TypeQualifier::Volatile
             );
@@ -51,9 +51,10 @@ std::unique_ptr<Type> ParseState::parseType() {
     return type;
 }
 
-std::unique_ptr<Type> ParseState::parseFuncPtrType() {
+std::unique_ptr<Type> ParseState::parseFuncPtrType(TypeQualifier tq = TypeQualifier::Volatile, bool is_havq) {
         // function pointer
     auto type = std::make_unique<Type>();
+    if (is_havq) { type->qualifier.push_back(tq);}
         if (match(TokenType::KW_CONST)) {
             type->qualifiers.push_back(
                 TypeQualifier::Const
