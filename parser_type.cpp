@@ -54,7 +54,7 @@ std::unique_ptr<Type> ParseState::parseType() {
 std::unique_ptr<Type> ParseState::parseFuncPtrType(TypeQualifier tq = TypeQualifier::Volatile, bool is_havq) {
         // function pointer
     auto type = std::make_unique<Type>();
-    if (is_havq) { type->qualifier.push_back(tq);}
+    if (is_havq) { type->qualifiers.push_back(tq);}
         if (match(TokenType::KW_CONST)) {
             type->qualifiers.push_back(
                 TypeQualifier::Const
