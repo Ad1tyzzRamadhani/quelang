@@ -204,7 +204,7 @@ struct Stmt : Node {
         };
 
         std::vector<Item> items;
-        bool is_static = false;
+        bool is_static_access = false;
         bool is_extern = false;
     } var_decl;
 
@@ -271,8 +271,6 @@ struct Stmt : Node {
     std::vector<std::unique_ptr<Expr>> ret_values;
 };
 
-struct DefaultField { std::string fieldname;}
-
 // Top Level Scope Program
 
 enum class Visibility { Private, Public, Protect };
@@ -308,7 +306,7 @@ struct Function : Node {
 
     std::unique_ptr<Stmt> body;
 
-    bool is_static = false; // static void foo();
+    bool is_static_access = false; // static void foo();
     bool is_virtual = false; // virtual void foo();
     bool is_const = false; // void foo() const;
     bool is_override = false; // void foo() override;
@@ -329,11 +327,16 @@ struct UnionDef : Node {
     };
 
     std::vector<Field> fields;
+    std::optional<std::string> default_field;
 };
 
 struct Constructor : Node {
-    std::vector<std::unique_ptr<Type>> param_types;
-    std::vector<std::string> param_names;
+    struct Param {
+        std::unique_ptr<Type> type;
+        std::string name;
+        std::unique_ptr<Expr> init;
+    };
+    std::vector<Param> params;
     std::unique_ptr<Stmt> body;
     bool is_dropped = false;
 };
@@ -352,6 +355,7 @@ struct StructDef : Node {
     std::unique_ptr<Constructor> ctor;
     std::unique_ptr<Destructor> dtor;
     std::unique_ptr<QualifiedName> base;
+    std::optional<std::string> default_field;
 };
 
 struct ClassDef : Node {
@@ -362,6 +366,7 @@ struct ClassDef : Node {
     std::unique_ptr<Destructor> dtor;
     std::unique_ptr<QualifiedName> base;
     std::vector<std::unique_ptr<Node>> members;
+    std::optional<std::string> default_field;
 };
 
 // Enum ( Enum Union & Constant Enum )
