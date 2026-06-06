@@ -83,9 +83,6 @@ struct Expr : Node {
         Ternary,
         Postfix,
 
-        Call,
-        Index,
-
         UnsafeCast,
         New,
 
@@ -173,11 +170,6 @@ struct Expr : Node {
 // Statement
 
 struct UseDecl;
-enum class StorageKind {
-    Normal,
-    Static
-};
-
 struct Constructor;
 struct Stmt : Node {
     enum class Kind {
@@ -194,8 +186,6 @@ struct Stmt : Node {
 
     struct VarDecl {
         std::unique_ptr<Type> type;
-        StorageKind storage = StorageKind::Normal;
-
         struct Item {
             std::unique_ptr<QualifiedName> name;
             std::unique_ptr<Expr> init;
@@ -204,7 +194,7 @@ struct Stmt : Node {
         };
 
         std::vector<Item> items;
-        bool is_static_access = false;
+        bool is_static = false;
         bool is_extern = false;
     } var_decl;
 
@@ -306,7 +296,7 @@ struct Function : Node {
 
     std::unique_ptr<Stmt> body;
 
-    bool is_static_access = false; // static void foo();
+    bool is_static = false; // static void foo();
     bool is_virtual = false; // virtual void foo();
     bool is_const = false; // void foo() const;
     bool is_override = false; // void foo() override;
@@ -319,7 +309,7 @@ struct Function : Node {
 
 struct UnionDef : Node {
     Visibility visibility = Visibility::Private;
-    std::string name;
+    std::unique_ptr<QualifiedName> name;
 
     struct Field {
         std::unique_ptr<Type> type;
