@@ -177,7 +177,7 @@ struct Stmt : Node {
         Return, Break, Continue, SwitchCase,
         ExprStmt, Block, Defer, UseStmt,
         Label, Jump,
-        Drop, Yield
+        Drop, Wipe, Yield
     } kind;
 
     struct {
@@ -245,6 +245,10 @@ struct Stmt : Node {
     struct {
         std::unique_ptr<Expr> expr;
     } drop_stmt;
+
+    struct {
+        std::unique_ptr<Expr> expr;
+    } wipe_stmt;
 
     struct {
         std::unique_ptr<Stmt> stmt;
