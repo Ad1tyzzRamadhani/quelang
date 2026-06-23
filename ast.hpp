@@ -301,11 +301,7 @@ struct Function : Node {
     std::unique_ptr<Stmt> body;
 
     bool is_static = false; // static void foo();
-    bool is_virtual = false; // virtual void foo();
     bool is_const = false; // void foo() const;
-    bool is_override = false; // void foo() override;
-    bool is_dropped = false; // virtual void foo() = drop;
-    bool is_pure = false; // virtual void foo() = 0;
     bool is_extern = false; // extern void foo();
 };
 
