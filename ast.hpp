@@ -244,10 +244,13 @@ struct Stmt : Node {
 
     struct {
         std::unique_ptr<Expr> expr;
+        bool is_array = false;
+        bool is_reference = false;
     } drop_stmt;
 
     struct {
         std::unique_ptr<Expr> expr;
+        bool is_array = false;
     } wipe_stmt;
 
     struct {
@@ -328,13 +331,9 @@ struct Constructor : Node {
     };
     std::vector<Param> params;
     std::unique_ptr<Stmt> body;
-    bool is_dropped = false;
 };
 
 struct Destructor : Node {
-    bool is_virtual = false;
-    bool is_override = false;
-    bool is_dropped = false;
     std::unique_ptr<Stmt> body;
 };
 
