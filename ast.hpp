@@ -279,7 +279,6 @@ struct ForwardDecl : Node {
     std::vector<std::unique_ptr<Type>> return_types;
     std::vector<std::unique_ptr<Type>> params;
     bool is_static = false;
-    bool is_virtual = false;
 };
 
 struct Function : Node {
