@@ -157,7 +157,7 @@ struct Expr : Node {
     struct {
         std::unique_ptr<QualifiedName> type;
         std::vector<std::unique_ptr<Expr>> args;
-        std::vector<std::unique_ptr<Expr>> array_dims;
+        std::vector<std::unique_ptr<Literal>> array_dims;
     } new_expr;
 
     struct {
@@ -190,7 +190,7 @@ struct Stmt : Node {
             std::unique_ptr<QualifiedName> name;
             std::unique_ptr<Expr> init;
             std::unique_ptr<Expr> ctor;
-            std::vector<std::unique_ptr<Expr>> array_dims;
+            std::vector<std::unique_ptr<Literal>> array_dims;
         };
 
         std::vector<Item> items;
