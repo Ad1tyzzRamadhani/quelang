@@ -21,10 +21,10 @@ enum class TokenType {
     KW_WHILE, KW_DO, KW_FOR,
     KW_RETURN, KW_BREAK, KW_CONTINUE,
     KW_STRUCT, KW_ENUM, KW_NAMESPACE, KW_CO,
-    KW_USE, KW_AS, KW_DROP, KW_CLASS, KW_UNION,
+    KW_USE, KW_AS, KW_DROP, KW_UNION,
     KW_TRUE, KW_FALSE, KW_NULL, KW_THIS,
     KW_PUBLIC, KW_STATIC, KW_CONST, KW_VOLATILE, KW_EXTERN,
-    KW_AND, KW_OR, KW_XOR, KW_PROTECTED,
+    KW_AND, KW_OR, KW_XOR, KW_INTERFACE,
     KW_DEFAULT, KW_SUPER, KW_CONSTRUCT, KW_NORETURN,
     KW_JUMPTO, KW_SWITCH, KW_CASE, KW_DEFER, KW_YIELD,
     KW_NEW, KW_NOT, KW_RESUME, KW_WIPE,
@@ -40,7 +40,7 @@ enum class TokenType {
     LPAREN, RPAREN,
     LBRACE, RBRACE,
     LBRACKET, RBRACKET,
-    COMMA, SEMICOLON, DOT, COLON, SAFE_DOT
+    COMMA, SEMICOLON, DOT, COLON, SAFE_ACCESS
 };
 
 struct Token {
@@ -260,7 +260,7 @@ private:
     void op() {
         int l=line,c=column;
 
-        char a=peek(), b=peek(1);
+        char a=peek(), b=peek(1); c=peek(2);
 
         if(a=='-'&&b=='>'){advance();advance();emit(TokenType::ARROW,"",l,c);return;}
         if(a=='+'&&b=='='){advance();advance();emit(TokenType::PLUS_EQ,"",l,c);return;}
@@ -272,7 +272,7 @@ private:
         if(a=='!'&&b=='='){advance();advance();emit(TokenType::NEQ,"",l,c);return;}
         if(a=='<'&&b=='='){advance();advance();emit(TokenType::LTE,"",l,c);return;}
         if(a=='>'&&b=='='){advance();advance();emit(TokenType::GTE,"",l,c);return;}
-        if(a=='?'&&b=='.'){advance();advance();emit(TokenType::SAFE_DOT,"",l,c);return;}
+        if(a=='?'&&b=='-'&&c=='>'){advance();advance();emit(TokenType::SAFE_ACCESS,"",l,c);return;}
         if(a=='?'&&b=='='){advance();advance();emit(TokenType::QUESTION_EQ,"",l,c);return;}
         if(a==':'&&b==':'){advance();advance();emit(TokenType::SCOPE,"",l,c);return;}
         if(a=='<'&&b=='<'){advance();advance();emit(TokenType::LSHIFT,"",l,c);return;}
@@ -341,10 +341,10 @@ const std::unordered_map<std::string,TokenType> Lexer::keyword_map={
     {"const",TokenType::KW_CONST},{"volatile",TokenType::KW_VOLATILE},{"resume",TokenType::KW_RESUME},
     {"and",TokenType::KW_AND},{"or",TokenType::KW_OR},{"xor",TokenType::KW_XOR},{"co",TokenType::KW_CO},
     {"noreturn",TokenType::KW_NORETURN},{"extern",TokenType::KW_EXTERN},
-    {"default",TokenType::KW_DEFAULT},
+    {"default",TokenType::KW_DEFAULT},{"interface",TokenType::KW_INTERFACE},
     {"not", TokenType::KW_NOT},{"switch",TokenType::KW_SWITCH},{"case",TokenType::KW_CASE},
-    {"jumpto",TokenType::KW_JUMPTO},{"super",TokenType::KW_SUPER},{"class",TokenType::KW_CLASS},
-    {"new",TokenType::KW_NEW},{"protected",TokenType::KW_PROTECTED},{"yield",TokenType::KW_YIELD},
+    {"jumpto",TokenType::KW_JUMPTO},
+    {"new",TokenType::KW_NEW},{"yield",TokenType::KW_YIELD},
     {"construct",TokenType::KW_CONSTRUCT},
 };
 
