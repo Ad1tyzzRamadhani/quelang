@@ -346,6 +346,19 @@ struct StructDef : Node {
     std::optional<std::string> default_field;
 };
 
+struct InterfaceDef : Node {
+    Visibility visibility = Visibility::Private;
+    std::unique_ptr<QualifiedName> name;
+
+    struct Method {
+        std::vector<std::unique_ptr<Type>> return_type;
+        std::string name;
+        std::vector<std::unique_ptr<Type>> params;
+    };
+
+    std::vector<Method> methods;
+};
+
 // Enum ( Enum Union & Constant Enum )
 
 struct EnumDef : Node {
