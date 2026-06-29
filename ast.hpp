@@ -135,7 +135,7 @@ struct Expr : Node {
 
     // PostFix Op
     struct PostfixOp {
-        enum class Kind { Field, NullField, Scope, Arrow, Call, Index } kind;
+        enum class Kind { Field, NullArrow, Scope, Arrow, Call, Index } kind;
 
         std::string name;
         std::vector<std::unique_ptr<Expr>> args;
@@ -342,18 +342,7 @@ struct StructDef : Node {
     std::vector<std::unique_ptr<Node>> members;
     std::unique_ptr<Constructor> ctor;
     std::unique_ptr<Destructor> dtor;
-    std::unique_ptr<QualifiedName> base;
-    std::optional<std::string> default_field;
-};
-
-struct ClassDef : Node {
-    Visibility visibility = Visibility::Private;
-    std::unique_ptr<QualifiedName> name;
-
-    std::unique_ptr<Constructor> ctor;
-    std::unique_ptr<Destructor> dtor;
-    std::unique_ptr<QualifiedName> base;
-    std::vector<std::unique_ptr<Node>> members;
+    std::vector<std::unique_ptr<QualifiedName>> implements;
     std::optional<std::string> default_field;
 };
 
