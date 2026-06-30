@@ -42,7 +42,7 @@ enum class TypeQualifier { Const, Volatile };
 struct TypeModifier {
     enum class Kind { Pointer, Reference, FuncPtr } kind;
     std::vector<std::unique_ptr<Type>> func_params;
-    std::vector<std::unique_ptr<Type>> func_return;
+    std::unique_ptr<Type> func_return;
 };
 
 struct Type : Node {
@@ -68,22 +68,20 @@ enum class UnaryOp {
 };
 
 enum class AssignOp {
-    Assign, AddEq, SubEq, MulEq, DivEq, ModEq, NullAssign
+    Assign, AddEq, SubEq, MulEq, DivEq, ModEq
 };
 
 struct Expr : Node {
     enum class Kind {
         Literal, Ident,
 
-        Pipe,
         Unary,
         Binary,
         Assign,
-        MultiAssign,
         Ternary,
         Postfix,
 
-        UnsafeCast,
+        Cast,
         New,
 
         StructInit,
@@ -112,13 +110,7 @@ struct Expr : Node {
         AssignOp op;
         std::unique_ptr<Expr> lhs;
         std::unique_ptr<Expr> rhs;
-    } single_assign;
-
-    // Multiple Assign Expr -> a, b = foo();
-    struct {
-        std::vector<std::unique_ptr<Expr>> lhs;
-        std::vector<std::unique_ptr<Expr>> rhs;
-    } multi_assign;
+    } assign;
 
     // Ternary
     struct {
@@ -127,15 +119,9 @@ struct Expr : Node {
         std::unique_ptr<Expr> else_expr;
     } ternary;
 
-    // Pipe Expr -> 9 |> count;
-    struct {
-        std::unique_ptr<Expr> left;
-        std::unique_ptr<Expr> right;
-    } pipe;
-
     // PostFix Op
     struct PostfixOp {
-        enum class Kind { Field, NullArrow, Scope, Arrow, Call, Index } kind;
+        enum class Kind { Unsafe, MemberAccess, StaticAccess, SafeArrow, Scope, Arrow, Call, Index } kind;
 
         std::string name;
         std::vector<std::unique_ptr<Expr>> args;
@@ -151,7 +137,7 @@ struct Expr : Node {
     struct {
         std::unique_ptr<Expr> base;
         std::unique_ptr<Type> target;
-    } unsafe_cast;
+    } cast;
 
     // new
     struct {
@@ -265,7 +251,7 @@ struct Stmt : Node {
     std::string jump_target;
     std::unique_ptr<UseDecl> use_stmt;
 
-    std::vector<std::unique_ptr<Expr>> ret_values;
+    std::unique_ptr<Expr> ret_values;
 };
 
 // Top Level Scope Program
@@ -274,9 +260,9 @@ enum class Visibility { Private, Public, Protected };
 
 struct ForwardDecl : Node {
     Visibility visibility = Visibility::Private;
-    enum class Kind { Struct, Class, Function } kind;
+    enum class Kind { Struct, Function } kind;
     std::unique_ptr<QualifiedName> name;
-    std::vector<std::unique_ptr<Type>> return_types;
+    std::unique_ptr<Type> return_types;
     std::vector<std::unique_ptr<Type>> params;
     bool is_static = false;
 };
@@ -284,7 +270,7 @@ struct ForwardDecl : Node {
 struct Function : Node {
     Visibility visibility = Visibility::Private;
 
-    std::vector<std::unique_ptr<Type>> return_types;
+    std::unique_ptr<Type> return_types;
     std::unique_ptr<QualifiedName> name;
 
     struct Param {
@@ -292,16 +278,11 @@ struct Function : Node {
         std::string name;
         std::unique_ptr<Expr> init;
     };
-
-    struct CoroutineInfo {
-        std::unique_ptr<QualifiedName> state_type;
-    };
-
-    std::optional<CoroutineInfo> coroutine;
     std::vector<Param> params;
 
     std::unique_ptr<Stmt> body;
 
+    bool is_coroutine = false;
     bool is_static = false; // static void foo();
     bool is_const = false; // void foo() const;
     bool is_extern = false; // extern void foo();
@@ -351,7 +332,7 @@ struct InterfaceDef : Node {
     std::unique_ptr<QualifiedName> name;
 
     struct Method {
-        std::vector<std::unique_ptr<Type>> return_type;
+        std::unique_ptr<Type> return_type;
         std::string name;
         std::vector<std::unique_ptr<Type>> params;
     };
