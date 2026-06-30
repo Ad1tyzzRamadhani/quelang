@@ -25,7 +25,7 @@ enum class TokenType {
     KW_TRUE, KW_FALSE, KW_NULL, KW_THIS,
     KW_PUBLIC, KW_STATIC, KW_CONST, KW_VOLATILE, KW_EXTERN,
     KW_AND, KW_OR, KW_XOR, KW_INTERFACE,
-    KW_DEFAULT, KW_SUPER, KW_CONSTRUCT, KW_NORETURN,
+    KW_DEFAULT, KW_CONSTRUCT, KW_NORETURN,
     KW_JUMPTO, KW_SWITCH, KW_CASE, KW_DEFER, KW_YIELD,
     KW_NEW, KW_NOT, KW_RESUME, KW_WIPE,
 
@@ -260,7 +260,7 @@ private:
     void op() {
         int l=line,c=column;
 
-        char a=peek(), b=peek(1); c=peek(2);
+        char a=peek(), b=peek(1), c=peek(2);
 
         if(a=='-'&&b=='>'){advance();advance();emit(TokenType::ARROW,"",l,c);return;}
         if(a=='+'&&b=='='){advance();advance();emit(TokenType::PLUS_EQ,"",l,c);return;}
