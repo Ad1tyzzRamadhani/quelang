@@ -69,12 +69,7 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(TypeQualifier tq = TypeQualif
             TypeModifier mod;
             consume(TokenType::LPAREN);
             if (!check(TokenType::RPAREN)) {
-                do {
-                    mod.func_return.push_back(
-                    parseType()
-                    );
-                }
-                while(match(TokenType::COMMA));
+                mod.func_return = parseType();
             }
 
             consume(TokenType::RPAREN);
