@@ -33,9 +33,9 @@ enum class TokenType {
     EQ, EQEQ, NEQ, SCOPE,
     LT, LTE, GT, GTE, RANGE,
     PLUS_EQ, MINUS_EQ, STAR_EQ, SLASH_EQ, PERCENT_EQ,
-    AMP,PIPE, CARET, TILDE,
+    AMP, CARET, TILDE,
     LSHIFT, RSHIFT,
-    QUESTION, QUESTION_EQ, COALESCE,
+    QUESTION, COALESCE,
     BANG, DOLLAR,
     LPAREN, RPAREN,
     LBRACE, RBRACE,
@@ -273,13 +273,10 @@ private:
         if(a=='<'&&b=='='){advance();advance();emit(TokenType::LTE,"",l,c);return;}
         if(a=='>'&&b=='='){advance();advance();emit(TokenType::GTE,"",l,c);return;}
         if(a=='?'&&b=='-'&&c=='>'){advance();advance();emit(TokenType::SAFE_ACCESS,"",l,c);return;}
-        if(a=='?'&&b=='='){advance();advance();emit(TokenType::QUESTION_EQ,"",l,c);return;}
         if(a==':'&&b==':'){advance();advance();emit(TokenType::SCOPE,"",l,c);return;}
         if(a=='<'&&b=='<'){advance();advance();emit(TokenType::LSHIFT,"",l,c);return;}
         if(a=='>'&&b=='>'){advance();advance();emit(TokenType::RSHIFT,"",l,c);return;}
         if(a=='?'&&b=='?'){advance();advance();emit(TokenType::COALESCE,"",l,c);return;}
-        if(a=='.'&&b=='.'){advance();advance();emit(TokenType::RANGE,"",l,c);return;}
-        if(a=='|'&&b=='>'){advance();advance();emit(TokenType::PIPE,"",l,c);return;}
 
         char ch=advance();
 
