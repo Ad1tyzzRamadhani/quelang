@@ -251,7 +251,7 @@ struct Stmt : Node {
     std::string jump_target;
     std::unique_ptr<UseDecl> use_stmt;
 
-    std::unique_ptr<Expr> ret_values;
+    std::unique_ptr<Expr> return_values;
 };
 
 // Top Level Scope Program
