@@ -256,7 +256,7 @@ struct Stmt : Node {
 
 // Top Level Scope Program
 
-enum class Visibility { Private, Public, Protected };
+enum class Visibility { Private, Public };
 
 struct ForwardDecl : Node {
     Visibility visibility = Visibility::Private;
