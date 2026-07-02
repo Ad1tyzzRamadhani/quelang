@@ -147,3 +147,93 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     error("invalid primary expression");
     return nullptr;
 }
+
+std::unique_ptr<Expr> ParseState::parsePostfix() {
+    auto base = parsePrimary();
+
+    while (true) {
+
+        if (match(TokenType::DOT)) {
+            if (peek().type != TokenType::IDENT)
+                error("expected identifier after '.'");
+
+            Expr::PostfixOp op;
+            op.kind = Expr::PostfixOp::Kind::MemberAccess;
+            op.name = advance().value;
+
+            auto expr = std::make_unique<Expr>();
+            expr->kind = Expr::Kind::Postfix;
+            expr->postfix.base = std::move(base);
+            expr->postfix.ops.push_back(std::move(op));
+
+            base = std::move(expr);
+            continue;
+        }
+
+        if (match(TokenType::ARROW)) {
+            if (peek().type != TokenType::IDENT)
+                error("expected identifier after '->'");
+
+            Expr::PostfixOp op;
+            op.kind = Expr::PostfixOp::Kind::Arrow;
+            op.name = advance().value;
+
+            auto expr = std::make_unique<Expr>();
+            expr->kind = Expr::Kind::Postfix;
+            expr->postfix.base = std::move(base);
+            expr->postfix.ops.push_back(std::move(op));
+
+            base = std::move(expr);
+            continue;
+        }
+
+        if (match(TokenType::LPAREN)) {
+            Expr::PostfixOp op;
+            op.kind = Expr::PostfixOp::Kind::Call;
+            op.args = parseArgList();
+
+            consume(TokenType::RPAREN);
+
+            auto expr = std::make_unique<Expr>();
+            expr->kind = Expr::Kind::Postfix;
+            expr->postfix.base = std::move(base);
+            expr->postfix.ops.push_back(std::move(op));
+
+            base = std::move(expr);
+            continue;
+        }
+
+        if (match(TokenType::LBRACKET)) {
+            Expr::PostfixOp op;
+            op.kind = Expr::PostfixOp::Kind::Index;
+            op.index = parseExpr();
+
+            consume(TokenType::RBRACKET);
+
+            auto expr = std::make_unique<Expr>();
+            expr->kind = Expr::Kind::Postfix;
+            expr->postfix.base = std::move(base);
+            expr->postfix.ops.push_back(std::move(op));
+
+            base = std::move(expr);
+            continue;
+        }
+
+        if (match(TokenType::KW_UNSAFE)) {
+            Expr::PostfixOp op;
+            op.kind = Expr::PostfixOp::Kind::Unsafe;
+
+            auto expr = std::make_unique<Expr>();
+            expr->kind = Expr::Kind::Postfix;
+            expr->postfix.base = std::move(base);
+            expr->postfix.ops.push_back(std::move(op));
+
+            base = std::move(expr);
+            continue;
+        }
+
+        break;
+    }
+
+    return base;
+}
