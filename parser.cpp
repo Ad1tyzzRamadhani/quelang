@@ -4,6 +4,7 @@ struct ParseState {
 
     std::unique_ptr<Type> parseFuncPtrType(std::vector<TypeQualifier> tq);
     std::unique_ptr<Type> parseType();
+    std::unique_ptr<Expr> parsePostfix();
     std::vector<std::unique_ptr<Expr>> parseArgList();
     std::unique_ptr<Expr> parseExpr();
 
