@@ -110,7 +110,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
 
     // ------------------------
     // NEW expression
-    // new Type(...)
+    // new Type(...) & new Type[...]
     // ------------------------
     if (match(TokenType::KW_NEW)) {
         auto expr = std::make_unique<Expr>();
@@ -126,9 +126,12 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
             }
             consume(TokenType::RPAREN);
         }
-        if (match(TokenType::LBRACKET)) {
+        while (match(TokenType::LBRACKET)) {
             if (!check(TokenType::RBRACKET)) {
-                expr->new_expr.array_dims;
+                expr->new_expr.array_dims.push_back(parseExpr());
+            } else error("Array Dims in '[ ... ]' Can't Empty!");
+            consume(TokenType::RBRACKET);
+        }
 
         return expr;
     }
