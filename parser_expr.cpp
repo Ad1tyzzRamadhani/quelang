@@ -126,6 +126,9 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
             }
             consume(TokenType::RPAREN);
         }
+        if (match(TokenType::LBRACKET)) {
+            if (!check(TokenType::RBRACKET)) {
+                expr->new_expr.array_dims;
 
         return expr;
     }
