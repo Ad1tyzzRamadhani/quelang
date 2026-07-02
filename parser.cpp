@@ -4,6 +4,8 @@ struct ParseState {
 
     std::unique_ptr<Type> parseFuncPtrType(std::vector<TypeQualifier> tq);
     std::unique_ptr<Type> parseType();
+    std::vector<std::unique_ptr<Expr>> parseArgList();
+    std::unique_ptr<Expr> parseExpr();
 
     const Token& peek(int offset = 0) const {
         if (pos + offset >= tokens.size()) return tokens.back();
@@ -34,3 +36,19 @@ struct ParseState {
                                  std::to_string(tok.column) + " " + msg);
     }
 };
+
+std::vector<std::unique_ptr<Expr>> ParseState::parseArgList() {
+    std::vector<std::unique_ptr<Expr>> args;
+
+    if (!check(TokenType::RPAREN)) {
+        do {
+            args.push_back(parseExpr());
+        } while (match(TokenType::COMMA));
+    }
+
+    return args;
+}
+
+std::unique_ptr<Expr> ParseState::parseExpr() {
+    return parsePostfix();
+}
