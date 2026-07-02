@@ -225,7 +225,9 @@ private:
             if (!peek()) error("unterminated raw string");
 
             if (peek()==')') {
-                size_t save=pos;
+                size_t save_pos = pos;
+                int save_line = line;
+                int save_column = column;
                 advance();
                 bool match=true;
                 for(char d:delim){
@@ -236,7 +238,9 @@ private:
                     advance();
                     break;
                 }
-                pos=save;
+                pos=save_pos;
+                line=save_line;
+                column=save_column;
             }
             content+=advance();
         }
