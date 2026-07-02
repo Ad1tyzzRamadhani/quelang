@@ -2,7 +2,7 @@ struct ParseState {
     const std::vector<Token>& tokens;
     size_t pos = 0;
 
-    std::unique_ptr<Type> parseFuncPtrType();
+    std::unique_ptr<Type> parseFuncPtrType(TypeQualifier tq);
     std::unique_ptr<Type> parseType();
 
     const Token& peek(int offset = 0) const {
