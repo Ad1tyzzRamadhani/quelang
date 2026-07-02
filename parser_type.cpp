@@ -49,10 +49,10 @@ std::unique_ptr<Type> ParseState::parseType() {
     return type;
 }
 
-std::unique_ptr<Type> ParseState::parseFuncPtrType(TypeQualifier tq) {
+std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq) {
         // function pointer
     auto type = std::make_unique<Type>();
-    type->qualifiers.push_back(tq);
+    type->qualifiers = tq;
         if (match(TokenType::KW_CONST)) {
             type->qualifiers.push_back(
                 TypeQualifier::Const
