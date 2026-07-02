@@ -33,7 +33,7 @@ enum class TokenType {
     EQ, EQEQ, NEQ, SCOPE,
     LT, LTE, GT, GTE,
     PLUS_EQ, MINUS_EQ, STAR_EQ, SLASH_EQ, PERCENT_EQ,
-    AMP, CARET, TILDE,
+    AMP, CARET, TILDE, BAR,
     LSHIFT, RSHIFT,
     QUESTION, COALESCE,
     BANG, DOLLAR,
@@ -260,7 +260,7 @@ private:
     void op() {
         int l=line,c=column;
 
-        char a=peek(), b=peek(1), c=peek(2);
+        char a=peek(), b=peek(1), d=peek(2);
 
         if(a=='-'&&b=='>'){advance();advance();emit(TokenType::ARROW,"",l,c);return;}
         if(a=='+'&&b=='='){advance();advance();emit(TokenType::PLUS_EQ,"",l,c);return;}
@@ -272,7 +272,7 @@ private:
         if(a=='!'&&b=='='){advance();advance();emit(TokenType::NEQ,"",l,c);return;}
         if(a=='<'&&b=='='){advance();advance();emit(TokenType::LTE,"",l,c);return;}
         if(a=='>'&&b=='='){advance();advance();emit(TokenType::GTE,"",l,c);return;}
-        if(a=='?'&&b=='-'&&c=='>'){advance();advance();emit(TokenType::SAFE_ACCESS,"",l,c);return;}
+        if(a=='?'&&b=='-'&&d=='>'){advance();advance();advance();emit(TokenType::SAFE_ACCESS,"",l,c);return;}
         if(a==':'&&b==':'){advance();advance();emit(TokenType::SCOPE,"",l,c);return;}
         if(a=='<'&&b=='<'){advance();advance();emit(TokenType::LSHIFT,"",l,c);return;}
         if(a=='>'&&b=='>'){advance();advance();emit(TokenType::RSHIFT,"",l,c);return;}
@@ -303,7 +303,7 @@ private:
             case ';':emit(TokenType::SEMICOLON,"",l,c);break;
             case '.':emit(TokenType::DOT,"",l,c);break;
             case ':':emit(TokenType::COLON,"",l,c);break;
-            case '|': emit(TokenType::PIPE,"",l,c); break;
+            case '|': emit(TokenType::BAR,"",l,c); break;
             case '^': emit(TokenType::CARET,"",l,c); break;
             case '~': emit(TokenType::TILDE,"",l,c); break;
             default:error("unknown character");
