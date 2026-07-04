@@ -456,6 +456,30 @@ std::unique_ptr<Expr> ParseState::parseBitwiseAnd() {
     return expr;
 }
 
+std::unique_ptr<Expr> ParseState::parseBitwiseXor() {
+
+    auto expr = parseBitwiseAnd();
+
+    while (true) {
+
+        if (!match(TokenType::CARET))
+            break;
+
+        auto rhs = parseBitwiseAnd();
+
+        auto bin = std::make_unique<Expr>();
+        bin->kind = Expr::Kind::Binary;
+        bin->binary.op = BinaryOp::BitXor;
+
+        bin->binary.lhs = std::move(expr);
+        bin->binary.rhs = std::move(rhs);
+
+        expr = std::move(bin);
+    }
+
+    return expr;
+}
+
 std::unique_ptr<Expr> ParseState::parseBitwiseOr() {
 
     auto expr = parseBitwiseXor();
