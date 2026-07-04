@@ -60,6 +60,9 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         return stmt;
     }
 
+    if (match(TokenType::KW_SWITCH))
+        return parseSwitchStmt();
+
     // -------------------------
     // DO WHILE
     // -------------------------
