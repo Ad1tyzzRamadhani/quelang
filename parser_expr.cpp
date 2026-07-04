@@ -455,3 +455,271 @@ std::unique_ptr<Expr> ParseState::parseBitwiseAnd() {
 
     return expr;
 }
+
+std::unique_ptr<Expr> ParseState::parseBitwiseOr() {
+
+    auto expr = parseBitwiseXor();
+
+    while (true) {
+
+        if (!match(TokenType::BAR))
+            break;
+
+        auto rhs = parseBitwiseXor();
+
+        auto bin = std::make_unique<Expr>();
+        bin->kind = Expr::Kind::Binary;
+        bin->binary.op = BinaryOp::BitOr;
+
+        bin->binary.lhs = std::move(expr);
+        bin->binary.rhs = std::move(rhs);
+
+        expr = std::move(bin);
+    }
+
+    return expr;
+}
+
+std::unique_ptr<Expr> ParseState::parseShift() {
+
+    auto expr = parseBitwiseOr();
+
+    while (true) {
+
+        if (match(TokenType::LSHIFT)) {
+
+            auto rhs = parseBitwiseOr();
+
+            auto bin = std::make_unique<Expr>();
+            bin->kind = Expr::Kind::Binary;
+            bin->binary.op = BinaryOp::Shl;
+
+            bin->binary.lhs = std::move(expr);
+            bin->binary.rhs = std::move(rhs);
+
+            expr = std::move(bin);
+            continue;
+        }
+
+        if (match(TokenType::RSHIFT)) {
+
+            auto rhs = parseBitwiseOr();
+
+            auto bin = std::make_unique<Expr>();
+            bin->kind = Expr::Kind::Binary;
+            bin->binary.op = BinaryOp::Shr;
+
+            bin->binary.lhs = std::move(expr);
+            bin->binary.rhs = std::move(rhs);
+
+            expr = std::move(bin);
+            continue;
+        }
+
+        break;
+    }
+
+    return expr;
+}
+
+std::unique_ptr<Expr> ParseState::parseRelational() {
+
+    auto expr = parseShift();
+
+    while (true) {
+
+        BinaryOp op;
+        bool ok = true;
+
+        if (match(TokenType::LT)) op = BinaryOp::Lt;
+        else if (match(TokenType::LTE)) op = BinaryOp::Lte;
+        else if (match(TokenType::GT)) op = BinaryOp::Gt;
+        else if (match(TokenType::GTE)) op = BinaryOp::Gte;
+        else ok = false;
+
+        if (!ok) break;
+
+        auto rhs = parseShift();
+
+        auto bin = std::make_unique<Expr>();
+        bin->kind = Expr::Kind::Binary;
+        bin->binary.op = op;
+
+        bin->binary.lhs = std::move(expr);
+        bin->binary.rhs = std::move(rhs);
+
+        expr = std::move(bin);
+    }
+
+    return expr;
+}
+
+std::unique_ptr<Expr> ParseState::parseEquality() {
+
+    auto expr = parseRelational();
+
+    while (true) {
+
+        BinaryOp op;
+        bool ok = true;
+
+        if (match(TokenType::EQEQ)) op = BinaryOp::Eq;
+        else if (match(TokenType::NEQ)) op = BinaryOp::Ne;
+        else ok = false;
+
+        if (!ok) break;
+
+        auto rhs = parseRelational();
+
+        auto bin = std::make_unique<Expr>();
+        bin->kind = Expr::Kind::Binary;
+        bin->binary.op = op;
+
+        bin->binary.lhs = std::move(expr);
+        bin->binary.rhs = std::move(rhs);
+
+        expr = std::move(bin);
+    }
+
+    return expr;
+}
+
+std::unique_ptr<Expr> ParseState::parseLogic() {
+
+    auto expr = parseEquality();
+
+    while (true) {
+
+        if (match(TokenType::KW_AND)) {
+
+            auto rhs = parseEquality();
+
+            auto bin = std::make_unique<Expr>();
+            bin->kind = Expr::Kind::Binary;
+            bin->binary.op = BinaryOp::And;
+
+            bin->binary.lhs = std::move(expr);
+            bin->binary.rhs = std::move(rhs);
+
+            expr = std::move(bin);
+            continue;
+        }
+
+        if (match(TokenType::KW_OR)) {
+
+            auto rhs = parseEquality();
+
+            auto bin = std::make_unique<Expr>();
+            bin->kind = Expr::Kind::Binary;
+            bin->binary.op = BinaryOp::Or;
+
+            bin->binary.lhs = std::move(expr);
+            bin->binary.rhs = std::move(rhs);
+
+            expr = std::move(bin);
+            continue;
+        }
+
+        if (match(TokenType::KW_XOR)) {
+
+            auto rhs = parseEquality();
+
+            auto bin = std::make_unique<Expr>();
+            bin->kind = Expr::Kind::Binary;
+            bin->binary.op = BinaryOp::Xor;
+
+            bin->binary.lhs = std::move(expr);
+            bin->binary.rhs = std::move(rhs);
+
+            expr = std::move(bin);
+            continue;
+        }
+
+        break;
+    }
+
+    return expr;
+}
+
+std::unique_ptr<Expr> ParseState::parseCoalesce() {
+
+    auto expr = parseLogic();
+
+    while (true) {
+
+        if (!match(TokenType::COALESCE))
+            break;
+
+        auto rhs = parseLogic();
+
+        auto bin = std::make_unique<Expr>();
+        bin->kind = Expr::Kind::Binary;
+        bin->binary.op = BinaryOp::Coalesce;
+
+        bin->binary.lhs = std::move(expr);
+        bin->binary.rhs = std::move(rhs);
+
+        expr = std::move(bin);
+    }
+
+    return expr;
+}
+
+std::unique_ptr<Expr> ParseState::parseTernary() {
+
+    auto expr = parseCoalesce();
+
+    if (match(TokenType::QUESTION)) {
+
+        auto thenExpr = parseExpr();
+
+        consume(TokenType::COLON, "expected ':' in ternary");
+
+        auto elseExpr = parseTernary();
+
+        auto node = std::make_unique<Expr>();
+        node->kind = Expr::Kind::Ternary;
+
+        node->ternary.cond = std::move(expr);
+        node->ternary.then_expr = std::move(thenExpr);
+        node->ternary.else_expr = std::move(elseExpr);
+
+        return node;
+    }
+
+    return expr;
+}
+
+std::unique_ptr<Expr> ParseState::parseAssign() {
+
+    auto expr = parseTernary();
+
+    while (true) {
+
+        AssignOp op;
+        bool ok = true;
+
+        if (match(TokenType::EQ)) op = AssignOp::Assign;
+        else if (match(TokenType::PLUS_EQ)) op = AssignOp::AddEq;
+        else if (match(TokenType::MINUS_EQ)) op = AssignOp::SubEq;
+        else if (match(TokenType::STAR_EQ)) op = AssignOp::MulEq;
+        else if (match(TokenType::SLASH_EQ)) op = AssignOp::DivEq;
+        else if (match(TokenType::PERCENT_EQ)) op = AssignOp::ModEq;
+        else ok = false;
+
+        if (!ok) break;
+
+        auto rhs = parseAssign(); // right associative
+
+        auto node = std::make_unique<Expr>();
+        node->kind = Expr::Kind::Assign;
+
+        node->assign.op = op;
+        node->assign.lhs = std::move(expr);
+        node->assign.rhs = std::move(rhs);
+
+        expr = std::move(node);
+    }
+
+    return expr;
+}
