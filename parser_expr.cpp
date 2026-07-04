@@ -431,3 +431,27 @@ std::unique_ptr<Expr> ParseState::parseAdd() {
 
     return expr;
 }
+
+std::unique_ptr<Expr> ParseState::parseBitwiseAnd() {
+
+    auto expr = parseAdd();
+
+    while (true) {
+
+        if (!match(TokenType::AMP))
+            break;
+
+        auto rhs = parseAdd();
+
+        auto bin = std::make_unique<Expr>();
+        bin->kind = Expr::Kind::Binary;
+        bin->binary.op = BinaryOp::BitAnd;
+
+        bin->binary.lhs = std::move(expr);
+        bin->binary.rhs = std::move(rhs);
+
+        expr = std::move(bin);
+    }
+
+    return expr;
+}
