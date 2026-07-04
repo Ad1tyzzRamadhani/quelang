@@ -73,28 +73,28 @@ std::unique_ptr<Expr> ParseState::parseExpr() {
 bool ParseState::isPrimitiveType(TokenType t) {
     switch (t) {
 
-        case TokenType::KW_I8:
-        case TokenType::KW_I16:
-        case TokenType::KW_I32:
-        case TokenType::KW_I64:
+        case TokenType::I8:
+        case TokenType::I16:
+        case TokenType::I32:
+        case TokenType::I64:
 
-        case TokenType::KW_U8:
-        case TokenType::KW_U16:
-        case TokenType::KW_U32:
-        case TokenType::KW_U64:
+        case TokenType::U8:
+        case TokenType::U16:
+        case TokenType::U32:
+        case TokenType::U64:
 
-        case TokenType::KW_F32:
-        case TokenType::KW_F64:
+        case TokenType::F32:
+        case TokenType::F64:
 
-        case TokenType::KW_CHAR8:
-        case TokenType::KW_CHAR16:
-        case TokenType::KW_CHAR32:
+        case TokenType::CHAR8:
+        case TokenType::CHAR16:
+        case TokenType::CHAR32:
 
-        case TokenType::KW_BOOL:
-        case TokenType::KW_VOID:
+        case TokenType::BOOL:
+        case TokenType::VOID:
 
-        case TokenType::KW_USIZE:
-        case TokenType::KW_ISIZE:
+        case TokenType::USIZE:
+        case TokenType::ISIZE:
             return true;
 
         default:
