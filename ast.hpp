@@ -187,6 +187,7 @@ struct Stmt : Node {
         std::vector<Item> items;
         bool is_static = false;
         bool is_extern = false;
+        bool is_none = false;
     } var_decl;
 
     struct {
