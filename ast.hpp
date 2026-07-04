@@ -83,6 +83,7 @@ struct Expr : Node {
 
         Cast,
         New,
+        Move,
 
         StructInit,
         ArrayLiteral
@@ -145,6 +146,10 @@ struct Expr : Node {
         std::vector<std::unique_ptr<Expr>> args;
         std::vector<std::unique_ptr<Expr>> array_dims;
     } new_expr;
+
+    struct {
+        std::unique_ptr<Expr> value;
+    }
 
     struct {
         std::vector<std::pair<std::optional<std::string>, std::unique_ptr<Expr>>> fields;
