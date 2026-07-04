@@ -180,7 +180,7 @@ struct Stmt : Node {
         struct Item {
             std::string name;
             std::unique_ptr<Expr> init;
-            std::unique_ptr<Expr> ctor;
+            std::vector<std::unique_ptr<Expr>> args;
             std::vector<std::unique_ptr<Literal>> array_dims;
         };
 
