@@ -343,3 +343,71 @@ std::unique_ptr<Stmt> ParseState::parseBlock() {
 
     return stmt;
 }
+
+std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
+
+    auto stmt = std::make_unique<Stmt>();
+    stmt->kind = Stmt::Kind::SwitchCase;
+
+    consume(TokenType::LPAREN,
+        "expected '(' after switch");
+
+    stmt->switch_stmt.expr = parseExpr();
+
+    consume(TokenType::RPAREN,
+        "expected ')' after switch condition");
+
+    consume(TokenType::LBRACE,
+        "expected '{' after switch");
+
+    while (!check(TokenType::RBRACE) &&
+           !check(TokenType::EOF_TOKEN))
+    {
+        Stmt::switch_case::Case scase;
+
+        // -------------------
+        // case
+        // -------------------
+        if (match(TokenType::KW_CASE)) {
+
+            scase.is_default = false;
+
+            scase.values = parseLiteral();
+
+            consume(TokenType::COLON,
+                "expected ':' after case");
+
+            scase.body = parseStmt();
+
+            stmt->switch_stmt.cases.push_back(
+                std::move(scase));
+
+            continue;
+        }
+
+        // -------------------
+        // default
+        // -------------------
+        if (match(TokenType::KW_DEFAULT)) {
+
+            scase.is_default = true;
+
+            consume(TokenType::COLON,
+                "expected ':' after default");
+
+            scase.body = parseStmt();
+
+            stmt->switch_stmt.cases.push_back(
+                std::move(scase));
+
+            continue;
+        }
+
+        error("expected case/default");
+    }
+
+    consume(TokenType::RBRACE,
+        "expected '}' after switch");
+
+    return stmt;
+}
