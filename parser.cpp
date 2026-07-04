@@ -6,6 +6,20 @@ struct ParseState {
     std::unique_ptr<Type> parseType();
     std::unique_ptr<Expr> parsePrimary();
     std::unique_ptr<Expr> parsePostfix();
+    std::unique_ptr<Expr> parseCast();
+    std::unique_ptr<Expr> parseUnary();
+    std::unique_ptr<Expr> parseMul();
+    std::unique_ptr<Expr> parseAdd();
+    std::unique_ptr<Expr> parseBitwiseAnd();
+    std::unique_ptr<Expr> parseBitwiseXor();
+    std::unique_ptr<Expr> parseBitwiseOr();
+    std::unique_ptr<Expr> parseShift();
+    std::unique_ptr<Expr> parseRelational();
+    std::unique_ptr<Expr> parseEquality();
+    std::unique_ptr<Expr> parseLogic();
+    std::unique_ptr<Expr> parseCoalesce;
+    std::unique_ptr<Expr> parseTernary();
+    std::unique_ptr<Expr> parseAssign();
     std::vector<std::unique_ptr<Expr>> parseArgList();
     std::unique_ptr<Expr> parseExpr();
 
