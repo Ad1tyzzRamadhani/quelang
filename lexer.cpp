@@ -25,7 +25,7 @@ enum class TokenType {
     KW_TRUE, KW_FALSE, KW_NULL, KW_THIS,
     KW_PUBLIC, KW_STATIC, KW_CONST, KW_VOLATILE, KW_EXTERN,
     KW_AND, KW_OR, KW_XOR, KW_INTERFACE, KW_UNSAFE,
-    KW_DEFAULT, KW_CONSTRUCT, KW_NORETURN,
+    KW_DEFAULT, KW_CONSTRUCT, KW_NORETURN, KW_MOVE,
     KW_JUMPTO, KW_SWITCH, KW_CASE, KW_DEFER, KW_YIELD,
     KW_NEW, KW_NOT, KW_RESUME, KW_WIPE,
 
@@ -341,7 +341,7 @@ const std::unordered_map<std::string,TokenType> Lexer::keyword_map={
     {"public",TokenType::KW_PUBLIC},{"static",TokenType::KW_STATIC},{"this",TokenType::KW_THIS},
     {"const",TokenType::KW_CONST},{"volatile",TokenType::KW_VOLATILE},{"resume",TokenType::KW_RESUME},
     {"and",TokenType::KW_AND},{"or",TokenType::KW_OR},{"xor",TokenType::KW_XOR},{"co",TokenType::KW_CO},
-    {"noreturn",TokenType::KW_NORETURN},{"extern",TokenType::KW_EXTERN},
+    {"noreturn",TokenType::KW_NORETURN},{"extern",TokenType::KW_EXTERN},{"move",TokenType::KW_MOVE},
     {"default",TokenType::KW_DEFAULT},{"interface",TokenType::KW_INTERFACE},
     {"not", TokenType::KW_NOT},{"switch",TokenType::KW_SWITCH},{"case",TokenType::KW_CASE},
     {"jumpto",TokenType::KW_JUMPTO},{"unsafe",TokenType::KW_UNSAFE},
