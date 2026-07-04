@@ -63,6 +63,12 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     if (match(TokenType::KW_SWITCH))
         return parseSwitchStmt();
 
+    if (match(TokenType::KW_USE)) {
+        auto stmt = std::make_unique<Stmt>();
+        stmt->kind = Stmt::Kind::Use;
+        stmt->use_decl = parseUseDecl();
+        return stmt;
+    }
     // -------------------------
     // DO WHILE
     // -------------------------
@@ -413,4 +419,18 @@ std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
         "expected '}' after switch");
 
     return stmt;
+}
+
+UseDecl ParseState::parseUseDecl() {
+    UseDecl decl;
+    decl.target =
+        parseQualifiedName(tokens, pos);
+    consume(TokenType::KW_AS,
+        "expected 'as' after qualified name");
+    if (peek().type != TokenType::IDENT)
+        error("expected alias identifier");
+    decl.alias = advance().value;
+    consume(TokenType::SEMICOLON,
+        "expected ';' after use declaration");
+    return decl;
 }
