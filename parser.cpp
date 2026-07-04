@@ -17,7 +17,7 @@ struct ParseState {
     std::unique_ptr<Expr> parseRelational();
     std::unique_ptr<Expr> parseEquality();
     std::unique_ptr<Expr> parseLogic();
-    std::unique_ptr<Expr> parseCoalesce;
+    std::unique_ptr<Expr> parseCoalesce();
     std::unique_ptr<Expr> parseTernary();
     std::unique_ptr<Expr> parseAssign();
     std::vector<std::unique_ptr<Expr>> parseArgList();
