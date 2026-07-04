@@ -254,3 +254,72 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         return stmt;
     }
 }
+
+Stmt::VarDecl ParseState::parseVarDecl() { Stmt::VarDecl decl; return decl;}
+    Stmt::VarDecl decl;
+    const Token& tok = peek();
+
+    // -------------------------
+    // StorageOpt
+    // -------------------------
+    if (match(TokenType::KW_STATIC))
+        decl.is_static = true;
+
+    else if (match(TokenType::KW_EXTERN))
+        decl.is_extern = true;
+
+    else
+        decl.is_none = true;
+
+    // -------------------------
+    // Type
+    // -------------------------
+    decl.type = parseType();
+
+    // -------------------------
+    // VarList
+    // -------------------------
+    do {
+
+        Stmt::VarDecl::Item item;
+
+        if (peek().type != TokenType::IDENT)
+            error("expected variable name");
+
+        item.name = advance().value;
+
+        // -------------------------
+        // ArrayDimsOpt
+        // -------------------------
+        while (match(TokenType::LBRACKET)) {
+
+            if (peek().type != TokenType::NUMBER)
+                error("array dimension must be constant number");
+
+            item.array_dims.push_back(
+                parseLiteral(tok);
+            );
+
+            consume(TokenType::RBRACKET);
+        }
+
+        if (match(TokenType::LPAREN)) {
+            if (peek().type != TokenType::RPAREN) {
+                item.args = parseArgList();
+            }
+            consume(TokenType::RPAREN);
+        }
+
+        // -------------------------
+        // VarInitOpt
+        // -------------------------
+        if (match(TokenType::EQ)) {
+            item.init = parseExpr();
+        }
+
+        decl.items.push_back(std::move(item));
+
+    } while (match(TokenType::COMMA));
+
+    return decl;
+}
