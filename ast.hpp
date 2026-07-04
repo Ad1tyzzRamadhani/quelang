@@ -364,7 +364,7 @@ struct EnumDef : Node {
 // Module & Program
 
 struct UseDecl : Node {
-    std::unique_ptr<QualifiedName> name;
+    std::unique_ptr<QualifiedName> target;
     std::optional<std::string> alias;
 };
 
