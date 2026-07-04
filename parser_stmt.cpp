@@ -196,7 +196,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Resume;
 
-        stmt->resume_stmt.expr = parseExpr();
+        stmt->resume_stmt.target = parseExpr();
         consume(TokenType::SEMICOLON);
 
         return stmt;
@@ -222,7 +222,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Jump;
 
-        stmt->jump_target.label = advance().value;
+        stmt->jump_target = advance().value;
         consume(TokenType::SEMICOLON);
 
         return stmt;
