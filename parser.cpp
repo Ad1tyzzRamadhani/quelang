@@ -62,7 +62,6 @@ std::vector<std::unique_ptr<Expr>> ParseState::parseArgList() {
             args.push_back(parseExpr());
         } while (match(TokenType::COMMA));
     }
-    consume(TokenType::RPAREN);
 
     return args;
 }
