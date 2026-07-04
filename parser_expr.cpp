@@ -279,3 +279,72 @@ std::unique_ptr<Expr> ParseState::parsePostfix() {
 
     return base;
 }
+
+std::unique_ptr<Expr> ParseState::parseCast() {
+    auto expr = parsePostfix();
+
+    while (match(TokenType::KW_AS)) {
+
+        auto castExpr = std::make_unique<Expr>();
+        castExpr->kind = Expr::Kind::Cast;
+
+        castExpr->cast.base = std::move(expr);
+        castExpr->cast.target = parseType();
+
+        expr = std::move(castExpr);
+    }
+
+    return expr;
+}
+
+std::unique_ptr<Expr> ParseState::parseUnary() {
+
+    // -------------------------
+    // Unary operators
+    // -, *, &, ~, not
+    // -------------------------
+    if (match(TokenType::MINUS) ||
+        match(TokenType::STAR)  ||
+        match(TokenType::AMP)   ||
+        match(TokenType::TILDE) ||
+        match(TokenType::KW_NOT)) 
+    {
+        TokenType opTok = tokens[pos - 1].type;
+
+        auto expr = std::make_unique<Expr>();
+        expr->kind = Expr::Kind::Unary;
+
+        switch (opTok) {
+            case TokenType::MINUS:
+                expr->unary.op = UnaryOp::Neg;
+                break;
+
+            case TokenType::STAR:
+                expr->unary.op = UnaryOp::Deref;
+                break;
+
+            case TokenType::AMP:
+                expr->unary.op = UnaryOp::Ref;
+                break;
+
+            case TokenType::TILDE:
+                expr->unary.op = UnaryOp::BitNot;
+                break;
+
+            case TokenType::KW_NOT:
+                expr->unary.op = UnaryOp::Not;
+                break;
+
+            default:
+                error("invalid unary operator");
+        }
+
+        expr->unary.expr = parseUnary(); // recursive right-associative
+        return expr;
+    }
+
+    // -------------------------
+    // fallback → CAST level
+    // -------------------------
+    return parseCast();
+}
