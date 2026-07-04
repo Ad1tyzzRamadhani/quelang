@@ -5,6 +5,7 @@
 #include "parser_literal.cpp"
 #include "parser_type.cpp"
 #include "parser_expr.cpp"
+#include "parser_stmt.cpp"
 
 int main() {
   return 0;
