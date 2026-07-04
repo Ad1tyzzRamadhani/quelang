@@ -323,3 +323,23 @@ Stmt::VarDecl ParseState::parseVarDecl() { Stmt::VarDecl decl; return decl;}
 
     return decl;
 }
+
+std::unique_ptr<Stmt> ParseState::parseBlock() {
+
+    consume(TokenType::LBRACE, "expected '{'");
+
+    auto stmt = std::make_unique<Stmt>();
+    stmt->kind = Stmt::Kind::Block;
+
+    while (!check(TokenType::RBRACE) &&
+           !check(TokenType::EOF_TOKEN))
+    {
+        stmt->block.stmts.push_back(
+            parseStmt()
+        );
+    }
+
+    consume(TokenType::RBRACE, "expected '}'");
+
+    return stmt;
+}
