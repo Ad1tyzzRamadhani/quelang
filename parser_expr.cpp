@@ -139,6 +139,13 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // ------------------------
     // THIS
     // ------------------------
+    if (match(TokenType::KW_MOVE)) {
+        auto expr = std::make_unique<Expr>();
+        expr->kind = Expr::Kind::Move;
+        expr->move_expr.value = parseExpr();
+        return expr;
+    }
+
     if (match(TokenType::KW_THIS)) {
         auto expr = std::make_unique<Expr>();
         expr->kind = Expr::Kind::Ident;
