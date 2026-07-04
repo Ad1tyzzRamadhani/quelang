@@ -22,7 +22,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 
         consume(TokenType::RPAREN, "expected ')' after if condition");
 
-        stmt->if_stmt.then_branch = parseStmt();
+        stmt->if_stmt.then_block = parseStmt();
 
         // elif chain
         while (match(TokenType::KW_ELIF)) {
@@ -38,7 +38,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 
         // else
         if (match(TokenType::KW_ELSE)) {
-            stmt->if_stmt.else_branch = parseStmt();
+            stmt->if_stmt.else_block = parseStmt();
         }
 
         return stmt;
@@ -67,7 +67,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::DoWhile;
 
-        stmt->do_while.body = parseStmt();
+        stmt->do_while_stmt.body = parseStmt();
 
         consume(TokenType::KW_WHILE);
         consume(TokenType::LPAREN);
@@ -114,7 +114,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         stmt->kind = Stmt::Kind::Return;
 
         if (!check(TokenType::SEMICOLON))
-            stmt->return_stmt.expr = parseExpr();
+            stmt->return_values.expr = parseExpr();
 
         consume(TokenType::SEMICOLON);
 
@@ -150,7 +150,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Drop;
 
-        stmt->drop.expr = parseExpr();
+        stmt->drop_stmt.expr = parseExpr();
         consume(TokenType::SEMICOLON);
 
         return stmt;
@@ -160,7 +160,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Wipe;
 
-        stmt->wipe.expr = parseExpr();
+        stmt->wipe_stmt.expr = parseExpr();
         consume(TokenType::SEMICOLON);
 
         return stmt;
@@ -173,7 +173,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Defer;
 
-        stmt->defer.stmt = parseStmt();
+        stmt->defer_stmt.stmt = parseStmt();
 
         return stmt;
     }
@@ -196,7 +196,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Resume;
 
-        stmt->resume.expr = parseExpr();
+        stmt->resume_stmt.expr = parseExpr();
         consume(TokenType::SEMICOLON);
 
         return stmt;
@@ -209,7 +209,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Label;
 
-        stmt->label.name = advance().value;
+        stmt->label = advance().value;
         consume(TokenType::COLON);
 
         return stmt;
@@ -222,7 +222,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Jump;
 
-        stmt->jump.label = advance().value;
+        stmt->jump_target.label = advance().value;
         consume(TokenType::SEMICOLON);
 
         return stmt;
@@ -248,7 +248,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::ExprStmt;
 
-        stmt->expr_stmt.expr = parseExpr();
+        stmt->expr_stmt = parseExpr();
         consume(TokenType::SEMICOLON);
 
         return stmt;
