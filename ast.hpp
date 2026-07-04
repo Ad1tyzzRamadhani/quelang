@@ -149,7 +149,7 @@ struct Expr : Node {
 
     struct {
         std::unique_ptr<Expr> value;
-    }
+    } move_expr;
 
     struct {
         std::vector<std::pair<std::optional<std::string>, std::unique_ptr<Expr>>> fields;
