@@ -348,3 +348,86 @@ std::unique_ptr<Expr> ParseState::parseUnary() {
     // -------------------------
     return parseCast();
 }
+
+std::unique_ptr<Expr> ParseState::parseMul() {
+
+    auto expr = parseUnary();
+
+    while (true) {
+
+        TokenType op;
+
+        if (match(TokenType::STAR)) op = TokenType::STAR;
+        else if (match(TokenType::SLASH)) op = TokenType::SLASH;
+        else if (match(TokenType::PERCENT)) op = TokenType::PERCENT;
+        else break;
+
+        auto rhs = parseUnary();
+
+        auto bin = std::make_unique<Expr>();
+        bin->kind = Expr::Kind::Binary;
+
+        switch (op) {
+            case TokenType::STAR:
+                bin->binary.op = BinaryOp::Mul;
+                break;
+
+            case TokenType::SLASH:
+                bin->binary.op = BinaryOp::Div;
+                break;
+
+            case TokenType::PERCENT:
+                bin->binary.op = BinaryOp::Mod;
+                break;
+
+            default:
+                error("invalid mul operator");
+        }
+
+        bin->binary.lhs = std::move(expr);
+        bin->binary.rhs = std::move(rhs);
+
+        expr = std::move(bin);
+    }
+
+    return expr;
+}
+
+std::unique_ptr<Expr> ParseState::parseAdd() {
+
+    auto expr = parseMul();
+
+    while (true) {
+
+        TokenType op;
+
+        if (match(TokenType::PLUS)) op = TokenType::PLUS;
+        else if (match(TokenType::MINUS)) op = TokenType::MINUS;
+        else break;
+
+        auto rhs = parseMul();
+
+        auto bin = std::make_unique<Expr>();
+        bin->kind = Expr::Kind::Binary;
+
+        switch (op) {
+            case TokenType::PLUS:
+                bin->binary.op = BinaryOp::Add;
+                break;
+
+            case TokenType::MINUS:
+                bin->binary.op = BinaryOp::Sub;
+                break;
+
+            default:
+                error("invalid add operator");
+        }
+
+        bin->binary.lhs = std::move(expr);
+        bin->binary.rhs = std::move(rhs);
+
+        expr = std::move(bin);
+    }
+
+    return expr;
+}
