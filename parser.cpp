@@ -22,6 +22,7 @@ struct ParseState {
     std::unique_ptr<Expr> parseAssign();
     std::vector<std::unique_ptr<Expr>> parseArgList();
     std::unique_ptr<Expr> parseExpr();
+    std::unique_ptr<Expr> parseStmt();
 
     const Token& peek(int offset = 0) const {
         if (pos + offset >= tokens.size()) return tokens.back();
