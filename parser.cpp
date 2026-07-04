@@ -69,3 +69,49 @@ std::vector<std::unique_ptr<Expr>> ParseState::parseArgList() {
 std::unique_ptr<Expr> ParseState::parseExpr() {
     return parsePostfix();
 }
+
+bool ParseState::isPrimitiveType(TokenType t) {
+    switch (t) {
+
+        case TokenType::KW_I8:
+        case TokenType::KW_I16:
+        case TokenType::KW_I32:
+        case TokenType::KW_I64:
+
+        case TokenType::KW_U8:
+        case TokenType::KW_U16:
+        case TokenType::KW_U32:
+        case TokenType::KW_U64:
+
+        case TokenType::KW_F32:
+        case TokenType::KW_F64:
+
+        case TokenType::KW_CHAR8:
+        case TokenType::KW_CHAR16:
+        case TokenType::KW_CHAR32:
+
+        case TokenType::KW_BOOL:
+        case TokenType::KW_VOID:
+
+        case TokenType::KW_USIZE:
+        case TokenType::KW_ISIZE:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+std::vector<std::unique_ptr<Expr>>
+ParseState::parseExprList() {
+
+    std::vector<std::unique_ptr<Expr>> result;
+
+    result.push_back(parseExpr());
+
+    while (match(TokenType::COMMA)) {
+        result.push_back(parseExpr());
+    }
+
+    return result;
+}
