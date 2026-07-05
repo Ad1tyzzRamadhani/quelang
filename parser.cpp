@@ -21,10 +21,10 @@ struct ParseState {
     std::unique_ptr<Expr> parseTernary();
     std::unique_ptr<Expr> parseAssign();
     std::vector<std::unique_ptr<Expr>> parseArgList();
-    std::vector<std::unique_ptr<Expr> parseExprList();
+    std::vector<std::unique_ptr<Expr>> parseExprList();
     bool isPrimitiveType(TokenType t);
     std::unique_ptr<Expr> parseExpr();
-    std::unique_ptr<Expr> parseStmt();
+    std::unique_ptr<Stmt> parseStmt();
     std::unique_ptr<Stmt> parseBlock();
     Stmt::VarDecl parseVarDecl();
     std::unique_ptr<Stmt> parseSwitchStmt();
