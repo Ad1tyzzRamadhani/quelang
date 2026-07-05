@@ -190,7 +190,7 @@ struct Stmt : Node {
         bool is_none = false;
     } var_decl;
 
-    struct {
+    struct IfStmt {
         std::unique_ptr<Expr> cond;
         std::unique_ptr<Stmt> then_block;
 
@@ -220,7 +220,7 @@ struct Stmt : Node {
         std::unique_ptr<Stmt> body;
     } for_stmt;
 
-    struct {
+    struct SwitchStmt {
         std::unique_ptr<Expr> expr;
 
         struct Case {
