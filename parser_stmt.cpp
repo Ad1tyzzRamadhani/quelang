@@ -306,7 +306,7 @@ Stmt::VarDecl ParseState::parseVarDecl() {
                 error("array dimension must be constant number");
 
             item.array_dims.push_back(
-                parseLiteral(tok);
+                parseLiteral(tok)
             );
 
             consume(TokenType::RBRACKET);
