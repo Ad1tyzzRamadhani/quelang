@@ -29,11 +29,11 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
             consume(TokenType::LPAREN);
             auto cond = parseExpr();
             consume(TokenType::RPAREN);
+            Stmt::if_stmt::Elif e;
+            e.cond = std::move(cond);
+            e.body = parseStmt();
 
-            stmt->if_stmt.elifs.push_back({
-                cond,
-                parseStmt()
-            });
+            stmt->if_stmt.elifs.push_back(std::move(e));
         }
 
         // else
@@ -66,7 +66,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     if (match(TokenType::KW_USE)) {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::UseStmt;
-        stmt->use_decl = parseUseDecl();
+        stmt->use_stmt = parseUseDecl();
         return stmt;
     }
     // -------------------------
@@ -80,7 +80,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 
         consume(TokenType::KW_WHILE);
         consume(TokenType::LPAREN);
-        stmt->do_while.cond = parseExpr();
+        stmt->do_while_stmt.cond = parseExpr();
         consume(TokenType::RPAREN);
         consume(TokenType::SEMICOLON);
 
@@ -96,7 +96,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 
         consume(TokenType::LPAREN);
 
-        stmt->for_stmt.init = parseVarDecl();
+        stmt->for_stmt.init = parseStmt();
 
         consume(TokenType::SEMICOLON);
 
@@ -264,7 +264,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     }
 }
 
-Stmt::VarDecl ParseState::parseVarDecl()
+Stmt::VarDecl ParseState::parseVarDecl() {
     Stmt::VarDecl decl;
     const Token& tok = peek();
 
@@ -372,7 +372,7 @@ std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
     while (!check(TokenType::RBRACE) &&
            !check(TokenType::EOF_TOKEN))
     {
-        Stmt::switch_case::Case scase;
+        Stmt::switch_stmt::Case scase;
 
         // -------------------
         // case
