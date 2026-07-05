@@ -423,14 +423,14 @@ std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
 }
 
 std::unique_ptr<UseDecl> ParseState::parseUseDecl() {
-    std::unique_ptr<UseDecl> decl = std::make_unique<UseDecl>();
+    std::unique_ptd<UseDecl> decl = std::make_unique<UseDecl>();
     decl.target =
         parseQualifiedName(tokens, pos);
     consume(TokenType::KW_AS,
         "expected 'as' after qualified name");
     if (peek().type != TokenType::IDENT)
         error("expected alias identifier");
-    decl.alias = advance().value;
+    decl->alias = advance().value;
     consume(TokenType::SEMICOLON,
         "expected ';' after use declaration");
     return decl;
