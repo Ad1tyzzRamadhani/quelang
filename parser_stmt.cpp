@@ -31,7 +31,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
             consume(TokenType::RPAREN);
             Stmt::IfStmt::Elif e;
             e.cond = std::move(cond);
-            e.body = parseStmt();
+            e.block = parseStmt();
 
             stmt->if_stmt.elifs.push_back(std::move(e));
         }
