@@ -29,7 +29,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
             consume(TokenType::LPAREN);
             auto cond = parseExpr();
             consume(TokenType::RPAREN);
-            Stmt:IfStmt::Elif e;
+            Stmt::IfStmt::Elif e;
             e.cond = std::move(cond);
             e.body = parseStmt();
 
