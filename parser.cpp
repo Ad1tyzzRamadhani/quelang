@@ -29,7 +29,7 @@ struct ParseState {
     std::unique_ptr<Stmt> parseBlock();
     Stmt::VarDecl parseVarDecl();
     std::unique_ptr<Stmt> parseSwitchStmt();
-    UseDecl parseUseDecl();
+    std::unique_ptr<UseDecl> parseUseDecl();
     
 
     const Token& peek(int offset = 0) const {
