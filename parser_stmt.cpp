@@ -65,7 +65,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 
     if (match(TokenType::KW_USE)) {
         auto stmt = std::make_unique<Stmt>();
-        stmt->kind = Stmt::Kind::Use;
+        stmt->kind = Stmt::Kind::UseStmt;
         stmt->use_decl = parseUseDecl();
         return stmt;
     }
