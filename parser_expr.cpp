@@ -689,6 +689,8 @@ std::unique_ptr<Expr> ParseState::parseCoalesce() {
     return expr;
 }
 
+// Ternary Expr Parser
+
 std::unique_ptr<Expr> ParseState::parseTernary() {
 
     auto expr = parseCoalesce();
@@ -704,6 +706,7 @@ std::unique_ptr<Expr> ParseState::parseTernary() {
         auto node = std::make_unique<Expr>();
         node->kind = Expr::Kind::Ternary;
 
+        // Ternary Move / init
         node->ternary.cond = std::move(expr);
         node->ternary.then_expr = std::move(thenExpr);
         node->ternary.else_expr = std::move(elseExpr);
