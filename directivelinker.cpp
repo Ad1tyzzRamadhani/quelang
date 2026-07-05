@@ -78,7 +78,7 @@ std::string processFile(
             std::string libPath = loadLibPath();
             if (libPath.empty()) {
                 throw std::runtime_error(
-                    "libpath not found for @load [" + match[1].str() + "]"
+                    "libpath not found for import " + match[1].str()
                 );
             }
             depPath = fs::path(libPath) / (match[1].str() + ".q");
