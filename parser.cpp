@@ -23,6 +23,7 @@ struct ParseState {
     std::vector<std::unique_ptr<Expr>> parseArgList();
     std::vector<std::unique_ptr<Expr>> parseExprList();
     bool isPrimitiveType(TokenType t);
+    bool isTypeStart(const Token& tok);
     std::unique_ptr<Expr> parseExpr();
     std::unique_ptr<Stmt> parseStmt();
     std::unique_ptr<Stmt> parseBlock();
@@ -75,6 +76,10 @@ std::vector<std::unique_ptr<Expr>> ParseState::parseArgList() {
 
 std::unique_ptr<Expr> ParseState::parseExpr() {
     return parsePostfix();
+}
+
+bool ParseState::isTypeStart(const Token& tok) {
+    return tok.type == TokenType::IDENT || isPrimitiveType(tok.type);
 }
 
 bool ParseState::isPrimitiveType(TokenType t) {
