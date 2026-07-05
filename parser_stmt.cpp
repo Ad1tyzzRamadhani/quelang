@@ -424,7 +424,7 @@ std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
 
 std::unique_ptr<UseDecl> ParseState::parseUseDecl() {
     std::unique_ptd<UseDecl> decl = std::make_unique<UseDecl>();
-    decl.target =
+    decl->target =
         parseQualifiedName(tokens, pos);
     consume(TokenType::KW_AS,
         "expected 'as' after qualified name");
