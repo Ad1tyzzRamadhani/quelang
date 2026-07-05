@@ -29,7 +29,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
             consume(TokenType::LPAREN);
             auto cond = parseExpr();
             consume(TokenType::RPAREN);
-            Stmt::if_stmt::Elif e;
+            Stmt:IfStmt::Elif e;
             e.cond = std::move(cond);
             e.body = parseStmt();
 
@@ -372,7 +372,7 @@ std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
     while (!check(TokenType::RBRACE) &&
            !check(TokenType::EOF_TOKEN))
     {
-        Stmt::switch_stmt::Case scase;
+        Stmt::SwitchStmt::Case scase;
 
         // -------------------
         // case
@@ -421,8 +421,8 @@ std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
     return stmt;
 }
 
-UseDecl ParseState::parseUseDecl() {
-    UseDecl decl;
+std::unique_ptr<UseDecl> ParseState::parseUseDecl() {
+    std::unique_ptr<UseDecl> decl = std::make_unique<UseDecl>();
     decl.target =
         parseQualifiedName(tokens, pos);
     consume(TokenType::KW_AS,
