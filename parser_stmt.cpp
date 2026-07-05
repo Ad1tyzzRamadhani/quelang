@@ -355,6 +355,7 @@ std::unique_ptr<Stmt> ParseState::parseBlock() {
 
 std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
 
+    const Token& tok = peek();
     auto stmt = std::make_unique<Stmt>();
     stmt->kind = Stmt::Kind::SwitchCase;
 
