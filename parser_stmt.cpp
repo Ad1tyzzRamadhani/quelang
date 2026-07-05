@@ -96,7 +96,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 
         consume(TokenType::LPAREN);
 
-        stmt->for_stmt.init = parseForInit();
+        stmt->for_stmt.init = parseVarDecl();
 
         consume(TokenType::SEMICOLON);
 
@@ -123,7 +123,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         stmt->kind = Stmt::Kind::Return;
 
         if (!check(TokenType::SEMICOLON))
-            stmt->return_values.expr = parseExpr();
+            stmt->return_values = parseExpr();
 
         consume(TokenType::SEMICOLON);
 
@@ -264,7 +264,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     }
 }
 
-Stmt::VarDecl ParseState::parseVarDecl() { Stmt::VarDecl decl; return decl;}
+Stmt::VarDecl ParseState::parseVarDecl()
     Stmt::VarDecl decl;
     const Token& tok = peek();
 
@@ -381,7 +381,7 @@ std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
 
             scase.is_default = false;
 
-            scase.values = parseLiteral();
+            scase.values = parseLiteral(tok);
 
             consume(TokenType::COLON,
                 "expected ':' after case");
