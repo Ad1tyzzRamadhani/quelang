@@ -1,0 +1,619 @@
+FileProgram
+    ::= TopLevelDecl* EOF ;
+
+TopLevelDecl
+    ::= NamespaceDecl
+     | ForwardDecl
+     | GlobalVarDecl ";"
+     | FunctionDef
+     | StructDef
+     | InterfaceDef
+     | EnumDef
+     | UnionDef ;
+
+VisibilityOpt
+    ::= "public"
+     | ε ;
+
+StorageOpt
+    ::= "static"
+     | "extern"
+     | ε ;
+
+NamespaceDecl
+    ::= "namespace" IDENT
+        "{"
+            TopLevelDecl*
+        "}" ;
+
+UseDecl
+    ::= "use"
+        QualifiedName
+        "as" IDENT
+        ";" ;
+
+ForwardDecl
+    ::= VisibilityOpt ForwardTarget ";" ;
+
+ForwardTarget
+    ::= "struct" IDENT
+     | FunctionDecl ;
+
+GlobalVarDecl
+    ::= VisibilityOpt
+        StorageOpt
+        Type
+        VarList ;
+
+VarList
+    ::= VarItem
+        ("," VarItem)* ;
+
+VarItem
+    ::= IDENT
+        ArrayDimsOpt
+        VarInitOpt ;
+
+ArrayDimsOpt
+    ::= ("[" NUMBER "]")* ;
+
+VarInitOpt
+    ::= "=" Expr
+     | StructInit
+     | ConstructorCall
+     | ε ;
+
+FunctionDef
+    ::= VisibilityOpt
+        FunctionDecl
+        Block ;
+
+FunctionDecl
+    ::= FunctionAttr*
+        Type
+        IDENT
+        "(" ParamListOpt ")"
+        CoroutineOpt
+        ConstOpt ;
+
+FunctionAttr
+    ::= "static"
+     | "noreturn"
+     | "extern" ;
+
+CoroutineOpt
+    ::= "co"
+     | ε ;
+
+ConstOpt
+    ::= "const"
+     | ε ;
+
+StructDef
+    ::= VisibilityOpt
+        "struct"
+        IDENT
+        ImplmentsOpt
+        "{"
+            StructItem*
+        "}" ;
+
+ImplmentsOpt
+    ::= "(" QualifiedName* ")"
+     | ε ;
+
+StructItem
+    ::= FieldDecl
+     | FunctionDef
+     | Constructor
+     | Destructor
+     | StructDef
+     | EnumDef
+     | UnionDef
+     | DefaultField ;
+
+DefaultField
+    ::= "default"
+        "="
+        IDENT
+        ";" ;
+
+FieldDecl
+    ::= StorageOpt
+        Type
+        IDENT
+        ArrayDimsOpt
+        ("=" Expr)?
+        ";" ;
+
+InterfaceDef
+    ::= VisibilityOpt
+        "interface"
+        IDENT
+        "{"
+            InterfaceMethod*
+        "}" ;
+
+InterfaceMethod
+    ::= Type
+        IDENT
+        "(" ParamTypeListOpt ")"
+        ";" ;
+
+UnionDef
+    ::= VisibilityOpt
+        "union"
+        IDENT
+        "{"
+            UnionField*
+        "}" ;
+
+UnionField
+    ::= Type
+        IDENT
+        ";" ;
+
+EnumDef
+    ::= VisibilityOpt
+        "enum"
+        IDENT
+        EnumBaseOpt
+        "{"
+            EnumItemListOpt
+        "}" ;
+
+EnumBaseOpt
+    ::= ":" Type
+     | ε ;
+
+EnumItemListOpt
+    ::= EnumItemList
+     | ε ;
+
+EnumItemList
+    ::= EnumItem
+        ("," EnumItem)*
+        ","? ;
+
+EnumItem
+    ::= IDENT
+        ("=" Expr)? ;
+
+Constructor
+    ::= "construct"
+        "(" ParamListOpt ")"
+        Block ;
+
+Destructor
+    ::= "drop"
+        "(" ")"
+        Block ;
+
+ParamListOpt
+    ::= ParamList
+     | ε ;
+
+ParamList
+    ::= Param
+        ("," Param)* ;
+
+Param
+    ::= Type
+        IDENT
+        ("=" Expr)? ;
+
+Block
+    ::= "{"
+            Stmt*
+        "}" ;
+
+Stmt
+    ::= VarDecl ";"
+     | ExprStmt
+     | IfStmt
+     | WhileStmt
+     | DoWhileStmt
+     | ForStmt
+     | SwitchStmt
+     | ReturnStmt
+     | BreakStmt
+     | ContinueStmt
+     | LabelStmt
+     | JumpStmt
+     | DropStmt
+     | WipeStmt
+     | DeferStmt
+     | UseStmt
+     | YieldStmt
+     | ResumeStmt
+     | Block ;
+
+VarDecl
+    ::= StorageOpt
+        Type
+        VarList ;
+
+IfStmt
+    ::= "if"
+        "(" Expr ")"
+        Stmt
+        ElifBranch*
+        ElseBranchOpt ;
+
+ElifBranch
+    ::= "elif"
+        "(" Expr ")"
+        Stmt ;
+
+ElseBranchOpt
+    ::= "else" Stmt
+     | ε ;
+
+WhileStmt
+    ::= "while"
+        "(" Expr ")"
+        Stmt ;
+
+DoWhileStmt
+    ::= "do"
+        Stmt
+        "while"
+        "(" Expr ")"
+        ";" ;
+
+ForStmt
+    ::= "for"
+        "("
+            ForInit ";"
+            ForCond ";"
+            ForUpdate
+        ")"
+        Stmt ;
+
+ForInit
+    ::= VarDecl
+     | Expr
+     | ε ;
+
+ForCond
+    ::= Expr
+     | ε ;
+
+ForUpdate
+    ::= Expr
+     | ε ;
+
+SwitchStmt
+    ::= "switch"
+        "(" Expr ")"
+        "{"
+            CaseStmt*
+        "}" ;
+
+CaseStmt
+    ::= "case"
+        ExprList
+        ":"
+        Stmt
+
+     | "default"
+        ":"
+        Stmt ;
+
+ExprList
+    ::= Expr
+        ("," Expr)* ;
+
+ReturnStmt
+    ::= "return"
+        ExprOpt
+        ";" ;
+
+ExprOpt
+    ::= Expr
+     | ε ;
+
+BreakStmt
+    ::= "break" ";" ;
+
+ContinueStmt
+    ::= "continue" ";" ;
+
+YieldStmt
+    ::= "yield" ";" ;
+
+ResumeStmt
+    ::= "resume"
+        Expr
+        ";" ;
+
+DropStmt
+    ::= "drop"
+        Expr
+        ";" ;
+
+WipeStmt
+    ::= "wipe"
+        Expr
+        ";" ;
+
+DeferStmt
+    ::= "defer"
+        Stmt ;
+
+LabelStmt
+    ::= IDENT ":" ;
+
+JumpStmt
+    ::= "jumpto"
+        IDENT
+        ";" ;
+
+ExprStmt
+    ::= Expr ";" ;
+
+UseStmt
+    ::= UseDecl ;
+
+Expr
+    ::= AssignExpr ;
+
+AssignExpr
+    ::= TernaryExpr
+        (
+            "="
+          | "+="
+          | "-="
+          | "*="
+          | "/="
+          | "%="
+        )
+        AssignExpr
+
+     | TernaryExpr ;
+
+TernaryExpr
+    ::= CoalesceExpr
+        (
+            "?"
+            Expr
+            ":"
+            TernaryExpr
+        )? ;
+
+CoalesceExpr
+    ::= LogicExpr
+        (
+            "??"
+            LogicExpr
+        )* ;
+
+LogicExpr
+    ::= OrExpr
+        ("xor" OrExpr)* ;
+
+OrExpr
+    ::= AndExpr
+        ("or" AndExpr)* ;
+
+AndExpr
+    ::= EqualityExpr
+        ("and" EqualityExpr)* ;
+
+EqualityExpr
+    ::= RelExpr
+        (
+            ("==" | "!=")
+            RelExpr
+        )* ;
+
+RelExpr
+    ::= ShiftExpr
+        (
+            ("<" | "<=" | ">" | ">=")
+            ShiftExpr
+        )* ;
+
+ShiftExpr
+    ::= BitwiseOrExpr
+        (
+            ("<<" | ">>")
+            BitwiseOrExpr
+        )* ;
+
+BitwiseOrExpr
+    ::= BitwiseXorExpr
+        (
+            "|"
+            BitwiseXorExpr
+        )* ;
+
+BitwiseXorExpr
+    ::= BitwiseAndExpr
+        (
+            "^"
+            BitwiseAndExpr
+        )* ;
+
+BitwiseAndExpr
+    ::= AddExpr
+        (
+            "&"
+            AddExpr
+        )* ;
+
+AddExpr
+    ::= MulExpr
+        (
+            ("+" | "-")
+            MulExpr
+        )* ;
+
+MulExpr
+    ::= UnaryExpr
+        (
+            ("*" | "/" | "%")
+            UnaryExpr
+        )* ;
+
+UnaryExpr
+    ::= UnaryOp UnaryExpr
+     | CastExpr ;
+
+UnaryOp
+    ::= "-"
+     | "*"
+     | "&"
+     | "~"
+     | "not" ;
+
+CastExpr
+    ::= PostfixExpr
+        (
+            "as"
+            Type
+        )* ;
+
+PostfixExpr
+    ::= PrimaryExpr
+        PostfixOp* ;
+
+PostfixOp
+    ::= "." IDENT
+     | "->" IDENT
+     | "?->" IDENT
+     | "(" ArgListOpt ")"
+     | "[" Expr "]"
+     | "unsafe" ;
+
+PrimaryExpr
+    ::= Literal
+     | QualifiedName
+     | "(" Expr ")"
+     | StructInit
+     | ArrayLiteral
+     | NewExpr
+     | MoveExpr
+     | "this"
+     | "default" ;
+
+NewExpr
+    ::= "new"
+        QualifiedName
+        ArrayDimsOpt
+        ConstructorCall ;
+
+MoveExpr
+    ::= "move" Expr ;
+
+ConstructorCall
+    ::= "(" ArgListOpt ")" ;
+
+StructInit
+    ::= "{"
+            StructInitListOpt
+        "}" ;
+
+StructInitListOpt
+    ::= StructInitList
+     | ε ;
+
+StructInitList
+    ::= StructInitItem
+        (
+            ","
+            StructInitItem
+        )*
+        ","? ;
+
+StructInitItem
+    ::= IDENT "=" Expr
+     | Expr ;
+
+ArrayLiteral
+    ::= "["
+            ArrayItemsOpt
+        "]" ;
+
+ArrayItemsOpt
+    ::= ArrayItems
+     | ε ;
+
+ArrayItems
+    ::= Expr
+        (
+            ","
+            Expr
+        )*
+        ","? ;
+
+Type
+    ::= TypeQualifier*
+        BaseType
+        TypeModifier* ;
+
+TypeQualifier
+    ::= "const"
+     | "volatile" ;
+
+BaseType
+    ::= PrimitiveType
+     | QualifiedName
+     | FunctionType ;
+
+TypeModifier
+    ::= "*"
+     | "&" ;
+
+FunctionType
+    ::= "(" Type ")"
+        "(" ParamTypeListOpt ")" ;
+
+PrimitiveType
+    ::= "i8"
+     | "i16"
+     | "i32"
+     | "i64"
+     | "u8"
+     | "u16"
+     | "u32"
+     | "u64"
+     | "f32"
+     | "f64"
+     | "char8"
+     | "char16"
+     | "char32"
+     | "bool"
+     | "void"
+     | "usize"
+     | "isize" ;
+
+Literal
+    ::= NUMBER
+     | FLOAT
+     | HEXNUMBER
+     | BINARYNUMBER
+     | STRING
+     | RAW_STRING
+     | CHAR_LITERAL
+     | "true"
+     | "false"
+     | "null" ;
+
+QualifiedName
+    ::= IDENT
+        (
+            "::"
+            IDENT
+        )* ;
+
+ArgListOpt
+    ::= ArgList
+     | ε ;
+
+ArgList
+    ::= Expr
+        (
+            ","
+            Expr
+        )* ;
