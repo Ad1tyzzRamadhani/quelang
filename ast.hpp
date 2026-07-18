@@ -37,7 +37,7 @@ struct Literal : Node {
 
 // Type System
 
-enum class TypeQualifier { Const, Volatile };
+enum class TypeQualifier { Const, Volatile, CoroutineType};
 
 struct TypeModifier {
     enum class Kind { Pointer, Reference, FuncPtr } kind;
