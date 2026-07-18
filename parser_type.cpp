@@ -13,6 +13,12 @@ std::unique_ptr<Type> ParseState::parseType() {
             );
             continue;
         }
+        if (march(TokenType::KW_CO)) {
+            type->qualifier.push_back(
+                TypeQualifier::CoroutineType
+            ) ;
+            continue;
+        }
         break;
     }
     if (peek().type == TokenType::LPAREN) return parseFuncPtrType(type->qualifiers);
