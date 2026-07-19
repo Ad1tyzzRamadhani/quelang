@@ -167,7 +167,7 @@ struct Stmt : Node {
         VarDecl, If, While, DoWhile, For, Resume,
         Return, Break, Continue, SwitchCase,
         ExprStmt, Block, Defer, UseStmt,
-        Label, Jump,
+        Label, Jump, Wait,
         Drop, Wipe, Yield
     } kind;
 
@@ -252,6 +252,10 @@ struct Stmt : Node {
     struct {
         std::unique_ptr<Expr> target;
     } resume_stmt;
+
+    struct {
+        std::unique_ptr<Expr> cond;
+    } wait_stmt;
 
     std::string label;
     std::string jump_target;
