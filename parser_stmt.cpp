@@ -275,7 +275,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 }
 
 Stmt::VarDecl ParseState::parseVarDecl() {
-    Stmt::VarDecl decl;
+    VarDecl decl;
     const Token& tok = peek();
 
     // -------------------------
@@ -300,7 +300,7 @@ Stmt::VarDecl ParseState::parseVarDecl() {
     // -------------------------
     do {
 
-        Stmt::VarDecl::Item item;
+        VarDecl::Item item;
 
         if (peek().type != TokenType::IDENT)
             error("expected variable name");
