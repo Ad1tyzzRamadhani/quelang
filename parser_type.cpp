@@ -13,10 +13,10 @@ std::unique_ptr<Type> ParseState::parseType() {
             );
             continue;
         }
-        if (march(TokenType::KW_CO)) {
-            type->qualifier.push_back(
+        if (match(TokenType::KW_CO)) {
+            type->qualifiers.push_back(
                 TypeQualifier::CoroutineType
-            ) ;
+            );
             continue;
         }
         break;
