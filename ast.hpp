@@ -162,6 +162,22 @@ struct Expr : Node {
 
 struct UseDecl;
 struct Constructor;
+
+struct VarDecl : Node {
+    std::unique_ptr<Type> type;
+    struct Item {
+        std::string name;
+        std::unique_ptr<Expr> init;
+        std::vector<std::unique_ptr<Expr>> args;
+        std::vector<std::unique_ptr<Literal>> array_dims;
+    };
+
+    std::vector<Item> items;
+    bool is_static = false;
+    bool is_extern = false;
+    bool is_none = false;
+};
+
 struct Stmt : Node {
     enum class Kind {
         VarDecl, If, While, DoWhile, For, Resume,
@@ -175,20 +191,7 @@ struct Stmt : Node {
         std::vector<std::unique_ptr<Stmt>> stmts;
     } block;
 
-    struct VarDecl {
-        std::unique_ptr<Type> type;
-        struct Item {
-            std::string name;
-            std::unique_ptr<Expr> init;
-            std::vector<std::unique_ptr<Expr>> args;
-            std::vector<std::unique_ptr<Literal>> array_dims;
-        };
-
-        std::vector<Item> items;
-        bool is_static = false;
-        bool is_extern = false;
-        bool is_none = false;
-    } var_decl;
+    VarDecl var_decl;
 
     struct IfStmt {
         std::unique_ptr<Expr> cond;
