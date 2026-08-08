@@ -307,6 +307,11 @@ Stmt::VarDecl ParseState::parseVarDecl() {
 
         item.name = advance().value;
 
+        if (match(TokenType::COLON)) {
+            if (peek().type == TokenType::NUMBER)
+                item.bit_width = parseLiteral(tok);
+        }
+
         // -------------------------
         // ArrayDimsOpt
         // -------------------------
