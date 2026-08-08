@@ -37,10 +37,10 @@ struct Literal : Node {
 
 // Type System
 
-enum class TypeQualifier { Const, Volatile, CoroutineType};
+enum class TypeQualifier { Const, Volatile, Atomic};
 
 struct TypeModifier {
-    enum class Kind { Pointer, Reference, FuncPtr } kind;
+    enum class Kind { Pointer, Reference, Restrict , FuncPtr } kind;
     std::vector<std::unique_ptr<Type>> func_params;
     std::unique_ptr<Type> func_return;
 };
@@ -122,7 +122,7 @@ struct Expr : Node {
 
     // PostFix Op
     struct PostfixOp {
-        enum class Kind { Unsafe, MemberAccess, StaticAccess, SafeArrow, Scope, Arrow, Call, Index } kind;
+        enum class Kind { Unsafe, AtomicRef, MemberAccess, StaticAccess, SafeArrow, Scope, Arrow, Call, Index } kind;
 
         std::string name;
         std::vector<std::unique_ptr<Expr>> args;
@@ -173,6 +173,7 @@ struct VarDecl : Node {
     };
 
     std::vector<Item> items;
+    bool is_atomic = false;
     bool is_static = false;
     bool is_extern = false;
     bool is_none = false;
@@ -183,7 +184,7 @@ struct Stmt : Node {
         VarDecl, If, While, DoWhile, For, Resume,
         Return, Break, Continue, SwitchCase,
         ExprStmt, Block, Defer, UseStmt,
-        Label, Jump, Wait,
+        Label, Jump,
         Drop, Wipe, Yield
     } kind;
 
@@ -255,10 +256,6 @@ struct Stmt : Node {
     struct {
         std::unique_ptr<Expr> target;
     } resume_stmt;
-
-    struct {
-        std::unique_ptr<Expr> cond;
-    } wait_stmt;
 
     std::string label;
     std::string jump_target;
@@ -336,21 +333,7 @@ struct StructDef : Node {
     std::vector<std::unique_ptr<Node>> members;
     std::unique_ptr<Constructor> ctor;
     std::unique_ptr<Destructor> dtor;
-    std::vector<std::unique_ptr<QualifiedName>> implements;
     std::optional<std::string> default_field;
-};
-
-struct InterfaceDef : Node {
-    Visibility visibility = Visibility::Private;
-    std::unique_ptr<QualifiedName> name;
-
-    struct Method {
-        std::unique_ptr<Type> return_type;
-        std::string name;
-        std::vector<std::unique_ptr<Type>> params;
-    };
-
-    std::vector<Method> methods;
 };
 
 // Enum ( Enum Union & Constant Enum )
