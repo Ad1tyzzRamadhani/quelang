@@ -13,9 +13,9 @@ std::unique_ptr<Type> ParseState::parseType() {
             );
             continue;
         }
-        if (match(TokenType::KW_CO)) {
+        if (match(TokenType::KW_ATOMIC)) {
             type->qualifiers.push_back(
-                TypeQualifier::CoroutineType
+                TypeQualifier::Atomic
             );
             continue;
         }
@@ -50,6 +50,18 @@ std::unique_ptr<Type> ParseState::parseType() {
 
             continue;
         }
+
+        if (match(TokenType::KW_RESTRICT)) {
+            TypeModifier mod;
+            mod.kind = TypeModifier::Kind::Restrict;
+
+            type->modifiers.push_back(
+                std::move(mod)
+            );
+
+            continue;
+        }
+        
         break;
     }
     return type;
