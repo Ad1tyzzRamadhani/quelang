@@ -211,16 +211,6 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         return stmt;
     }
 
-    if (match(TokenType::KW_WAIT)) {
-        auto stmt = std::make_unique<Stmt>();
-        stmt->kind = Stmt::Kind::Wait;
-
-        stmt->wait_stmt.cond = parseExpr();
-        consume(TokenType::SEMICOLON);
-
-        return stmt;
-    }
-
     // -------------------------
     // LABEL
     // -------------------------
