@@ -219,7 +219,7 @@ struct Stmt : Node {
     } do_while_stmt;
 
     struct {
-        std::unique_ptr<Stmt> init;
+        std::unique_ptr<VarDecl> init;
         std::unique_ptr<Expr> cond;
         std::unique_ptr<Expr> update;
         std::unique_ptr<Stmt> body;
