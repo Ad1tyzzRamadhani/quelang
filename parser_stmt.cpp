@@ -96,7 +96,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 
         consume(TokenType::LPAREN);
 
-        stmt->for_stmt.init = parseStmt();
+        stmt->for_stmt.init = parseVarDecl();
 
         consume(TokenType::SEMICOLON);
 
