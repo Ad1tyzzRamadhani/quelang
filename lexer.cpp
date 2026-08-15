@@ -21,7 +21,7 @@ enum class TokenType {
     KW_WHILE, KW_DO, KW_FOR,
     KW_RETURN, KW_BREAK, KW_CONTINUE,
     KW_STRUCT, KW_ENUM, KW_NAMESPACE, KW_CO,
-    KW_USE, KW_AS, KW_DROP, KW_UNION,
+    KW_USE, KW_AS, KW_DROP, KW_UNION, KW_AWAIT,
     KW_TRUE, KW_FALSE, KW_NULL, KW_THIS, KW_ATOMIC,
     KW_PUBLIC, KW_STATIC, KW_CONST, KW_VOLATILE, KW_EXTERN,
     KW_AND, KW_OR, KW_XOR, KW_UNSAFE, KW_RESTRICT,
@@ -349,7 +349,7 @@ const std::unordered_map<std::string,TokenType> Lexer::keyword_map={
     {"noreturn",TokenType::KW_NORETURN},{"extern",TokenType::KW_EXTERN},{"move",TokenType::KW_MOVE},
     {"default",TokenType::KW_DEFAULT},{"atomic",TokenType::KW_ATOMIC},{"restrict",TokenType::KW_RESTRICT},
     {"not", TokenType::KW_NOT},{"switch",TokenType::KW_SWITCH},{"case",TokenType::KW_CASE},
-    {"jumpto",TokenType::KW_JUMPTO},{"unsafe",TokenType::KW_UNSAFE},
+    {"jumpto",TokenType::KW_JUMPTO},{"unsafe",TokenType::KW_UNSAFE},{"await",TokenType::KW_AWAIT},
     {"new",TokenType::KW_NEW},{"yield",TokenType::KW_YIELD},
     {"construct",TokenType::KW_CONSTRUCT},
 };
