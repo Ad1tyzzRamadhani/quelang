@@ -27,7 +27,7 @@ struct ParseState {
     std::unique_ptr<Expr> parseExpr();
     std::unique_ptr<Stmt> parseStmt();
     std::unique_ptr<Stmt> parseBlock();
-    std::unique_ptr<VarDecl> parseVarDecl();
+    VarDecl parseVarDecl();
     std::unique_ptr<Stmt> parseSwitchStmt();
     std::unique_ptr<UseDecl> parseUseDecl();
     
