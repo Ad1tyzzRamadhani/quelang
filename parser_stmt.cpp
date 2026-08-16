@@ -274,7 +274,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     }
 }
 
-Stmt::VarDecl ParseState::parseVarDecl() {
+VarDecl ParseState::parseVarDecl() {
     VarDecl decl;
     const Token& tok = peek();
 
