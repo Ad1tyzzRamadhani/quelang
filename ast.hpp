@@ -42,6 +42,7 @@ enum class TypeQualifier { Const, Volatile, Atomic};
 struct TypeModifier {
     enum class Kind { Pointer, Reference, Restrict , FuncPtr } kind;
     std::vector<std::unique_ptr<Type>> func_params;
+    bool is_coroutine = false;
     std::unique_ptr<Type> func_return;
 };
 
