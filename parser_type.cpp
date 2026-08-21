@@ -102,7 +102,7 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
                     TokenType::RPAREN,
                     "expected ')' in function pointer"
                 );
-                if (check(TokenType::KW_CO) {
+                if (check(TokenType::KW_CO)) {
                     consume(TokenType::KW_CO);
                     type->modifiers.is_coroutine = true;
                 }
