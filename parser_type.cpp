@@ -71,16 +71,6 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
         // function pointer
     auto type = std::make_unique<Type>();
     type->qualifiers = tq;
-        if (match(TokenType::KW_CONST)) {
-            type->qualifiers.push_back(
-                TypeQualifier::Const
-            );
-        }
-        if (match(TokenType::KW_VOLATILE)) {
-            type->qualifiers.push_back(
-                TypeQualifier::Volatile
-            );
-        }
         if (peek().type == TokenType::LPAREN) {
             TypeModifier mod;
             consume(TokenType::LPAREN);
