@@ -327,11 +327,11 @@ VarDecl ParseState::parseVarDecl() {
             consume(TokenType::RBRACKET);
         }
 
-        if (match(TokenType::LPAREN)) {
-            if (peek().type != TokenType::RPAREN) {
+        if (match(TokenType::LBRACE)) {
+            if (peek().type != TokenType::RBRACE) {
                 item.args = parseArgList();
             }
-            consume(TokenType::RPAREN);
+            consume(TokenType::RBRACE);
         }
 
         // -------------------------
