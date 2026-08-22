@@ -215,7 +215,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Await;
 
-        stmt->resume_stmt.target = parseExpr();
+        stmt->await_stmt.target = parseExpr();
         consume(TokenType::SEMICOLON);
 
         return stmt;
