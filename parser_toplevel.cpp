@@ -95,7 +95,7 @@ std::unique_ptr<Node> ParseState::parseTopLevelDecl() {
     /*
      * Selain itu dianggap global variable.
      */
-    auto var = parseGlobalVarDecl(visibility);
+    auto var = parseVarDecl(visibility);
 
     consume(
         TokenType::SEMICOLON,
