@@ -29,6 +29,9 @@ struct ParseState {
     std::unique_ptr<Function> parseFunction(Visibility visibility);
     std::unique_ptr<ForwardDecl> parseForwardDecl(Visibility visibility);
     std::unique_ptr<NamespaceDecl> parseNamespaceDecl();
+    std::unique_ptr<EnumDef> parseEnumDef(Visibility visibility);
+    std::unique_ptr<UnionDef> parseUnionDef(Visibility visibility);
+    std::unique_ptr<StructDef> parseStructDef(Visibility visibility);
     bool isPrimitiveType(TokenType t);
     bool isTypeStart(const Token& tok);
     std::unique_ptr<Expr> parseExpr();
