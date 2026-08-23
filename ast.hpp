@@ -302,6 +302,7 @@ struct Function : Node {
     bool is_static = false; // static void foo();
     bool is_const = false; // void foo() const;
     bool is_extern = false; // extern void foo();
+    bool is_noreturn = false;
 };
 
 // Data Structure
