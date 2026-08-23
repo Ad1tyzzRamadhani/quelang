@@ -80,7 +80,7 @@ std::unique_ptr<Node> ParseState::parseTopLevelDecl() {
      * yaitu function atau global variable.
      */
 
-    if (isForwardFunctionAhead()) {
+    if (isForwardDeclAhead()) {
         return parseForwardDecl(visibility);
     }
 
@@ -105,13 +105,17 @@ std::unique_ptr<Node> ParseState::parseTopLevelDecl() {
     return std::make_unique<VarDecl>(std::move(var));
 }
 
-bool ParseState::isFunctionDeclarationAhead() {
+bool ParseState::isForwardDeclAhead() {
 
     size_t save = pos;
 
     try {
 
-        // Function attributes
+        /*
+         * -------------------------------------------------
+         * Function / declaration attributes
+         * -------------------------------------------------
+         */
         while (
             check(TokenType::KW_STATIC) ||
             check(TokenType::KW_EXTERN) ||
@@ -120,7 +124,51 @@ bool ParseState::isFunctionDeclarationAhead() {
             advance();
         }
 
-        // qualifiers
+        /*
+         * -------------------------------------------------
+         * struct Foo;
+         * -------------------------------------------------
+         */
+        if (check(TokenType::KW_STRUCT)) {
+
+            advance();
+
+            /*
+             * Nama struct
+             */
+            if (!check(TokenType::IDENT)) {
+                pos = save;
+                return false;
+            }
+
+            parseQualifiedName();
+
+            /*
+             * Forward struct harus langsung ';'
+             *
+             * struct Foo;
+             */
+            bool result = check(TokenType::SEMICOLON);
+
+            pos = save;
+            return result;
+        }
+
+        /*
+         * -------------------------------------------------
+         * Function forward declaration
+         * -------------------------------------------------
+         *
+         * int foo(...);
+         *
+         * static int foo(...);
+         * extern int foo(...);
+         * noreturn int foo(...);
+         *
+         * atau return type function pointer:
+         *
+         * (int()) foo(...);
+         */
         while (
             check(TokenType::KW_CONST) ||
             check(TokenType::KW_VOLATILE) ||
@@ -130,7 +178,7 @@ bool ParseState::isFunctionDeclarationAhead() {
         }
 
         /*
-         * Function type sebagai return type
+         * Return type
          */
         if (check(TokenType::LPAREN)) {
             parseFuncPtrType({});
@@ -138,6 +186,9 @@ bool ParseState::isFunctionDeclarationAhead() {
             parseType();
         }
 
+        /*
+         * Function name
+         */
         if (!check(TokenType::IDENT)) {
             pos = save;
             return false;
@@ -145,7 +196,54 @@ bool ParseState::isFunctionDeclarationAhead() {
 
         advance();
 
-        bool result = check(TokenType::LPAREN);
+        /*
+         * Harus function:
+         *
+         * int foo(...)
+         *        ^
+         */
+        if (!check(TokenType::LPAREN)) {
+            pos = save;
+            return false;
+        }
+
+        /*
+         * Lewati parameter list hanya untuk lookahead.
+         */
+        int depth = 0;
+
+        do {
+            if (check(TokenType::LPAREN)) {
+                depth++;
+            }
+            else if (check(TokenType::RPAREN)) {
+                depth--;
+            }
+
+            advance();
+
+        } while (
+            depth > 0 &&
+            !check(TokenType::EOF_TOKEN)
+        );
+
+        /*
+         * Setelah ')' boleh:
+         *
+         * const ;
+         * co ;
+         * co const ;
+         * ;
+         */
+
+        if (match(TokenType::KW_CO)) {
+            match(TokenType::KW_CONST);
+        }
+        else {
+            match(TokenType::KW_CONST);
+        }
+
+        bool result = check(TokenType::SEMICOLON);
 
         pos = save;
         return result;
