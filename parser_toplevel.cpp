@@ -105,6 +105,58 @@ std::unique_ptr<Node> ParseState::parseTopLevelDecl() {
     return std::make_unique<VarDecl>(std::move(var));
 }
 
+bool ParseState::isFunctionDeclarationAhead() {
+
+    size_t save = pos;
+
+    try {
+
+        // Function attributes
+        while (
+            check(TokenType::KW_STATIC) ||
+            check(TokenType::KW_EXTERN) ||
+            check(TokenType::KW_NORETURN)
+        ) {
+            advance();
+        }
+
+        // qualifiers
+        while (
+            check(TokenType::KW_CONST) ||
+            check(TokenType::KW_VOLATILE) ||
+            check(TokenType::KW_ATOMIC)
+        ) {
+            advance();
+        }
+
+        /*
+         * Function type sebagai return type
+         */
+        if (check(TokenType::LPAREN)) {
+            parseFuncPtrType({});
+        } else {
+            parseType();
+        }
+
+        if (!check(TokenType::IDENT)) {
+            pos = save;
+            return false;
+        }
+
+        advance();
+
+        bool result = check(TokenType::LPAREN);
+
+        pos = save;
+        return result;
+
+    } catch (...) {
+
+        pos = save;
+        return false;
+    }
+}
+
 bool ParseState::isForwardDeclAhead() {
 
     size_t save = pos;
