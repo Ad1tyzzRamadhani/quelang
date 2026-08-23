@@ -23,7 +23,7 @@ std::unique_ptr<Type> ParseState::parseType() {
     }
     if (peek().type == TokenType::LPAREN) return parseFuncPtrType(type->qualifiers);
 
-    type->base = parseQualifiedName(tokens, pos);
+    type->base = parseQualifiedName();
     
     while (true) {
 
