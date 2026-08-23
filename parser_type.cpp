@@ -104,7 +104,7 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
                 );
                 if (check(TokenType::KW_CO)) {
                     consume(TokenType::KW_CO);
-                    type->modifiers->is_coroutine = true;
+                    mod.is_coroutine = true;
                 }
                 if (
                     check(TokenType::STAR)
