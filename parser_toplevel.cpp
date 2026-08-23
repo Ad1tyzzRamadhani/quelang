@@ -555,13 +555,14 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
 
             continue;
         }
-
+        
+        Visibility method_vis = parseVisibility();
         /*
          * nested struct
          */
         if (check(TokenType::KW_STRUCT)) {
             st->members.push_back(
-                parseStructDef(Visibility::Private)
+                parseStructDef(method_vis)
             );
             continue;
         }
@@ -571,7 +572,7 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
          */
         if (check(TokenType::KW_ENUM)) {
             st->members.push_back(
-                parseEnumDef(Visibility::Private)
+                parseEnumDef(method_vis)
             );
             continue;
         }
@@ -581,7 +582,7 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
          */
         if (check(TokenType::KW_UNION)) {
             st->members.push_back(
-                parseUnionDef(Visibility::Private)
+                parseUnionDef(method_vis)
             );
             continue;
         }
@@ -595,7 +596,7 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
         if (isFunctionDeclarationAhead()) {
 
             st->members.push_back(
-                parseFunction(Visibility::Private)
+                parseFunction(method_vis)
             );
 
             continue;
