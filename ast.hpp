@@ -163,8 +163,10 @@ struct Expr : Node {
 
 struct UseDecl;
 struct Constructor;
+enum class Visibility { Private, Public };
 
 struct VarDecl : Node {
+    Visibility visibility = Visibility::Private;
     std::unique_ptr<Type> type;
     struct Item {
         std::string name;
@@ -271,8 +273,6 @@ struct Stmt : Node {
 };
 
 // Top Level Scope Program
-
-enum class Visibility { Private, Public };
 
 struct ForwardDecl : Node {
     Visibility visibility = Visibility::Private;
