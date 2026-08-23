@@ -53,7 +53,7 @@ std::unique_ptr<Literal> parseLiteral( const Token& tok) {
     return lit;
 }
 
-std::unique_ptr<QualifiedName> parseQualifiedName(const std::vector<Token>& tokens, size_t& pos) {
+std::unique_ptr<QualifiedName> ParseState::parseQualifiedName() {
     auto qn = std::make_unique<QualifiedName>();
     qn->line_start = tokens[pos].line;
     qn->column_start = tokens[pos].column;
