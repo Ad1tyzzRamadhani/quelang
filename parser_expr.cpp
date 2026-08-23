@@ -31,7 +31,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         size_t save = pos;
 
         try {
-            auto qn = parseQualifiedName(tokens, pos);
+            auto qn = parseQualifiedName();
 
             auto expr = std::make_unique<Expr>();
             expr->kind = Expr::Kind::Ident;
@@ -116,7 +116,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         auto expr = std::make_unique<Expr>();
         expr->kind = Expr::Kind::New;
 
-        expr->new_expr.type = parseQualifiedName(tokens, pos);
+        expr->new_expr.type = parseQualifiedName();
 
         if (match(TokenType::LPAREN)) {
             if (!check(TokenType::RPAREN)) {
