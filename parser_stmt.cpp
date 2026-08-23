@@ -277,7 +277,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 VarDecl ParseState::parseVarDecl(Visibility visibility = Visibility::Private) {
     VarDecl decl;
     const Token& tok = peek();
-    decl->visibility = visibility;
+    decl.visibility = visibility;
 
     // -------------------------
     // StorageOpt
