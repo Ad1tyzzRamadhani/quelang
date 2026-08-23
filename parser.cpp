@@ -22,6 +22,12 @@ struct ParseState {
     std::unique_ptr<Expr> parseAssign();
     std::vector<std::unique_ptr<Expr>> parseArgList();
     std::vector<std::unique_ptr<Expr>> parseExprList();
+    Visibility parseVisibility();
+    std::unique_ptr<FileProgram> parseProgram();
+    std::unique_ptr<Node> parseTopLevelDecl();
+    bool isFunctionDeclarationAhead();
+    std::unique_ptr<Function> parseFunction(Visibility visibility);
+    std::unique_ptr<ForwardDecl> parseForwardDecl(Visibility visibility);
     bool isPrimitiveType(TokenType t);
     bool isTypeStart(const Token& tok);
     std::unique_ptr<Expr> parseExpr();
