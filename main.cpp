@@ -6,6 +6,7 @@
 #include "parser_type.cpp"
 #include "parser_expr.cpp"
 #include "parser_stmt.cpp"
+#include "parser_toplevel.cpp"
 
 int main() {
   return 0;
