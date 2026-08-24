@@ -127,6 +127,14 @@ bool ParseState::isVarDeclAhead() {
         advance();
 
         // ArrayDimsOpt
+
+        if (match(TokenType::LBRACE)) {
+            parseArgList();
+            if (!match(TokenType::RBRACE) {
+                pos = save;
+                return false;
+            }
+        }
         while (match(TokenType::LBRACKET)) {
 
             if (!check(TokenType::NUMBER)) {
