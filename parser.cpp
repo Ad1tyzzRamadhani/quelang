@@ -87,7 +87,7 @@ std::vector<std::unique_ptr<Expr>> ParseState::parseArgList() {
 }
 
 std::unique_ptr<Expr> ParseState::parseExpr() {
-    return parsePostfix();
+    return parseAssign();
 }
 
 bool ParseState::isTypeStart(const Token& tok) {
