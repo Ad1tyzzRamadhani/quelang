@@ -42,7 +42,7 @@ struct ParseState {
     VarDecl parseVarDecl(Visibility visibility = Visibility::Private);
     std::unique_ptr<Stmt> parseSwitchStmt();
     std::unique_ptr<UseDecl> parseUseDecl();
-    
+    bool isVarDeclAhead();
 
     const Token& peek(int offset = 0) const {
         if (pos + offset >= tokens.size()) return tokens.back();
@@ -92,6 +92,101 @@ std::unique_ptr<Expr> ParseState::parseExpr() {
 
 bool ParseState::isTypeStart(const Token& tok) {
     return tok.type == TokenType::IDENT || isPrimitiveType(tok.type);
+}
+
+bool ParseState::isVarDeclAhead() {
+
+    size_t save = pos;
+
+    try {
+
+        // StorageOpt
+        if (check(TokenType::KW_STATIC) ||
+            check(TokenType::KW_EXTERN)) {
+            advance();
+        }
+
+        // TypeQualifier*
+        while (
+            check(TokenType::KW_CONST) ||
+            check(TokenType::KW_VOLATILE) ||
+            check(TokenType::KW_ATOMIC)
+        ) {
+            advance();
+        }
+
+        // BaseType + TypeModifier*
+        parseType();
+
+        // VarList harus dimulai IDENT
+        if (!check(TokenType::IDENT)) {
+            pos = save;
+            return false;
+        }
+
+        advance();
+
+        // ArrayDimsOpt
+        while (match(TokenType::LBRACKET)) {
+
+            if (!check(TokenType::NUMBER)) {
+                pos = save;
+                return false;
+            }
+
+            advance();
+
+            if (!match(TokenType::RBRACKET)) {
+                pos = save;
+                return false;
+            }
+        }
+
+        // VarInitOpt
+        if (match(TokenType::EQ)) {
+            parseExpr();
+        }
+
+        // Kalau ada comma, masih mungkin VarList
+        while (match(TokenType::COMMA)) {
+
+            if (!check(TokenType::IDENT)) {
+                pos = save;
+                return false;
+            }
+
+            advance();
+
+            while (match(TokenType::LBRACKET)) {
+
+                if (!check(TokenType::NUMBER)) {
+                    pos = save;
+                    return false;
+                }
+
+                advance();
+
+                consume(
+                    TokenType::RBRACKET,
+                    "expected ']'"
+                );
+            }
+
+            if (match(TokenType::EQ)) {
+                parseExpr();
+            }
+        }
+
+        bool result = check(TokenType::SEMICOLON);
+
+        pos = save;
+        return result;
+
+    } catch (...) {
+
+        pos = save;
+        return false;
+    }
 }
 
 bool ParseState::isPrimitiveType(TokenType t) {
