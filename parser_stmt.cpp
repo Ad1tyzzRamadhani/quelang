@@ -310,7 +310,7 @@ VarDecl ParseState::parseVarDecl(Visibility visibility) {
 
         if (match(TokenType::COLON)) {
             if (peek().type == TokenType::NUMBER)
-                item.bit_width = parseLiteral(tok);
+                item.bit_width = parseLiteral(advance());
         }
 
         // -------------------------
@@ -322,7 +322,7 @@ VarDecl ParseState::parseVarDecl(Visibility visibility) {
                 error("array dimension must be constant number");
 
             item.array_dims.push_back(
-                parseLiteral(tok)
+                parseLiteral(advance())
             );
 
             consume(TokenType::RBRACKET);
