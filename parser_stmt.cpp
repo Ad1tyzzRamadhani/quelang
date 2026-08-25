@@ -152,6 +152,14 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         return stmt;
     }
 
+    if (match(TokenType::KW_UNSAFE)) {
+        auto stmt = std::make_unique<Stmt>();
+        stmt->kind = Stmt::Kind::Unsafe;
+        stmt->unsafe_stmt.stmt = parseStmt();
+
+        return stmt;
+    }
+
     // -------------------------
     // DROP / WIPE
     // -------------------------
