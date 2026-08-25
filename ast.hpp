@@ -123,7 +123,7 @@ struct Expr : Node {
 
     // PostFix Op
     struct PostfixOp {
-        enum class Kind { Unsafe, AtomicRef, MemberAccess, StaticAccess, SafeArrow, Scope, Arrow, Call, Index } kind;
+        enum class Kind { AtomicRef, MemberAccess, StaticAccess, SafeArrow, Scope, Arrow, Call, Index } kind;
 
         std::string name;
         std::vector<std::unique_ptr<Expr>> args;
@@ -188,7 +188,7 @@ struct Stmt : Node {
         VarDecl, If, While, DoWhile, For, Resume,
         Return, Break, Continue, SwitchCase,
         ExprStmt, Block, Defer, UseStmt,
-        Label, Jump, Await,
+        Label, Jump, Await, Unsafe,
         Drop, Wipe, Yield
     } kind;
 
@@ -264,6 +264,10 @@ struct Stmt : Node {
     struct {
         std::unique_ptr<Expr> target;
     } await_stmt;
+
+    struct {
+        std::unique_ptr<Stmt> stmt;
+    } unsafe_stmt;
 
     std::string label;
     std::string jump_target;
