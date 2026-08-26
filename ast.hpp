@@ -29,7 +29,7 @@ struct Literal : Node {
     enum class Kind {
         Number, Float, Hex, Binary,
         Char, String, RawString,
-        True, False, Null
+        True, False, Null, None
     } kind;
 
     std::string value;
