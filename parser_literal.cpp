@@ -38,6 +38,10 @@ std::unique_ptr<Literal> parseLiteral( const Token& tok) {
             lit->kind = Literal::Kind::True;
             lit->value = "true";
             break;
+        case TokenType::KW_NONE:
+            lit->kind = Literal::Kind::None;
+            lit->value = "none";
+            break;
         case TokenType::KW_FALSE:
             lit->kind = Literal::Kind::False;
             lit->value = "false";
