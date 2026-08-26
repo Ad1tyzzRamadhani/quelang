@@ -222,8 +222,7 @@ struct Stmt : Node {
         std::unique_ptr<Expr> cond;
 
         bool isCatch = false;
-        Type error_type;
-        std::string error_name;
+        std::unique_ptr<Type> error_var;
         std::unique_ptr<Stmt> catch_body;
     } do_stmt;
 
