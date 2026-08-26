@@ -188,7 +188,7 @@ struct Stmt : Node {
     enum class Kind {
         VarDecl, If, While, DoStmt, For, Resume,
         Return, Break, Continue, SwitchCase,
-        ExprStmt, Block, Defer, UseStmt,
+        ExprStmt, Block, Defer, UseStmt, ThrowStmt,
         Label, Jump, Await, Unsafe,
         Drop, Wipe, Yield
     } kind;
@@ -257,6 +257,10 @@ struct Stmt : Node {
         std::unique_ptr<Expr> expr;
         bool is_array = false;
     } wipe_stmt;
+
+    struct {
+        std::unique_ptr<Expr> expr;
+    } throw_stmt;
 
     struct {
         std::unique_ptr<Stmt> stmt;
