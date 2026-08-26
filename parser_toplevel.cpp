@@ -404,6 +404,10 @@ std::unique_ptr<Function> ParseState::parseFunction(Visibility visibility) {
         fn->is_const = true;
     }
 
+    if (match(TokenType::KW_THROWS)) {
+        fn->throws_type = parseType();
+    }
+
     /*
      * Body
      */
