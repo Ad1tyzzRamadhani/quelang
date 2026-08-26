@@ -186,7 +186,7 @@ struct VarDecl : Node {
 
 struct Stmt : Node {
     enum class Kind {
-        VarDecl, If, While, DoWhile, For, Resume,
+        VarDecl, If, While, DoStmt, For, Resume,
         Return, Break, Continue, SwitchCase,
         ExprStmt, Block, Defer, UseStmt,
         Label, Jump, Await, Unsafe,
