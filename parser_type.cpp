@@ -106,6 +106,10 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
                     consume(TokenType::KW_CO);
                     mod.is_coroutine = true;
                 }
+                if (check(TokenType::KW_THROWS)) {
+                    consume(TokenType::KW_THROWS);
+                    mod.throws_type = parseType();
+                }
                 if (
                     check(TokenType::STAR)
                 ) {
