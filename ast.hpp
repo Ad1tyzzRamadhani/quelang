@@ -222,7 +222,7 @@ struct Stmt : Node {
         std::unique_ptr<Expr> cond;
 
         bool iscatch = false;
-        std::unique_ptr<VarDecl> error_var;
+        VarDecl error_var;
         std::unique_ptr<Stmt> catch_body;
     } do_stmt;
 
