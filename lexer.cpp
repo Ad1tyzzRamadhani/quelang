@@ -351,8 +351,8 @@ const std::unordered_map<std::string,TokenType> Lexer::keyword_map={
     {"default",TokenType::KW_DEFAULT},{"atomic",TokenType::KW_ATOMIC},{"restrict",TokenType::KW_RESTRICT},
     {"not", TokenType::KW_NOT},{"switch",TokenType::KW_SWITCH},{"case",TokenType::KW_CASE},
     {"jumpto",TokenType::KW_JUMPTO},{"unsafe",TokenType::KW_UNSAFE},{"await",TokenType::KW_AWAIT},
-    {"new",TokenType::KW_NEW},{"yield",TokenType::KW_YIELD},
-    {"construct",TokenType::KW_CONSTRUCT},
+    {"new",TokenType::KW_NEW},{"yield",TokenType::KW_YIELD},{"throws",TokenType::KW_THROWS},
+    {"construct",TokenType::KW_CONSTRUCT},{"throw",TokenType::KW_THROW},{"catch",TokenType::KW_CATCH}
 };
 
 std::vector<Token> Lexer::tokenize() {
