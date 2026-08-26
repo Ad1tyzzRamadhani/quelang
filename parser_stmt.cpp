@@ -170,6 +170,14 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         return stmt;
     }
 
+    if (match(TokenType::KW_THROW)) {
+        auto stmt = std::make_unique<Stmt>();
+        stmt->kind = Stmt::Kind::ThrowStmt;
+        stmt->throw_stmt.expr = parseExpr();
+
+        return stmt;
+    }
+
     // -------------------------
     // DROP / WIPE
     // -------------------------
