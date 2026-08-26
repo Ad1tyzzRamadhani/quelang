@@ -27,7 +27,7 @@ enum class TokenType {
     KW_AND, KW_OR, KW_XOR, KW_UNSAFE, KW_RESTRICT,
     KW_DEFAULT, KW_CONSTRUCT, KW_NORETURN, KW_MOVE,
     KW_JUMPTO, KW_SWITCH, KW_CASE, KW_DEFER, KW_YIELD,
-    KW_NEW, KW_NOT, KW_RESUME, KW_WIPE,
+    KW_NEW, KW_NOT, KW_RESUME, KW_WIPE, KW_NONE,
     KW_THROWS, KW_THROW, KW_CATCH,
 
     I8, I16, I32, I64, U8, U16, U32, U64,
@@ -349,7 +349,7 @@ const std::unordered_map<std::string,TokenType> Lexer::keyword_map={
     {"and",TokenType::KW_AND},{"or",TokenType::KW_OR},{"xor",TokenType::KW_XOR},{"co",TokenType::KW_CO},
     {"noreturn",TokenType::KW_NORETURN},{"extern",TokenType::KW_EXTERN},{"move",TokenType::KW_MOVE},
     {"default",TokenType::KW_DEFAULT},{"atomic",TokenType::KW_ATOMIC},{"restrict",TokenType::KW_RESTRICT},
-    {"not", TokenType::KW_NOT},{"switch",TokenType::KW_SWITCH},{"case",TokenType::KW_CASE},
+    {"not", TokenType::KW_NOT},{"switch",TokenType::KW_SWITCH},{"case",TokenType::KW_CASE},{"none",TokenType::KW_NONE},
     {"jumpto",TokenType::KW_JUMPTO},{"unsafe",TokenType::KW_UNSAFE},{"await",TokenType::KW_AWAIT},
     {"new",TokenType::KW_NEW},{"yield",TokenType::KW_YIELD},{"throws",TokenType::KW_THROWS},
     {"construct",TokenType::KW_CONSTRUCT},{"throw",TokenType::KW_THROW},{"catch",TokenType::KW_CATCH}
