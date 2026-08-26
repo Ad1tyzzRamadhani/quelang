@@ -348,11 +348,6 @@ struct Destructor : Node {
     std::unique_ptr<Stmt> body;
 };
 
-struct GlobalVarDecl : Node {
-    std::unique_ptr<VarDecl> var_decl;
-    Visibility visibility = Visibility::Private;
-};
-
 struct StructDef : Node {
     Visibility visibility = Visibility::Private;
     std::unique_ptr<QualifiedName> name;
