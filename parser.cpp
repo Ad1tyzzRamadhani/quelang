@@ -130,7 +130,7 @@ bool ParseState::isVarDeclAhead() {
 
         if (match(TokenType::LBRACE)) {
             parseArgList();
-            if (!match(TokenType::RBRACE) {
+            if (!match(TokenType::RBRACE)) {
                 pos = save;
                 return false;
             }
