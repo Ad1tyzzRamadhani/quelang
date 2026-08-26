@@ -307,6 +307,7 @@ struct Function : Node {
     std::vector<Param> params;
 
     std::unique_ptr<Stmt> body;
+    std::unique_ptr<Type> throws_type;
 
     bool is_coroutine = false;
     bool is_static = false; // static void foo();
