@@ -44,6 +44,7 @@ struct TypeModifier {
     std::vector<std::unique_ptr<Type>> func_params;
     bool is_coroutine = false;
     std::unique_ptr<Type> func_return;
+    std::unique_ptr<Type> throws_type;
 };
 
 struct Type : Node {
@@ -219,7 +220,12 @@ struct Stmt : Node {
     struct {
         std::unique_ptr<Stmt> body;
         std::unique_ptr<Expr> cond;
-    } do_while_stmt;
+
+        bool isCatch = false;
+        Type error_type;
+        std::string error_name;
+        std::unique_ptr<Stmt> catch_body;
+    } do_stmt;
 
     struct {
         VarDecl init;
