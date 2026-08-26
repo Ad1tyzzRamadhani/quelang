@@ -424,7 +424,7 @@ std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
 
             scase.is_default = false;
 
-            scase.values.push_back(parseLiteral(advance));
+            scase.values.push_back(parseLiteral(advance()));
 
             consume(TokenType::COLON,
                 "expected ':' after case");
