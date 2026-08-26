@@ -85,10 +85,10 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
             consume(TokenType::SEMICOLON);
 
             return stmt;
+        }
         if (match(TokenType::KW_CATCH)) {
             consume(TokenType::LPAREN);
             stmt->do_stmt.error_var = parseVarDecl();
-            consume(TokenType::SEMICOLON);
             consume(TokenType::RPAREN);
             stmt->do_stmt.catch_body = parseStmt();
             stmt->do_stmt.iscatch = true;
@@ -416,7 +416,7 @@ std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
 
             scase.is_default = false;
 
-            scase.values.push_back(parseLiteral(tok));
+            scase.values.push_back(parseLiteral(advance));
 
             consume(TokenType::COLON,
                 "expected ':' after case");
