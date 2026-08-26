@@ -74,7 +74,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     // -------------------------
     if (match(TokenType::KW_DO)) {
         auto stmt = std::make_unique<Stmt>();
-        stmt->kind = Stmt::Kind::DoWhile;
+        stmt->kind = Stmt::Kind::DoStmt;
 
         stmt->do_stmt.body = parseStmt();
 
