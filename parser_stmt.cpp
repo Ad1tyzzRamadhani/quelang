@@ -76,15 +76,25 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::DoWhile;
 
-        stmt->do_while_stmt.body = parseStmt();
+        stmt->do_stmt.body = parseStmt();
 
-        consume(TokenType::KW_WHILE);
-        consume(TokenType::LPAREN);
-        stmt->do_while_stmt.cond = parseExpr();
-        consume(TokenType::RPAREN);
-        consume(TokenType::SEMICOLON);
+        if (match(TokenType::KW_WHILE)) {
+            consume(TokenType::LPAREN);
+            stmt->do_stmt.cond = parseExpr();
+            consume(TokenType::RPAREN);
+            consume(TokenType::SEMICOLON);
 
-        return stmt;
+            return stmt;
+        if (match(TokenType::KW_CATCH)) {
+            consume(TokenType::LPAREN);
+            stmt->do_stmt.error_var = parseVarDecl();
+            consume(TokenType::SEMICOLON);
+            consume(TokenType::RPAREN);
+            stmt->do_stmt.catch_body = parseStmt();
+            stmt->do_stmt.iscatch = true;
+
+            return stmt;
+        }
     }
 
     // -------------------------
