@@ -140,12 +140,6 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // ------------------------
     // THIS
     // ------------------------
-    if (match(TokenType::KW_MOVE)) {
-        auto expr = std::make_unique<Expr>();
-        expr->kind = Expr::Kind::Move;
-        expr->move_expr.value = parseExpr();
-        return expr;
-    }
 
     if (match(TokenType::KW_THIS)) {
         auto expr = std::make_unique<Expr>();
@@ -308,6 +302,7 @@ std::unique_ptr<Expr> ParseState::parseUnary() {
         match(TokenType::STAR)  ||
         match(TokenType::AMP)   ||
         match(TokenType::TILDE) ||
+        match(TokenType::KW_MOVE) ||
         match(TokenType::KW_NOT)) 
     {
         TokenType opTok = tokens[pos - 1].type;
@@ -334,6 +329,10 @@ std::unique_ptr<Expr> ParseState::parseUnary() {
 
             case TokenType::KW_NOT:
                 expr->unary.op = UnaryOp::Not;
+                break;
+
+            case TokenType::KW_MOVE:
+                expr->unary.op = UnaryOp::Move;
                 break;
 
             default:
