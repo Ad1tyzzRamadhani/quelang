@@ -13,6 +13,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         tok.type == TokenType::CHAR_LITERAL ||
         tok.type == TokenType::KW_TRUE ||
         tok.type == TokenType::KW_FALSE ||
+        tok.type == TokenType::KW_NONE ||
         tok.type == TokenType::KW_NULL) 
     {
         advance();
