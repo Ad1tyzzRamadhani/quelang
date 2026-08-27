@@ -66,7 +66,7 @@ enum class BinaryOp {
 };
 
 enum class UnaryOp {
-    Neg, Deref, Ref, Not, BitNot
+    Neg, Deref, Ref, Not, BitNot, Move
 };
 
 enum class AssignOp {
@@ -148,10 +148,6 @@ struct Expr : Node {
         std::vector<std::unique_ptr<Expr>> args;
         std::vector<std::unique_ptr<Expr>> array_dims;
     } new_expr;
-
-    struct {
-        std::unique_ptr<Expr> value;
-    } move_expr;
 
     struct {
         std::vector<std::pair<std::optional<std::string>, std::unique_ptr<Expr>>> fields;
