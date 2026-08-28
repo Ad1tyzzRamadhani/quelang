@@ -759,7 +759,7 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
         /*
          * FieldDecl
          */
-        auto field = parseVarDecl();
+        auto field = parseVarDecl(method_vis);
 
         consume(
             TokenType::SEMICOLON,
