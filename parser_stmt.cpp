@@ -95,6 +95,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 
             return stmt;
         }
+        error("expected 'while' or 'catch' after do body");
     }
 
     // -------------------------
@@ -174,6 +175,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::ThrowStmt;
         stmt->throw_stmt.expr = parseExpr();
+        consume(TokenType::SEMICOLON,"expected ';' after throw");
 
         return stmt;
     }
