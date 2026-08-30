@@ -101,6 +101,11 @@ private:
         for (;;) {
             while (std::isspace((unsigned char)peek())) advance();
 
+            if (peek() == '@') {
+                readLineDirective();
+                continue;
+            }
+
             if (peek() == '#') {
                 if (peek(1) == '#') {
                     advance(); advance();
