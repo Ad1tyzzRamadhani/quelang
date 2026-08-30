@@ -203,20 +203,10 @@ private:
         while (peek() == ' ' || peek() == '\t')
             advance();
 
-        if (peek() != '"')
-            error("expected '\"' after @line");
-
-        advance();
-
         std::string file;
 
-        while (peek() && peek() != '"')
+        while(peek() && !std::isspace((unsigned char)peek()))
             file += advance();
-
-        if (peek() != '"')
-            error("unterminated @line");
-
-        advance();
 
         if (file.empty())
             error("empty @line filename");
