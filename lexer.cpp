@@ -179,6 +179,47 @@ private:
         emit(TokenType::HEXNUMBER,s,l,c);
     }
 
+    void readLineDirective() {
+        advance();
+
+        if (peek() != 'l' ||
+            peek(1) != 'i' ||
+            peek(2) != 'n' ||
+            peek(3) != 'e')
+        {
+            error("expected @line");
+        }
+
+        advance();
+        advance();
+        advance();
+        advance();
+
+        while (peek() == ' ' || peek() == '\t')
+            advance();
+
+        if (peek() != '"')
+            error("expected '\"' after @line");
+
+        advance();
+
+        std::string file;
+
+        while (peek() && peek() != '"')
+            file += advance();
+
+        if (peek() != '"')
+            error("unterminated @line");
+
+        advance();
+
+        if (file.empty())
+            error("empty @line filename");
+
+        current_file = file;
+
+    }
+
     void binary() {
         int l=line,c=column;
         std::string s;
