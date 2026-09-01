@@ -147,6 +147,7 @@ struct Expr : Node {
         std::unique_ptr<QualifiedName> type;
         std::vector<std::unique_ptr<Expr>> args;
         std::vector<std::unique_ptr<Expr>> array_dims;
+        std::unique_ptr<int> alloc_size;
     } new_expr;
 
     struct {
@@ -350,6 +351,7 @@ struct StructDef : Node {
     std::vector<std::unique_ptr<Node>> members;
     std::unique_ptr<Constructor> ctor;
     std::unique_ptr<Destructor> dtor;
+    std::unique_ptr<Constructor> default_ctor;
     std::optional<std::string> default_field;
 };
 
