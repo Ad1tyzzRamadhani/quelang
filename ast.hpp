@@ -147,7 +147,7 @@ struct Expr : Node {
         std::unique_ptr<QualifiedName> type;
         std::vector<std::unique_ptr<Expr>> args;
         std::vector<std::unique_ptr<Expr>> array_dims;
-        std::unique_ptr<int> alloc_size;
+        std::unique_ptr<Literal> alloc_size;
     } new_expr;
 
     struct {
