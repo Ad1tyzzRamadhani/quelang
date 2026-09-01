@@ -116,9 +116,15 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     if (match(TokenType::KW_NEW)) {
         auto expr = std::make_unique<Expr>();
         expr->kind = Expr::Kind::New;
+        if (match(TokenType::LPAREN) {
+            if(!check(TokenType::NUMBER)) {
+                expr->new_expr.alloc_size = parseLiteral(advance());
+            }
+            consume(TokenType::RPAREN);
+            return expr;
+        }
 
         expr->new_expr.type = parseQualifiedName();
-
         if (match(TokenType::LPAREN)) {
             if (!check(TokenType::RPAREN)) {
                 do {
