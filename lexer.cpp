@@ -28,7 +28,7 @@ enum class TokenType {
     KW_DEFAULT, KW_CONSTRUCT, KW_NORETURN, KW_MOVE,
     KW_JUMPTO, KW_SWITCH, KW_CASE, KW_DEFER, KW_YIELD,
     KW_NEW, KW_NOT, KW_RESUME, KW_WIPE, KW_NONE,
-    KW_THROWS, KW_THROW, KW_CATCH,
+    KW_THROWS, KW_THROW, KW_CATCH, KW_IN,
 
     I8, I16, I32, I64, U8, U16, U32, U64,
     F32, F64, CHAR8, CHAR16, CHAR32, BOOL, VOID,
@@ -374,7 +374,7 @@ private:
 
 const std::unordered_map<std::string,TokenType> Lexer::keyword_map={
     {"if",TokenType::KW_IF},{"elif",TokenType::KW_ELIF},{"else",TokenType::KW_ELSE},
-    {"while",TokenType::KW_WHILE},{"do",TokenType::KW_DO},{"for",TokenType::KW_FOR},
+    {"while",TokenType::KW_WHILE},{"do",TokenType::KW_DO},{"for",TokenType::KW_FOR},{"in",TokenType::KW_IN},
     {"return",TokenType::KW_RETURN},{"break",TokenType::KW_BREAK},{"union",TokenType::KW_UNION},
     {"continue",TokenType::KW_CONTINUE},{"defer",TokenType::KW_DEFER},{"wipe", TokenType::KW_WIPE},
     {"struct",TokenType::KW_STRUCT},{"enum",TokenType::KW_ENUM},{"drop",TokenType::KW_DROP},
