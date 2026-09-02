@@ -147,7 +147,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // THIS
     // ------------------------
 
-    if (match(TokenType::KW_THIS)) {
+    if (match(TokenType::KW_THIS) || match(TokenType::ARROW)) {
         auto expr = std::make_unique<Expr>();
         expr->kind = Expr::Kind::Ident;
 
