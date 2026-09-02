@@ -158,17 +158,6 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         return expr;
     }
 
-    if (match(TokenType::KW_DEFAULT)) {
-        auto expr = std::make_unique<Expr>();
-        expr->kind = Expr::Kind::Ident;
-
-        auto qn = std::make_unique<QualifiedName>();
-        qn->parts.push_back("default");
-
-        expr->ident = std::move(qn);
-        return expr;
-    }
-
     error("invalid primary expression");
     return nullptr;
 }
