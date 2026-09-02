@@ -109,15 +109,16 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 
         stmt->for_stmt.init = parseVarDecl();
 
-        consume(TokenType::SEMICOLON);
+        consume(TokenType::KW_IN);
 
-        if (!check(TokenType::SEMICOLON))
-            stmt->for_stmt.cond = parseExpr();
-
-        consume(TokenType::SEMICOLON);
-
-        if (!check(TokenType::RPAREN))
-            stmt->for_stmt.update = parseExpr();
+        if (match(TokenType::LBRACKET)) {
+            consume(TokenType::RBRACKET);
+            stmt->for_stmt.is_sequence = true;
+        }
+        stmt->for_stmt.source = parseExpr();
+        if (match(TokenType::SEMICOLON)) {
+            stmt->for_stmt.updates = parseStmt();
+        }
 
         consume(TokenType::RPAREN);
 
