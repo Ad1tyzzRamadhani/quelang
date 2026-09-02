@@ -665,6 +665,27 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
             continue;
         }
 
+        if (check(TokenType::KW_DEFAULT) && peek().type == TokenType::LPAREN) {
+
+            auto ctor = std::make_unique<Constructor>();
+
+            advance();
+
+            consume(TokenType::LPAREN);
+
+            if (!check(TokenType::RPAREN)) {
+                error("default construct must not have any params");
+            }
+
+            consume(TokenType::RPAREN);
+
+            ctor->body = parseBlock();
+
+            st->default_ctor = std::move(ctor);
+
+            continue;
+        }
+
         /*
          * destructor
          */
