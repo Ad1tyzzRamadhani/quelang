@@ -117,7 +117,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         auto expr = std::make_unique<Expr>();
         expr->kind = Expr::Kind::New;
         if (match(TokenType::LPAREN)) {
-            if(check(TokenType::NUMBER || check(TokenType::HEXNUMBER || check(TokenType::BINARYNUMBER)) {
+            if(check(TokenType::NUMBER || check(TokenType::HEXNUMBER) || check(TokenType::BINARYNUMBER)) {
                 expr->new_expr.alloc_size = parseLiteral(advance());
             }
             consume(TokenType::RPAREN);
