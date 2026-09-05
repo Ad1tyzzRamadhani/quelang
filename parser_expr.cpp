@@ -147,7 +147,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // THIS
     // ------------------------
 
-    if (match(TokenType::KW_THIS) || match(TokenType::ARROW)) {
+    if (match(TokenType::KW_THIS)) {
         auto expr = std::make_unique<Expr>();
         expr->kind = Expr::Kind::Ident;
 
@@ -155,6 +155,29 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         qn->parts.push_back("this");
 
         expr->ident = std::move(qn);
+        return expr;
+    }
+
+    if (match(TokenType::ARROW)) {
+        if (peek().type != TokenType::IDENT)
+            error("expected identifier after '->'");
+
+        auto thisExpr = std::make_unique<Expr>();
+        thisExpr->kind = Expr::Kind::Ident;
+
+        auto qn = std::make_unique<QualifiedName>();
+        qn->parts.push_back("this");
+        thisExpr->ident = std::move(qn);
+
+        Expr::PostfixOp op;
+        op.kind = Expr::PostfixOp::Kind::Arrow;
+        op.name = advance().value;
+
+        auto expr = std::make_unique<Expr>();
+        expr->kind = Expr::Kind::Postfix;
+        expr->postfix.base = std::move(thisExpr);
+        expr->postfix.ops.push_back(std::move(op));
+
         return expr;
     }
 
