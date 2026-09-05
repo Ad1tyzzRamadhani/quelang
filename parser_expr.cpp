@@ -251,19 +251,6 @@ std::unique_ptr<Expr> ParseState::parsePostfix() {
             continue;
         }
 
-        if (match(TokenType::ATOMIC_REF)) {
-            Expr::PostfixOp op;
-            op.kind = Expr::PostfixOp::Kind::AtomicRef;
-
-            auto expr = std::make_unique<Expr>();
-            expr->kind = Expr::Kind::Postfix;
-            expr->postfix.base = std::move(base);
-            expr->postfix.ops.push_back(std::move(op));
-
-            base = std::move(expr);
-            continue;
-        }
-
         break;
     }
 
