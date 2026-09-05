@@ -124,7 +124,7 @@ struct Expr : Node {
 
     // PostFix Op
     struct PostfixOp {
-        enum class Kind { AtomicRef, MemberAccess, StaticAccess, SafeArrow, Scope, Arrow, Call, Index } kind;
+        enum class Kind { MemberAccess, StaticAccess, SafeArrow, Scope, Arrow, Call, Index } kind;
 
         std::string name;
         std::vector<std::unique_ptr<Expr>> args;
