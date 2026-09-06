@@ -114,7 +114,6 @@ bool ParseState::isFunctionDeclarationAhead() {
         // Function attributes
         while (
             check(TokenType::KW_STATIC) ||
-            check(TokenType::KW_EXTERN) ||
             check(TokenType::KW_NORETURN)
         ) {
             advance();
