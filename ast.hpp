@@ -292,6 +292,7 @@ struct ForwardDecl : Node {
     std::unique_ptr<Type> return_types;
     std::vector<std::unique_ptr<Type>> params;
     bool is_static = false;
+    bool is_extern = false;
 };
 
 struct Function : Node {
@@ -313,7 +314,6 @@ struct Function : Node {
     bool is_coroutine = false;
     bool is_static = false; // static void foo();
     bool is_const = false; // void foo() const;
-    bool is_extern = false; // extern void foo();
     bool is_noreturn = false;
 };
 
