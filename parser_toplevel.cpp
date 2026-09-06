@@ -582,36 +582,6 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
 
     st->name = parseQualifiedName();
 
-    /*
-     * ImplementsOpt
-     *
-     * struct Foo(Base, Interface)
-     */
-    if (match(TokenType::LPAREN)) {
-
-        while (!check(TokenType::RPAREN)) {
-
-            auto base = parseQualifiedName();
-
-            /*
-             * AST StructDef sekarang belum punya
-             * field untuk implements/base.
-             *
-             * Sebaiknya tambahkan:
-             *
-             * std::vector<std::unique_ptr<QualifiedName>> implements;
-             */
-
-            if (!match(TokenType::COMMA))
-                break;
-        }
-
-        consume(
-            TokenType::RPAREN,
-            "expected ')' after struct inheritance list"
-        );
-    }
-
     consume(
         TokenType::LBRACE,
         "expected '{' after struct name"
