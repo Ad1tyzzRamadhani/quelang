@@ -455,6 +455,7 @@ std::unique_ptr<ForwardDecl> ParseState::parseForwardDecl(Visibility visibility)
         }
 
         if (match(TokenType::KW_NORETURN)) {
+            decl->is_noreturn = true;
             continue;
         }
 
@@ -507,13 +508,19 @@ std::unique_ptr<ForwardDecl> ParseState::parseForwardDecl(Visibility visibility)
      * coroutine
      */
     if (match(TokenType::KW_CO)) {
-        // AST ForwardDecl belum punya is_coroutine.
+        decl->is_coroutine = true;
     }
 
     /*
      * const
      */
-    match(TokenType::KW_CONST);
+    if (match(TokenType::KW_CONST)) {
+        decl->is_const = true;
+    }
+
+    if (match(TokenType::KW_THROWS)) {
+        fn->throws_type = parseType();
+    }
 
     consume(
         TokenType::SEMICOLON,
@@ -629,7 +636,7 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
             continue;
         }
 
-        if (check(TokenType::KW_DEFAULT) && peek().type == TokenType::LPAREN) {
+        if (check(TokenType::KW_DEFAULT) && peek(1).type == TokenType::LPAREN) {
 
             auto ctor = std::make_unique<Constructor>();
 
