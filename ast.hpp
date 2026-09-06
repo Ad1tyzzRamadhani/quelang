@@ -291,8 +291,12 @@ struct ForwardDecl : Node {
     std::unique_ptr<QualifiedName> name;
     std::unique_ptr<Type> return_types;
     std::vector<std::unique_ptr<Type>> params;
+    std::unique_ptr<Type> throws_type;
     bool is_static = false;
     bool is_extern = false;
+    bool is_coroutine = false;
+    bool is_const = false; // void foo() const;
+    bool is_noreturn = false;
 };
 
 struct Function : Node {
