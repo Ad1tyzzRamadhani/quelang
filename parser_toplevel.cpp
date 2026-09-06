@@ -294,6 +294,10 @@ bool ParseState::isForwardDeclAhead() {
             match(TokenType::KW_CONST);
         }
 
+        if (match(TokenType::KW_THROWS)) {
+            parseType();
+        }
+
         bool result = check(TokenType::SEMICOLON);
 
         pos = save;
