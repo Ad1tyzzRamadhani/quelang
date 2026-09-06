@@ -63,7 +63,6 @@ std::unique_ptr<Node> ParseState::parseTopLevelDecl() {
 
         case TokenType::KW_STATIC:
         case TokenType::KW_EXTERN:
-            return parseForwardDecl(visibility);
         case TokenType::KW_NORETURN:
             break;
 
