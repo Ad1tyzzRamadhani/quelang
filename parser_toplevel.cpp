@@ -327,11 +327,6 @@ std::unique_ptr<Function> ParseState::parseFunction(Visibility visibility) {
             continue;
         }
 
-        if (match(TokenType::KW_EXTERN)) {
-            fn->is_extern = true;
-            continue;
-        }
-
         if (match(TokenType::KW_NORETURN)) {
             fn->is_noreturn = true;
             continue;
@@ -456,7 +451,7 @@ std::unique_ptr<ForwardDecl> ParseState::parseForwardDecl(Visibility visibility)
         }
 
         if (match(TokenType::KW_EXTERN)) {
-            // ForwardDecl AST belum punya is_extern.
+            decl->is_extern = true;
             continue;
         }
 
