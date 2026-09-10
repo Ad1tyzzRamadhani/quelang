@@ -297,6 +297,7 @@ struct ForwardDecl : Node {
     bool is_coroutine = false;
     bool is_const = false; // void foo() const;
     bool is_noreturn = false;
+    bool is_throws = false;
 };
 
 struct Function : Node {
@@ -319,6 +320,7 @@ struct Function : Node {
     bool is_static = false; // static void foo();
     bool is_const = false; // void foo() const;
     bool is_noreturn = false;
+    bool is_throws = false;
 };
 
 // Data Structure
