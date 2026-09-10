@@ -60,6 +60,7 @@ struct FunctionSignature {
     bool is_coroutine = false;
     bool is_const = false;
     bool is_noreturn = false;
+    bool is_throws = false;
 };
 
 
