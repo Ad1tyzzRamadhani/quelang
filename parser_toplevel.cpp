@@ -404,6 +404,7 @@ std::unique_ptr<Function> ParseState::parseFunction(Visibility visibility) {
 
     if (match(TokenType::KW_THROWS)) {
         fn->throws_type = parseType();
+        fn->is_throws = true;
     }
 
     /*
@@ -524,6 +525,7 @@ std::unique_ptr<ForwardDecl> ParseState::parseForwardDecl(Visibility visibility)
 
     if (match(TokenType::KW_THROWS)) {
         decl->throws_type = parseType();
+        decl->is_throws = true;
     }
 
     consume(
