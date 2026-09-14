@@ -692,6 +692,24 @@ makeFieldSymbol(
     return symbol;
 }
 
+static std::unique_ptr<SemanticSymbol>
+makeUnionFieldSymbol(
+    UnionDef::Field& item,
+    UnionDef& un
+) {
+    auto symbol = std::make_unique<SemanticSymbol>();
+
+    symbol->name = item.name;
+    symbol->kind = SymbolKind::Field;
+
+    symbol->declaration = &un;
+    symbol->type = item.type.get();
+
+    symbol->is_defined = true;
+
+    return symbol;
+}
+
 
 /*
  * ---------------------------------------------------------
