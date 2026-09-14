@@ -54,6 +54,7 @@ enum class SymbolState {
 struct FunctionSignature {
 
     Type* return_type = nullptr;
+    Type* throws_type = nullptr;
 
     std::vector<Type*> parameters;
 
