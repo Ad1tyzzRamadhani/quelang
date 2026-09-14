@@ -94,6 +94,8 @@ struct SemanticSymbol {
     bool is_defined = false;
     bool is_forward = false;
 
+    std::string default_field;
+
     std::string qualified_name;
 
     /*
@@ -462,6 +464,7 @@ makeStructSymbol(
     symbol->visibility = st.visibility;
 
     symbol->is_defined = true;
+    symbol->default_field = st.default_field.value_or("");
 
     symbol->qualified_name =
         qualifiedNameToString(st.name);
@@ -520,6 +523,7 @@ makeUnionSymbol(
     symbol->visibility = un.visibility;
 
     symbol->is_defined = true;
+    symbol->default_field = un.default_field.value_or("");
 
     symbol->qualified_name =
         qualifiedNameToString(un.name);
