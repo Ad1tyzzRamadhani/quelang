@@ -109,13 +109,8 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 
         stmt->for_stmt.init = parseVarDecl();
 
-        if (match(TokenType::KW_IN)) {
-            stmt->for_stmt.is_sequence = true;
-            stmt->for_stmt.source = parseExpr();
-        } else {
-            consume(TokenType::ARROW);
-            stmt->for_stmt.source = parseExpr();
-        }
+        consume(TokenType::KW_IN);
+        stmt->for_stmt.source = parseExpr();
         if (match(TokenType::SEMICOLON)) {
             stmt->for_stmt.updates = parseStmt();
         }
