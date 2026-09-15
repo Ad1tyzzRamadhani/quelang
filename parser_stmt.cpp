@@ -111,9 +111,6 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 
         consume(TokenType::KW_IN);
         stmt->for_stmt.source = parseExpr();
-        if (match(TokenType::SEMICOLON)) {
-            stmt->for_stmt.updates = parseStmt();
-        }
 
         consume(TokenType::RPAREN);
 
