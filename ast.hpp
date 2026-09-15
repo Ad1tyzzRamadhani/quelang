@@ -227,7 +227,6 @@ struct Stmt : Node {
         VarDecl init;
         std::unique_ptr<Expr> source;
         std::unique_ptr<Stmt> updates;
-        bool is_sequence = false;
         std::unique_ptr<Stmt> body;
     } for_stmt;
 
