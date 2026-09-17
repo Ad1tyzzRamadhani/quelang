@@ -86,6 +86,7 @@ struct SemanticSymbol {
     bool is_static = false;
     bool is_extern = false;
     bool is_const = false;
+    bool is_unaligned = false;
     bool is_atomic = false;
     bool is_noreturn = false;
     bool is_coroutine = false;
