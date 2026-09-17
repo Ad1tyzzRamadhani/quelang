@@ -185,8 +185,8 @@ struct Stmt : Node {
     enum class Kind {
         VarDecl, If, While, DoStmt, For, Resume,
         Return, Break, Continue, SwitchCase,
-        ExprStmt, Block, Defer, UseStmt, ThrowStmt,
-        Label, Jump, Await, Unsafe,
+        ExprStmt, Block, UseStmt, ThrowStmt,
+        Label, Jump, Unsafe,
         Drop, Wipe, Yield
     } kind;
 
