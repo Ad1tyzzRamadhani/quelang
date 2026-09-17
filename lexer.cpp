@@ -28,7 +28,7 @@ enum class TokenType {
     KW_DEFAULT, KW_CONSTRUCT, KW_NORETURN, KW_MOVE,
     KW_JUMPTO, KW_SWITCH, KW_CASE, KW_DEFER, KW_YIELD,
     KW_NEW, KW_NOT, KW_RESUME, KW_WIPE, KW_NONE,
-    KW_THROWS, KW_THROW, KW_CATCH, KW_IN,
+    KW_THROWS, KW_THROW, KW_CATCH, KW_IN, KW_UNALIGNED,
 
     I8, I16, I32, I64, U8, U16, U32, U64,
     F32, F64, CHAR8, CHAR16, CHAR32, BOOL, VOID,
@@ -386,7 +386,7 @@ const std::unordered_map<std::string,TokenType> Lexer::keyword_map={
     {"noreturn",TokenType::KW_NORETURN},{"extern",TokenType::KW_EXTERN},{"move",TokenType::KW_MOVE},
     {"default",TokenType::KW_DEFAULT},{"atomic",TokenType::KW_ATOMIC},{"restrict",TokenType::KW_RESTRICT},
     {"not", TokenType::KW_NOT},{"switch",TokenType::KW_SWITCH},{"case",TokenType::KW_CASE},{"none",TokenType::KW_NONE},
-    {"jumpto",TokenType::KW_JUMPTO},{"unsafe",TokenType::KW_UNSAFE},{"await",TokenType::KW_AWAIT},
+    {"jumpto",TokenType::KW_JUMPTO},{"unsafe",TokenType::KW_UNSAFE},{"await",TokenType::KW_AWAIT},{"unaligned",TokenType::KW_UNALIGNED},
     {"new",TokenType::KW_NEW},{"yield",TokenType::KW_YIELD},{"throws",TokenType::KW_THROWS},
     {"construct",TokenType::KW_CONSTRUCT},{"throw",TokenType::KW_THROW},{"catch",TokenType::KW_CATCH}
 };
