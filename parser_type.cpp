@@ -19,6 +19,11 @@ std::unique_ptr<Type> ParseState::parseType() {
             );
             continue;
         }
+        if (match(TokenType::KW_UNALIGNED)) {
+            type->qualifiers.push_back(
+                TypeQualifiers::Unaligned
+            );
+        }
         break;
     }
     if (peek().type == TokenType::LPAREN) return parseFuncPtrType(type->qualifiers);
