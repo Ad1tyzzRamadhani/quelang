@@ -197,18 +197,6 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     }
 
     // -------------------------
-    // DEFER
-    // -------------------------
-    if (match(TokenType::KW_DEFER)) {
-        auto stmt = std::make_unique<Stmt>();
-        stmt->kind = Stmt::Kind::Defer;
-
-        stmt->defer_stmt.stmt = parseStmt();
-
-        return stmt;
-    }
-
-    // -------------------------
     // YIELD
     // -------------------------
     if (match(TokenType::KW_YIELD)) {
@@ -227,16 +215,6 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         stmt->kind = Stmt::Kind::Resume;
 
         stmt->resume_stmt.target = parseExpr();
-        consume(TokenType::SEMICOLON);
-
-        return stmt;
-    }
-
-    if (match(TokenType::KW_AWAIT)) {
-        auto stmt = std::make_unique<Stmt>();
-        stmt->kind = Stmt::Kind::Await;
-
-        stmt->await_stmt.target = parseExpr();
         consume(TokenType::SEMICOLON);
 
         return stmt;
