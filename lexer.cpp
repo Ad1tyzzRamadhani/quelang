@@ -21,12 +21,12 @@ enum class TokenType {
     KW_WHILE, KW_DO, KW_FOR,
     KW_RETURN, KW_BREAK, KW_CONTINUE,
     KW_STRUCT, KW_ENUM, KW_NAMESPACE, KW_CO,
-    KW_USE, KW_AS, KW_DROP, KW_UNION, KW_AWAIT,
+    KW_USE, KW_AS, KW_DROP, KW_UNION,
     KW_TRUE, KW_FALSE, KW_NULL, KW_THIS, KW_ATOMIC,
     KW_PUBLIC, KW_STATIC, KW_CONST, KW_VOLATILE, KW_EXTERN,
     KW_AND, KW_OR, KW_XOR, KW_UNSAFE, KW_RESTRICT,
     KW_DEFAULT, KW_CONSTRUCT, KW_NORETURN, KW_MOVE,
-    KW_JUMPTO, KW_SWITCH, KW_CASE, KW_DEFER, KW_YIELD,
+    KW_JUMPTO, KW_SWITCH, KW_CASE, KW_YIELD,
     KW_NEW, KW_NOT, KW_RESUME, KW_WIPE, KW_NONE,
     KW_THROWS, KW_THROW, KW_CATCH, KW_IN, KW_UNALIGNED,
 
@@ -376,7 +376,7 @@ const std::unordered_map<std::string,TokenType> Lexer::keyword_map={
     {"if",TokenType::KW_IF},{"elif",TokenType::KW_ELIF},{"else",TokenType::KW_ELSE},
     {"while",TokenType::KW_WHILE},{"do",TokenType::KW_DO},{"for",TokenType::KW_FOR},{"in",TokenType::KW_IN},
     {"return",TokenType::KW_RETURN},{"break",TokenType::KW_BREAK},{"union",TokenType::KW_UNION},
-    {"continue",TokenType::KW_CONTINUE},{"defer",TokenType::KW_DEFER},{"wipe", TokenType::KW_WIPE},
+    {"continue",TokenType::KW_CONTINUE},{"wipe", TokenType::KW_WIPE},
     {"struct",TokenType::KW_STRUCT},{"enum",TokenType::KW_ENUM},{"drop",TokenType::KW_DROP},
     {"namespace",TokenType::KW_NAMESPACE},{"use",TokenType::KW_USE},{"as",TokenType::KW_AS},
     {"true",TokenType::KW_TRUE},{"false",TokenType::KW_FALSE},{"null",TokenType::KW_NULL},
@@ -386,7 +386,7 @@ const std::unordered_map<std::string,TokenType> Lexer::keyword_map={
     {"noreturn",TokenType::KW_NORETURN},{"extern",TokenType::KW_EXTERN},{"move",TokenType::KW_MOVE},
     {"default",TokenType::KW_DEFAULT},{"atomic",TokenType::KW_ATOMIC},{"restrict",TokenType::KW_RESTRICT},
     {"not", TokenType::KW_NOT},{"switch",TokenType::KW_SWITCH},{"case",TokenType::KW_CASE},{"none",TokenType::KW_NONE},
-    {"jumpto",TokenType::KW_JUMPTO},{"unsafe",TokenType::KW_UNSAFE},{"await",TokenType::KW_AWAIT},{"unaligned",TokenType::KW_UNALIGNED},
+    {"jumpto",TokenType::KW_JUMPTO},{"unsafe",TokenType::KW_UNSAFE},{"unaligned",TokenType::KW_UNALIGNED},
     {"new",TokenType::KW_NEW},{"yield",TokenType::KW_YIELD},{"throws",TokenType::KW_THROWS},
     {"construct",TokenType::KW_CONSTRUCT},{"throw",TokenType::KW_THROW},{"catch",TokenType::KW_CATCH}
 };
