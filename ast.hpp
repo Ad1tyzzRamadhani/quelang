@@ -259,16 +259,8 @@ struct Stmt : Node {
     } throw_stmt;
 
     struct {
-        std::unique_ptr<Stmt> stmt;
-    } defer_stmt;
-
-    struct {
         std::unique_ptr<Expr> target;
     } resume_stmt;
-
-    struct {
-        std::unique_ptr<Expr> target;
-    } await_stmt;
 
     struct {
         std::unique_ptr<Stmt> stmt;
