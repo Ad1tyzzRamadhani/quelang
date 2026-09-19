@@ -21,7 +21,7 @@ std::unique_ptr<Type> ParseState::parseType() {
         }
         if (match(TokenType::KW_UNALIGNED)) {
             type->qualifiers.push_back(
-                TypeQualifiers::Unaligned
+                TypeQualifier::Unaligned
             );
         }
         break;
