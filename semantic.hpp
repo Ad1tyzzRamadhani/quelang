@@ -10,15 +10,6 @@
 
 #include "ast.hpp"
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
-#endif
-#include "semantic_symbol.cpp"
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-
 // Semantic diagnostics are intentionally kept separate from the AST.
 enum class SemanticSeverity {
     Error,
