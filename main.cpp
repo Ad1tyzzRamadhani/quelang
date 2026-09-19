@@ -7,6 +7,9 @@
 #include "parser_expr.cpp"
 #include "parser_stmt.cpp"
 #include "parser_toplevel.cpp"
+#include "semantic_symbol.cpp"
+#include "semantic.hpp"
+#include "semantic.cpp"
 
 int main() {
   return 0;
