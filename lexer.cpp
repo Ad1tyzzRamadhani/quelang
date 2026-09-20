@@ -91,6 +91,7 @@ private:
 
     [[noreturn]] void error(const std::string& m) {
         throw std::runtime_error(
+            "LEXER ERROR" +
             current_file + ":" +
             std::to_string(line) + ":" +
             std::to_string(column) + " " + m
