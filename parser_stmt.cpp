@@ -249,7 +249,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     // -------------------------
     // VARIABLE DECL / EXPRESSIONS
     // -------------------------
-    if (isTypeStart(tok) || isVarDeclAhead()) {
+    if (isVarDeclAhead()) {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::VarDecl;
 
