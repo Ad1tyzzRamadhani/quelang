@@ -18,6 +18,7 @@ enum class SemanticSeverity {
 
 struct SemanticDiagnostic {
     SemanticSeverity severity = SemanticSeverity::Error;
+    bool is_warning = false;
     std::string message;
     std::string file;
     int line = -1;
