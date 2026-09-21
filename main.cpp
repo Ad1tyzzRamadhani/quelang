@@ -12,5 +12,18 @@
 #include "semantic.cpp"
 
 int main() {
+  std::string rawprogram = preprocess("main.q");
+  Lexer lex(rawprogram);
+  std::vector<Token> token = lex.tokenize();
+  ParseState parser{token};
+  SemanticAnalyzer semantic;
+  semantic.analyze(parser.parseProgram());
+  auto diagnostics = semantic.diagnostics();
+  for(auto diagnostic : diagnostics) {
+    if(diagnostic.is_warning) {
+      std::cout << diagnostic.file + " : " + diagnostic.message + diagnostic.line + diagnostic.collumn;
+      continue;
+    }
+    std::cerr << diagnostic.file + " : " + diagnostic.message + diagnostic.line + diagnostic.collumn;
   return 0;
 }
