@@ -17,14 +17,15 @@ int main() {
   std::vector<Token> token = lex.tokenize();
   ParseState parser{token};
   SemanticAnalyzer semantic;
-  semantic.analyze(parser.parseProgram());
+  auto ast = parser.parseProgram();
+  semantic.analyze(ast.get());
   auto diagnostics = semantic.diagnostics();
   for(auto diagnostic : diagnostics) {
     if(diagnostic.is_warning) {
-      std::cout << diagnostic.file + " : " + diagnostic.message + diagnostic.line + diagnostic.column + "\n";
+      std::cout << diagnostic.file + " : " + diagnostic.message + "\n";
       continue;
     }
-    std::cerr << diagnostic.file + " : " + diagnostic.message + diagnostic.line + diagnostic.column + "\n";
+    std::cerr << diagnostic.file + " : " + diagnostic.message + "\n";
   }
   return 0;
 }
