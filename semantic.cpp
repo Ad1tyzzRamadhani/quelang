@@ -1150,7 +1150,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeUnary(Expr* expr) {
         case UnaryOp::Ref:
             if (!isLValue(expr->unary.expr.get()))
                 error(expr, "reference operator requires an lvalue");
-            t.modifiers.push_back(TypeModifier::Kind::Reference);
+            t.modifiers.push_back(TypeModifier::Kind::Pointer);
             return t;
         case UnaryOp::Move: {
             SemanticSymbol* symbol = symbolForLValue(expr->unary.expr.get());
