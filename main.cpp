@@ -12,6 +12,7 @@
 #include "semantic.cpp"
 
 int main() {
+  try {
   std::string rawprogram = preprocess("main.q");
   Lexer lex(rawprogram);
   std::vector<Token> token = lex.tokenize();
@@ -26,6 +27,10 @@ int main() {
       continue;
     }
     std::cerr << diagnostic.file + " : " + diagnostic.message + "\n";
+  }
+  } catch const std::exception& e) {
+        std::cerr << "FATAL: " << e.what() << "\n";
+        return 1;
   }
   return 1;
 }
