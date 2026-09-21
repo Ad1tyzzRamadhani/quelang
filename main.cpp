@@ -25,5 +25,6 @@ int main() {
       continue;
     }
     std::cerr << diagnostic.file + " : " + diagnostic.message + diagnostic.line + diagnostic.collumn;
+  }
   return 0;
 }
