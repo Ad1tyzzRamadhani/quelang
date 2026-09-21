@@ -21,10 +21,10 @@ int main() {
   auto diagnostics = semantic.diagnostics();
   for(auto diagnostic : diagnostics) {
     if(diagnostic.is_warning) {
-      std::cout << diagnostic.file + " : " + diagnostic.message + diagnostic.line + diagnostic.column << std::endl;
+      std::cout << diagnostic.file + " : " + diagnostic.message + diagnostic.line + diagnostic.column + "\n";
       continue;
     }
-    std::cerr << diagnostic.file + " : " + diagnostic.message + diagnostic.line + diagnostic.column << std::endl;
+    std::cerr << diagnostic.file + " : " + diagnostic.message + diagnostic.line + diagnostic.column + "\n";
   }
   return 0;
 }
