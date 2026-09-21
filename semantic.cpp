@@ -884,7 +884,7 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) {
 
     // T& -> T
     if (from.modifiers.size() == 1 &&
-        from.modifiers[0].kind == TypeModifier::Kind::Reference &&
+        from.modifiers[0] == TypeModifier::Kind::Reference &&
         to.modifiers.empty()) {
 
         TypeView value = from;
