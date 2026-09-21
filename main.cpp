@@ -18,7 +18,7 @@ int main() {
   ParseState parser{token};
   SemanticAnalyzer semantic;
   auto ast = parser.parseProgram();
-  semantic.analyze(*ast);
+  if(semantic.analyze(*ast)) return 0;
   auto diagnostics = semantic.diagnostics();
   for(auto diagnostic : diagnostics) {
     if(diagnostic.is_warning) {
@@ -27,5 +27,5 @@ int main() {
     }
     std::cerr << diagnostic.file + " : " + diagnostic.message + "\n";
   }
-  return 0;
+  return 1;
 }
