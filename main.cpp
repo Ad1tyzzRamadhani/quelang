@@ -28,7 +28,7 @@ int main() {
     }
     std::cerr << diagnostic.file + " : " + diagnostic.message + "\n";
   }
-  } catch const std::exception& e) {
+  } catch (const std::exception& e) {
         std::cerr << "FATAL: " << e.what() << "\n";
         return 1;
   }
