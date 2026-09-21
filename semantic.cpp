@@ -875,9 +875,30 @@ std::string SemanticAnalyzer::typeString(Type* type) const {
     return typeString(view(type));
 }
 
+bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) {
+    if (!from.valid || !to.valid)
+        return false;
+
+    if (sameType(from, to))
+        return true;
+
+    // T& -> T
+    if (from.modifiers.size() == 1 &&
+        from.modifiers[0].kind == TypeModifier::Kind::Reference &&
+        to.modifiers.empty()) {
+
+        TypeView value = from;
+        value.modifiers.clear();
+
+        return sameType(value, to);
+    }
+
+    return false;
+}
+
 bool SemanticAnalyzer::sameType(const TypeView& a, const TypeView& b) const {
     if (!a.valid || !b.valid) return false;
-    if (a.base != b.base || a.modifiers != b.modifiers) return false;
+    if (!a.base != b.base || a.modifiers != b.modifiers) return false;
     return true;
 }
 
