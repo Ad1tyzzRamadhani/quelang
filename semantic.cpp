@@ -1525,8 +1525,9 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzePostfix(Expr* expr) {
                 break;
             }
             case Expr::PostfixOp::Kind::Arrow: {
+                const std::string base_name = qualifiedName(*expr->postfix.base->ident);
                 if (base_name == "this") {
-                current = analyzeExpr(expr->postfix.base.get());
+                    current = analyzeExpr(expr->postfix.base.get());
                 } else {
                     pending_symbol = resolveSymbol(base_name);
 
