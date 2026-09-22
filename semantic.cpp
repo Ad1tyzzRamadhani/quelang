@@ -1040,8 +1040,8 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeLiteral(Literal* literal) {
         case Literal::Kind::Hex: t.base = "u64"; break;
         case Literal::Kind::Binary: t.base = "u64"; break;
         case Literal::Kind::Char: t.base = "char32"; break;
-        case Literal::Kind::String: t.base = "str"; break;
-        case Literal::Kind::RawString: t.base = "str"; break;
+        case Literal::Kind::String: t.base = "char8"; t.modifiers.push_back(TypeModifier::Kind::Pointer); break;
+        case Literal::Kind::RawString: t.base = "char8"; t.modifiers.push_back(TypeModifier::Kind::Pointer); break;
         case Literal::Kind::True:
         case Literal::Kind::False: t.base = "bool"; break;
         case Literal::Kind::Null: t.base = "null"; break;
