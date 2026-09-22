@@ -1524,7 +1524,36 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzePostfix(Expr* expr) {
                 current = m.is_function ? TypeView{} : view(m.type);
                 break;
             }
-            case Expr::PostfixOp::Kind::Arrow:
+            case Expr::PostfixOp::Kind::Arrow: {
+                if (base_name == "this") {
+                current = analyzeExpr(expr->postfix.base.get());
+                } else {
+                    pending_symbol = resolveSymbol(base_name);
+
+                    if (pending_symbol &&
+                    pending_symbol->state == SymbolState::Moved)
+                    error(expr, "use of moved value '" + base_name + "'");
+
+                    if (pending_symbol &&
+                    pending_symbol->kind != SymbolKind::Function &&
+                    pending_symbol->kind != SymbolKind::ForwardFunction) {
+  
+                    current = view(pending_symbol->type);
+                    }
+
+                    if (pending_symbol->kind == SymbolKind::Struct ||
+                    pending_symbol->kind == SymbolKind::Enum ||
+                    pending_symbol->kind == SymbolKind::Union) {
+
+                    current.base =
+                    pending_symbol->qualified_name.empty()
+                        ? pending_symbol->name
+                        : pending_symbol->qualified_name;
+
+                    current.valid = true;
+                    }
+                }
+            }
             case Expr::PostfixOp::Kind::SafeArrow: {
                 if (current.modifiers.empty() ||
                     (current.modifiers.back() != TypeModifier::Kind::Pointer &&
