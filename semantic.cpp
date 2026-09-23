@@ -1552,6 +1552,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzePostfix(Expr* expr) {
                         : pending_symbol->qualified_name;
 
                     current.valid = true;
+                    break;
                     }
                 }
             }
