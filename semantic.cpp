@@ -1358,6 +1358,7 @@ SemanticAnalyzer::MemberInfo SemanticAnalyzer::findMemberInStruct(
                 result.visibility = fn->visibility;
                 result.is_static = fn->is_static;
                 result.is_function = true;
+                std::cout << "Found Methods";
                 return result;
             }
         }
