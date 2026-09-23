@@ -621,6 +621,9 @@ void SemanticAnalyzer::analyzeVarDecl(VarDecl& decl) {
         symbol->is_atomic = decl.is_atomic;
         symbol->is_defined = true;
         symbol->state = SymbolState::Valid;
+        std::cout << "DECLARE dat: " << qualifiedName(*symbol->type->base) << " mods="
+        << symbol->type->modifiers.size()
+        << "\n";
         if (!declareSymbol(std::move(symbol), &decl)) continue;
 
         if (item.init) {
