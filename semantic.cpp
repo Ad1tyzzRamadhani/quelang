@@ -1524,7 +1524,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzePostfix(Expr* expr) {
                 current = m.is_function ? TypeView{} : view(m.type);
                 break;
             }
-            case Expr::PostfixOp::Kind::Arrow: {
+            /*case Expr::PostfixOp::Kind::Arrow: {
                 const std::string base_name = qualifiedName(*expr->postfix.base->ident);
                 if (base_name == "this") {
                     current = analyzeExpr(expr->postfix.base.get());
@@ -1555,6 +1555,44 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzePostfix(Expr* expr) {
                     break;
                     }
                 }
+            }*/
+            case Expr::PostfixOp::Kind::Arrow: {
+                if (current.modifiers.empty() ||  (current.modifiers.back() != TypeModifier::Kind::Pointer && current.modifiers.back() != TypeModifier::Kind::Reference)) {
+                    error( expr, "'" + op.name + "' requires a pointer/reference base" );
+                return {};
+                }
+
+                current.modifiers.pop_back();
+
+                MemberInfo m = findMember(current, op.name);
+
+    if (!m.found) {
+        error(
+            expr,
+            "type '" + typeString(current) +
+            "' has no member '" + op.name + "'"
+        );
+        return {};
+    }
+
+    if (!accessAllowed(m.visibility, current.base)) {
+        error(
+            expr,
+            "member '" + op.name + "' is private"
+        );
+        return {};
+    }
+
+    pending_symbol = nullptr;
+    pending_function = m.function;
+    pending_owner = current.base;
+
+    current =
+        m.is_function
+            ? TypeView{}
+            : view(m.type);
+
+    break;
             }
             case Expr::PostfixOp::Kind::SafeArrow: {
                 if (current.modifiers.empty() ||
