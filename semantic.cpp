@@ -1547,36 +1547,47 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzePostfix(Expr* expr) {
                 break;
             }
             case Expr::PostfixOp::Kind::Arrow: {
-                const std::string base_name = qualifiedName(*expr->postfix.base->ident);
-                if (base_name == "this") {
-                    current = analyzeExpr(expr->postfix.base.get());
-                } else {
-                    pending_symbol = resolveSymbol(base_name);
+    if (current.modifiers.empty() ||
+        (current.modifiers.back() != TypeModifier::Kind::Pointer &&
+         current.modifiers.back() != TypeModifier::Kind::Reference)) {
 
-                    if (pending_symbol &&
-                    pending_symbol->state == SymbolState::Moved)
-                    error(expr, "use of moved value '" + base_name + "'");
+        error(
+            expr,
+            "'" + op.name + "' requires a pointer/reference base"
+        );
+        return {};
+    }
 
-                    if (pending_symbol &&
-                    pending_symbol->kind != SymbolKind::Function &&
-                    pending_symbol->kind != SymbolKind::ForwardFunction) {
-  
-                    current = view(pending_symbol->type);
-                    }
+    current.modifiers.pop_back();
 
-                    if (pending_symbol->kind == SymbolKind::Struct ||
-                    pending_symbol->kind == SymbolKind::Enum ||
-                    pending_symbol->kind == SymbolKind::Union) {
+    MemberInfo m = findMember(current, op.name);
 
-                    current.base =
-                    pending_symbol->qualified_name.empty()
-                        ? pending_symbol->name
-                        : pending_symbol->qualified_name;
+    if (!m.found) {
+        error(
+            expr,
+            "type '" + typeString(current) +
+            "' has no member '" + op.name + "'"
+        );
+        return {};
+    }
 
-                    current.valid = true;
-                    break;
-                    }
-                }
+    if (!accessAllowed(m.visibility, current.base)) {
+        error(
+            expr,
+            "member '" + op.name + "' is private"
+        );
+        return {};
+    }
+
+    pending_symbol = nullptr;
+    pending_function = m.function;
+    pending_owner = current.base;
+
+    current = m.is_function
+        ? TypeView{}
+        : view(m.type);
+
+    break;
             }
             case Expr::PostfixOp::Kind::SafeArrow: {
                 if (current.modifiers.empty() ||
