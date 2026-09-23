@@ -1526,6 +1526,23 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzePostfix(Expr* expr) {
     }
 
     for (auto& op : expr->postfix.ops) {
+        std::cout << "POSTFIX BASE: "
+          << (expr->postfix.base && expr->postfix.base->ident
+              ? qualifiedName(*expr->postfix.base->ident)
+              : "<non-ident>")
+          << "\n";
+
+std::cout << "CURRENT VALID: "
+          << current.valid
+          << "\n";
+
+std::cout << "CURRENT BASE: "
+          << current.base
+          << "\n";
+
+std::cout << "CURRENT MODIFIERS: "
+          << current.modifiers.size()
+          << "\n";
         switch (op.kind) {
             case Expr::PostfixOp::Kind::MemberAccess: {
                 if (!current.valid) {
