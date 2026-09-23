@@ -1486,24 +1486,40 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzePostfix(Expr* expr) {
     Function* pending_function = nullptr;
     std::string pending_owner;
 
-    if (expr->postfix.base && expr->postfix.base->kind == Expr::Kind::Ident &&
+    if (expr->postfix.base &&
+        expr->postfix.base->kind == Expr::Kind::Ident &&
         expr->postfix.base->ident) {
-        const std::string base_name = qualifiedName(*expr->postfix.base->ident);
-        pending_symbol = resolveSymbol(base_name);
-        if (pending_symbol && pending_symbol->state == SymbolState::Moved)
-            error(expr, "use of moved value '" + base_name + "'");
-        if (pending_symbol &&
-            pending_symbol->kind != SymbolKind::Function &&
-            pending_symbol->kind != SymbolKind::ForwardFunction) {
-            current = view(pending_symbol->type);
-            if (pending_symbol->kind == SymbolKind::Struct ||
-                pending_symbol->kind == SymbolKind::Enum ||
-                pending_symbol->kind == SymbolKind::Union) {
-                current.base = pending_symbol->qualified_name.empty()
-                    ? pending_symbol->name : pending_symbol->qualified_name;
-                current.valid = true;
+
+        const std::string base_name =
+        qualifiedName(*expr->postfix.base->ident);
+
+        if (base_name == "this") {
+            current = analyzeExpr(expr->postfix.base.get());
+        } else {
+            pending_symbol = resolveSymbol(base_name);
+
+            if (pending_symbol &&
+                pending_symbol->state == SymbolState::Moved)
+                error(expr, "use of moved value '" + base_name + "'");
+
+            if (pending_symbol &&
+                pending_symbol->kind != SymbolKind::Function &&
+                pending_symbol->kind != SymbolKind::ForwardFunction) {
+
+                current = view(pending_symbol->type);
+
+                if (pending_symbol->kind == SymbolKind::Struct ||
+                    pending_symbol->kind == SymbolKind::Enum ||
+                    pending_symbol->kind == SymbolKind::Union) {
+
+                    current.base =
+                        pending_symbol->qualified_name.empty()
+                            ? pending_symbol->name
+                            : pending_symbol->qualified_name;
+
+                    current.valid = true;
+                 }
             }
-        }
     } else {
         current = analyzeExpr(expr->postfix.base.get());
     }
