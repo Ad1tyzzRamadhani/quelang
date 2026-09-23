@@ -1520,6 +1520,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzePostfix(Expr* expr) {
                     current.valid = true;
                  }
             }
+        }
     } else {
         current = analyzeExpr(expr->postfix.base.get());
     }
