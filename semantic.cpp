@@ -955,7 +955,7 @@ bool SemanticAnalyzer::isNone(const TypeView& type) const {
 
 bool SemanticAnalyzer::isAssignable(const TypeView& lhs, const TypeView& rhs) const {
     if (!lhs.valid || !rhs.valid) return false;
-    if (canConvert(lhs, rhs) return true;
+    if (canConvert(lhs, rhs)) return true;
     if (sameType(lhs, rhs)) return true;
     if ((isNone(rhs) || (rhs.valid && rhs.base == "null")) && isPointerLike(lhs)) return true;
     return false;
