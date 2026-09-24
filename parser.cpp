@@ -66,6 +66,20 @@ struct ParseState {
         return peek().type == type;
     }
 
+    void ParseState::appendPostfix( std::unique_ptr<Expr>& base, Expr::PostfixOp op) {
+        if (base->kind == Expr::Kind::Postfix) {
+            base->postfix.ops.push_back(std::move(op));
+            return;
+        }
+
+        auto expr = std::make_unique<Expr>();
+        expr->kind = Expr::Kind::Postfix;
+        expr->postfix.base = std::move(base);
+        expr->postfix.ops.push_back(std::move(op));
+
+        base = std::move(expr);
+    }
+ 
     [[noreturn]] void error(const std::string& msg) const {
         const auto& tok = peek();
         throw std::runtime_error("PARSER ERROR" + tok.file + ":" +
