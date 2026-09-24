@@ -878,7 +878,7 @@ std::string SemanticAnalyzer::typeString(Type* type) const {
     return typeString(view(type));
 }
 
-bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) {
+bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) const {
     if (!from.valid || !to.valid)
         return false;
 
