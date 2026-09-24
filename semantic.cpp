@@ -1665,6 +1665,17 @@ std::cout << "CURRENT MODIFIERS: "
             }
             case Expr::PostfixOp::Kind::Call: {
                 TypeView ret;
+                std::cout
+    << "PENDING FUNCTION: "
+    << (pending_function ? "YES" : "NO")
+    << " owner=" << pending_owner
+    << "\n";
+                std::cout
+    << "CALL: pending_function="
+    << (pending_function ? "YES" : "NO")
+    << " pending_symbol="
+    << (pending_symbol ? "YES" : "NO")
+    << "\n";
                 if (pending_function) {
                     SemanticSymbol callable;
                     callable.name = pending_owner + "::" +
