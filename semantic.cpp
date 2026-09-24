@@ -1355,11 +1355,11 @@ SemanticAnalyzer::MemberInfo SemanticAnalyzer::findMemberInStruct(
             }
         }
         if (auto* fn = dynamic_cast<Function*>(member.get())) {
-            std::cout << "METHOD: "
+            /*std::cout << "METHOD: "
               << qualifiedName(fn->name)
               << " parts="
               << fn->name->parts.size()
-              << "\n";
+              << "\n";*/
             if (qualifiedName(fn->name) == name || (fn->name && fn->name->parts.size() == 1 && fn->name->parts[0] == name)) {
                 result.found = true;
                 result.function = fn;
