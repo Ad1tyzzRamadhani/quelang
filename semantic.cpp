@@ -1553,13 +1553,6 @@ std::cout << "CURRENT MODIFIERS: "
                     return {};
                 }
                 MemberInfo m = findMember(current, op.name);
-                std::cout
-    << "ARROW MEMBER: "
-    << op.name
-    << " found=" << m.found
-    << " is_function=" << m.is_function
-    << " function=" << (m.function ? "YES" : "NO")
-    << "\n";
                 if (!m.found) {
                     error(expr, "type '" + typeString(current) + "' has no member '" + op.name + "'");
                     return {};
@@ -1589,6 +1582,13 @@ std::cout << "CURRENT MODIFIERS: "
     current.modifiers.pop_back();
 
     MemberInfo m = findMember(current, op.name);
+    std::cout
+    << "ARROW MEMBER: "
+    << op.name
+    << " found=" << m.found
+    << " is_function=" << m.is_function
+    << " function=" << (m.function ? "YES" : "NO")
+    << "\n";
 
     if (!m.found) {
         error(
