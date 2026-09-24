@@ -1525,6 +1525,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzePostfix(Expr* expr) {
             }
         }
     } else {
+        std::cout << "ANALYZE NESTED POSTFIX\n";
         current = analyzeExpr(expr->postfix.base.get());
     }
 
@@ -1568,36 +1569,22 @@ std::cout << "CURRENT MODIFIERS: "
                 break;
             }
             case Expr::PostfixOp::Kind::Arrow: {
-    if (current.modifiers.empty() ||
-        (current.modifiers.back() != TypeModifier::Kind::Pointer &&
-         current.modifiers.back() != TypeModifier::Kind::Reference)) {
+                if (current.modifiers.empty() ||
+                    (current.modifiers.back() != TypeModifier::Kind::Pointer &&
+                    current.modifiers.back() != TypeModifier::Kind::Reference)) {
 
-        error(
-            expr,
-            "'" + op.name + "' requires a pointer/reference base"
-        );
-        return {};
-    }
+                    error(expr, "'" + op.name + "' requires a pointer/reference base");
+                    return {};
+                }
 
-    current.modifiers.pop_back();
+                current.modifiers.pop_back();
 
-    MemberInfo m = findMember(current, op.name);
-    std::cout
-    << "ARROW MEMBER: "
-    << op.name
-    << " found=" << m.found
-    << " is_function=" << m.is_function
-    << " function=" << (m.function ? "YES" : "NO")
-    << "\n";
+                MemberInfo m = findMember(current, op.name);
 
-    if (!m.found) {
-        error(
-            expr,
-            "type '" + typeString(current) +
-            "' has no member '" + op.name + "'"
-        );
-        return {};
-    }
+                if (!m.found) {
+                    error(expr,"type '" + typeString(current) +"' has no member '" + op.name + "'");
+                    return {};
+                }
 
     if (!accessAllowed(m.visibility, current.base)) {
         error(
@@ -1665,6 +1652,10 @@ std::cout << "CURRENT MODIFIERS: "
             }
             case Expr::PostfixOp::Kind::Call: {
                 TypeView ret;
+                std::cout
+    << "CALL BASE KIND: "
+    << static_cast<int>(expr->postfix.base->kind)
+    << "\n";
                 std::cout
     << "PENDING FUNCTION: "
     << (pending_function ? "YES" : "NO")
