@@ -117,7 +117,7 @@ private:
     TypeView view(const std::unique_ptr<Type>& type) const;
     std::string typeString(const TypeView& type) const;
     std::string typeString(Type* type) const;
-    bool canConvert(const TypeView& from, const TypeView& to);
+    bool canConvert(const TypeView& from, const TypeView& to) const;
     bool sameType(const TypeView& a, const TypeView& b) const;
     bool sameType(Type* a, Type* b) const;
     bool isBuiltin(const std::string& name) const;
