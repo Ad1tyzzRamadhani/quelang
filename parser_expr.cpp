@@ -198,12 +198,13 @@ std::unique_ptr<Expr> ParseState::parsePostfix() {
             op.kind = Expr::PostfixOp::Kind::MemberAccess;
             op.name = advance().value;
 
-            auto expr = std::make_unique<Expr>();
+            /*auto expr = std::make_unique<Expr>();
             expr->kind = Expr::Kind::Postfix;
             expr->postfix.base = std::move(base);
-            expr->postfix.ops.push_back(std::move(op));
+            expr->postfix.ops.push_back(std::move(op));*/
 
-            base = std::move(expr);
+            //base = std::move(expr);
+            appendPostfix(base, std::move(op));
             continue;
         }
 
@@ -215,12 +216,13 @@ std::unique_ptr<Expr> ParseState::parsePostfix() {
             op.kind = Expr::PostfixOp::Kind::Arrow;
             op.name = advance().value;
 
-            auto expr = std::make_unique<Expr>();
+            /*auto expr = std::make_unique<Expr>();
             expr->kind = Expr::Kind::Postfix;
             expr->postfix.base = std::move(base);
-            expr->postfix.ops.push_back(std::move(op));
+            expr->postfix.ops.push_back(std::move(op));*/
 
-            base = std::move(expr);
+            //base = std::move(expr);
+            appendPostfix(base, std::move(op));
             continue;
         }
 
@@ -232,12 +234,13 @@ std::unique_ptr<Expr> ParseState::parsePostfix() {
             op.kind = Expr::PostfixOp::Kind::SafeArrow;
             op.name = advance().value;
 
-            auto expr = std::make_unique<Expr>();
+            /*auto expr = std::make_unique<Expr>();
             expr->kind = Expr::Kind::Postfix;
             expr->postfix.base = std::move(base);
-            expr->postfix.ops.push_back(std::move(op));
+            expr->postfix.ops.push_back(std::move(op));*/
 
-            base = std::move(expr);
+            //base = std::move(expr);
+            appendPostfix(base, std::move(op));
             continue;
         }
         
@@ -249,12 +252,13 @@ std::unique_ptr<Expr> ParseState::parsePostfix() {
 
             consume(TokenType::RPAREN);
 
-            auto expr = std::make_unique<Expr>();
+            /*auto expr = std::make_unique<Expr>();
             expr->kind = Expr::Kind::Postfix;
             expr->postfix.base = std::move(base);
-            expr->postfix.ops.push_back(std::move(op));
+            expr->postfix.ops.push_back(std::move(op));*/
 
-            base = std::move(expr);
+            //base = std::move(expr);
+            appendPostfix(base, std::move(op));
             continue;
         }
 
@@ -265,12 +269,13 @@ std::unique_ptr<Expr> ParseState::parsePostfix() {
 
             consume(TokenType::RBRACKET);
 
-            auto expr = std::make_unique<Expr>();
+            /*auto expr = std::make_unique<Expr>();
             expr->kind = Expr::Kind::Postfix;
             expr->postfix.base = std::move(base);
-            expr->postfix.ops.push_back(std::move(op));
+            expr->postfix.ops.push_back(std::move(op));*/
 
-            base = std::move(expr);
+            //base = std::move(expr);
+            appendPostfix(base, std::move(op));
             continue;
         }
 
