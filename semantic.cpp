@@ -1525,12 +1525,11 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzePostfix(Expr* expr) {
             }
         }
     } else {
-        std::cout << "ANALYZE NESTED POSTFIX\n";
         current = analyzeExpr(expr->postfix.base.get());
     }
 
     for (auto& op : expr->postfix.ops) {
-        std::cout << "POSTFIX BASE: "
+        /*std::cout << "POSTFIX BASE: "
           << (expr->postfix.base && expr->postfix.base->ident
               ? qualifiedName(*expr->postfix.base->ident)
               : "<non-ident>")
@@ -1546,7 +1545,7 @@ std::cout << "CURRENT BASE: "
 
 std::cout << "CURRENT MODIFIERS: "
           << current.modifiers.size()
-          << "\n";
+          << "\n";*/
         switch (op.kind) {
             case Expr::PostfixOp::Kind::MemberAccess: {
                 if (!current.valid) {
@@ -1652,7 +1651,7 @@ std::cout << "CURRENT MODIFIERS: "
             }
             case Expr::PostfixOp::Kind::Call: {
                 TypeView ret;
-                std::cout
+                /*std::cout
     << "CALL BASE KIND: "
     << static_cast<int>(expr->postfix.base->kind)
     << "\n";
@@ -1666,7 +1665,7 @@ std::cout << "CURRENT MODIFIERS: "
     << (pending_function ? "YES" : "NO")
     << " pending_symbol="
     << (pending_symbol ? "YES" : "NO")
-    << "\n";
+    << "\n";*/
                 if (pending_function) {
                     SemanticSymbol callable;
                     callable.name = pending_owner + "::" +
