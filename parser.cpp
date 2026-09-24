@@ -66,7 +66,7 @@ struct ParseState {
         return peek().type == type;
     }
 
-    void ParseState::appendPostfix( std::unique_ptr<Expr>& base, Expr::PostfixOp op) {
+    void appendPostfix( std::unique_ptr<Expr>& base, Expr::PostfixOp op) {
         if (base->kind == Expr::Kind::Postfix) {
             base->postfix.ops.push_back(std::move(op));
             return;
