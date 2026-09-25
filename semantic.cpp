@@ -848,8 +848,14 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
     out.qualifiers = type->qualifiers;
     for (auto& mod : type->modifiers)
         out.modifiers.push_back(mod.kind);
-        if (mod.kind == TypeModifier::Kind::FuncPtr)
+        if (mod.kind == TypeModifier::Kind::FuncPtr) {
+            FunctionTypeView fn;
             out.is_coroutine = mod.is_coroutine;
+            for (auto& param : mod.func_params)
+            fn.parameters.push_back(view(param.get()));
+            if (mod.func_return)
+            fn.return_type = view(mod.func_return.get());
+            out.function = std::move(fn);
         }
     return out;
 }
