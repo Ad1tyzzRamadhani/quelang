@@ -853,8 +853,10 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
             out.is_coroutine = mod.is_coroutine;
             for (auto& param : mod.func_params)
             fn.parameters.push_back(view(param.get()));
-            if (mod.func_return)
-            fn.return_type = view(mod.func_return.get());
+            if (mod.func_return) {
+                auto return_type = view(mod.func_return.get());
+                fn.return_type = &return_type;
+            }
             out.function = std::move(fn);
         }
     }
