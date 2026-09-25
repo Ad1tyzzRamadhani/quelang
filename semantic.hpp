@@ -53,6 +53,7 @@ private:
         std::vector<TypeModifier::Kind> modifiers;
         std::vector<TypeQualifier> qualifiers;
         std::optional<FunctionTypeView> function;
+        bool is_coroutine = false;
         bool valid = false;
         bool unknown = false;
     };
