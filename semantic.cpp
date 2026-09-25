@@ -910,7 +910,32 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
 
 bool SemanticAnalyzer::sameType(const TypeView& a, const TypeView& b) const {
     if (!a.valid || !b.valid) return false;
-    if ((a.base != b.base || a.modifiers != b.modifiers) || a.is_coroutine != b.is_coroutine) return false;
+    if ((a.base != b.base || a.modifiers != b.modifiers)) return false;
+    if (a.function.has_value() != b.function.has_value())
+    return false;
+
+    if (a.function && b.function) {
+        const auto& af = *a.function;
+        const auto& bf = *b.function;
+ 
+        if (af.is_coroutine != bf.is_coroutine)
+            return false;
+
+        if (af.parameters.size() != bf.parameters.size())
+            return false;
+
+        for (size_t i = 0; i < af.parameters.size(); ++i) {
+            if (!sameType(af.parameters[i], bf.parameters[i]))
+            return false;
+        }
+
+        if (af.return_type.has_value() != bf.return_type.has_value())
+            return false;
+
+        if (af.return_type &&
+            !sameType(*af.return_type, *bf.return_type))
+            return false;
+    }
     return true;
 }
 
