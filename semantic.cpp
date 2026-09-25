@@ -1028,13 +1028,14 @@ bool SemanticAnalyzer::validateType(Type* type, const Node* where, bool allow_vo
         error(where, "missing type");
         return false;
     }
+
+    if (!type->base) {
+        error(where, "missing type base");
+        return false;
+    }
     
     bool ok = validateTypeBase(qualifiedName(*type->base), where, allow_void);
     for (auto& mod : type->modifiers) {
-        if (!type->base && mod.kind != TypeModifier::Kind::FuncPtr) {
-            error(where, "missing type base");
-            return false;
-        }
         if (mod.kind == TypeModifier::Kind::FuncPtr) {
             if (!mod.func_return) {
                 error(where, "function pointer is missing return type");
