@@ -848,6 +848,9 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
     out.qualifiers = type->qualifiers;
     for (auto& mod : type->modifiers)
         out.modifiers.push_back(mod.kind);
+        if (mod.kind == TypeModifier::Kind::FuncPtr)
+            out.is_coroutine = mod.is_coroutine;
+        }
     return out;
 }
 
@@ -901,7 +904,7 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
 
 bool SemanticAnalyzer::sameType(const TypeView& a, const TypeView& b) const {
     if (!a.valid || !b.valid) return false;
-    if (a.base != b.base || a.modifiers != b.modifiers) return false;
+    if ((a.base != b.base || a.modifiers != b.modifiers) || a.is_coroutine != b.is_coroutine) return false;
     return true;
 }
 
