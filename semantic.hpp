@@ -42,10 +42,17 @@ public:
     const SymbolTable& symbols() const { return symbols_; }
 
 private:
+
+    struct FunctionTypeView {
+        std::vector<TypeView> parameters;
+        std::optional<TypeView> return_type;
+        bool is_coroutine = false;
+    };
     struct TypeView {
         std::string base;
         std::vector<TypeModifier::Kind> modifiers;
         std::vector<TypeQualifier> qualifiers;
+        std::optional<FunctionTypeView> function;
         bool valid = false;
         bool unknown = false;
     };
