@@ -854,8 +854,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
             for (auto& param : mod.func_params)
             fn.parameters.push_back(view(param.get()));
             if (mod.func_return) {
-                auto return_type = view(mod.func_return.get());
-                fn.return_type = &return_type;
+                fn.return_type = mod.func_return.get();
             }
             out.function = std::move(&fn);
         }
@@ -936,7 +935,7 @@ bool SemanticAnalyzer::sameType(const TypeView& a, const TypeView& b) const {
             return false;
 
         if (af.return_type &&
-            !sameType(*af.return_type, *bf.return_type))
+            !sameType(view(af.return_type), view(bf.return_type)))
             return false;
     }
     return true;
