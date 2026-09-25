@@ -846,7 +846,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
     out.base = qualifiedName(*type->base);
     out.valid = true;
     out.qualifiers = type->qualifiers;
-    for (auto& mod : type->modifiers)
+    for (auto& mod : type->modifiers) {
         out.modifiers.push_back(mod.kind);
         if (mod.kind == TypeModifier::Kind::FuncPtr) {
             FunctionTypeView fn;
@@ -857,6 +857,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
             fn.return_type = view(mod.func_return.get());
             out.function = std::move(fn);
         }
+    }
     return out;
 }
 
@@ -929,7 +930,7 @@ bool SemanticAnalyzer::sameType(const TypeView& a, const TypeView& b) const {
             return false;
         }
 
-        if (af.return_type.has_value() != bf.return_type.has_value())
+        if (af.return_type == nullptr && bf.return_type == nullptr)
             return false;
 
         if (af.return_type &&
