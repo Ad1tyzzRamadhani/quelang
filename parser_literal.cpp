@@ -81,3 +81,12 @@ std::unique_ptr<QualifiedName> ParseState::parseQualifiedName() {
 
     return qn;
 }
+
+std::unique_ptr<QualifiedName> ParseState::MakeEmptyQualifiedName() {
+    auto qn = std::make_unique<QualifiedName>();
+    qn->line_start = tokens[pos].line;
+    qn->column_start = tokens[pos].column;
+    qn->parts.push_back("funcptr");
+
+    return qn;
+}
