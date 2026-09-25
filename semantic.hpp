@@ -45,14 +45,14 @@ private:
     struct TypeView;
     struct FunctionTypeView {
         std::vector<TypeView> parameters;
-        TypeView return_type;
+        TypeView* return_type = nullptr;
         bool is_coroutine = false;
     };
     struct TypeView {
         std::string base;
         std::vector<TypeModifier::Kind> modifiers;
         std::vector<TypeQualifier> qualifiers;
-        FunctionTypeView* function = nullptr;
+        FunctionTypeView& function;
         bool is_coroutine = false;
         bool valid = false;
         bool unknown = false;
