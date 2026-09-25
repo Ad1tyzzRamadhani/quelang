@@ -857,7 +857,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
                 auto return_type = view(mod.func_return.get());
                 fn.return_type = &return_type;
             }
-            out.function = std::move(fn);
+            out.function = std::move(&fn);
         }
     }
     return out;
