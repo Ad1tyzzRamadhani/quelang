@@ -1703,16 +1703,6 @@ std::cout << "CURRENT MODIFIERS: "
     << " pending_symbol="
     << (pending_symbol ? "YES" : "NO")
     << "\n";*/
-                if (pending_function && pending_function->is_coroutine) {
-                    TypeModifier mod;
-                    for (auto& p : pending_function->params)
-                    if (p.type) {
-                        mod.func_params.push_back(p.type);
-                    }
-                    mod.is_coroutine = true;
-                    mod.throws_type = std::move(pending_function->throws_type);
-                    pending_function->return_types->modifiers.push_back(mod);
-                }
                 if (pending_function) {
                     SemanticSymbol callable;
                     callable.name = pending_owner + "::" +
