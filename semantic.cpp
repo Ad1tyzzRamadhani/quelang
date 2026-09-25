@@ -1711,7 +1711,7 @@ std::cout << "CURRENT MODIFIERS: "
                     }
                     mod.is_coroutine = true;
                     mod.throws_type = std::make_unique<Type>(pending_function->throws_type);
-                    pending_function->return_types->modifiers = std::move(mod);
+                    pending_function->return_types->modifiers.push_back(mod);
                 }
                 if (pending_function) {
                     SemanticSymbol callable;
