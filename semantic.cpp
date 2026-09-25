@@ -914,7 +914,7 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
 bool SemanticAnalyzer::sameType(const TypeView& a, const TypeView& b) const {
     if (!a.valid || !b.valid) return false;
     if ((a.base != b.base || a.modifiers != b.modifiers)) return false;
-    if (a.function != null && b.function != null)
+    if (a.function != nullptr && b.function != nullptr)
     return false;
 
     if (a.function && b.function) {
@@ -1234,7 +1234,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeBinary(Expr* expr) {
             if (!isAssignable(lhs, rhs) && !isAssignable(rhs, lhs))
                 error(expr, "comparison operands are incompatible: " + typeString(lhs) +
                     " and " + typeString(rhs));
-            return TypeView{ "bool", {}, {}, true, false };
+            return TypeView{ "bool", {}, {},nullptr,  true, false };
         case BinaryOp::Lt:
         case BinaryOp::Lte:
         case BinaryOp::Gt:
@@ -1704,13 +1704,14 @@ std::cout << "CURRENT MODIFIERS: "
     << (pending_symbol ? "YES" : "NO")
     << "\n";*/
                 if (pending_function && pending_function->is_coroutine) {
-                    TypeModifiers mod;
+                    TypeModifier mod;
                     for (auto& p : pending_function->params)
                     if (p.type) {
                         mod.func_params.push_back(p.type);
                     }
                     mod.is_coroutine = true;
-                    mod.throws_type = pending_function->throws_type;
+                    auto throws_type = pending_function->throws_type;
+                    mod.throws_type = &throws_type;
                     pending_function->return_types->modifiers = std::move(mod);
                 }
                 if (pending_function) {
