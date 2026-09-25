@@ -1768,6 +1768,9 @@ std::cout << "CURRENT MODIFIERS: "
                     error(expr, "expression is not callable");
                     return {};
                 }
+                ret.function->return_type = callable.function_signature->return_type;
+                ret.function->throws_type = callable.function_signature->throws_type;
+                ret.function->is_coroutine = callable.function_signature->is_coroutine;
                 current = ret;
                 pending_symbol = nullptr;
                 pending_function = nullptr;
