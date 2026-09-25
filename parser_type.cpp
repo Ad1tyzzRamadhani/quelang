@@ -26,6 +26,7 @@ std::unique_ptr<Type> ParseState::parseType() {
         }
         break;
     }
+    type->base MakeEmptyQualifiedName();
     if (peek().type == TokenType::LPAREN) return parseFuncPtrType(type->qualifiers);
 
     type->base = parseQualifiedName();
