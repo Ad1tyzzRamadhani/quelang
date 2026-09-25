@@ -1243,13 +1243,13 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeBinary(Expr* expr) {
             requireNumeric(rhs, expr, "relational operator");
             if (!sameType(lhs, rhs))
                 error(expr, "relational operands must have matching types");
-            return TypeView{ "bool", {}, {}, true, false };
+            return TypeView{ "bool", {}, {}, nullptr, true, false };
         case BinaryOp::And:
         case BinaryOp::Or:
         case BinaryOp::Xor:
             requireBoolean(lhs, expr, "logical operator");
             requireBoolean(rhs, expr, "logical operator");
-            return TypeView{ "bool", {}, {}, true, false };
+            return TypeView{ "bool", {}, {}, nullptr, true, false };
         case BinaryOp::BitAnd:
         case BinaryOp::BitOr:
         case BinaryOp::BitXor:
@@ -1270,7 +1270,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeBinary(Expr* expr) {
             return lhs;
         case BinaryOp::In:
             if (!rhs.valid) return {};
-            return TypeView{ "bool", {}, {}, true, false };
+            return TypeView{ "bool", {}, {}, nullptr, true, false };
     }
     return {};
 }
@@ -1704,10 +1704,10 @@ std::cout << "CURRENT MODIFIERS: "
     << (pending_symbol ? "YES" : "NO")
     << "\n";*/
                 if (pending_function && pending_function->is_coroutine) {
+                    TypeModifiers mod;
                     for (auto& p : pending_function->params)
                     if (p.type) {
-                        TypeModifier mod;
-                        modifiers.func_params.push_back(p.type);
+                        mod.func_params.push_back(p.type);
                     }
                     mod.is_coroutine = true;
                     mod.throws_type = pending_function->throws_type;
