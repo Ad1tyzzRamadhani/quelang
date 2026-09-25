@@ -1028,7 +1028,7 @@ bool SemanticAnalyzer::validateType(Type* type, const Node* where, bool allow_vo
         error(where, "missing type");
         return false;
     }
-    if (!type->base) {
+    if (!type->base && !type->modifiers) {
         error(where, "missing type base");
         return false;
     }
