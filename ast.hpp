@@ -45,7 +45,6 @@ struct TypeModifier {
     bool is_coroutine = false;
     std::unique_ptr<Type> func_return;
     std::unique_ptr<Type> throws_type;
-    bool is_coroutine = false;
 };
 
 struct Type : Node {
