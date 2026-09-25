@@ -45,7 +45,7 @@ private:
     struct TypeView;
     struct FunctionTypeView {
         std::vector<TypeView> parameters;
-        TypeView* return_type = nullptr;
+        TypeView return_type;
         bool is_coroutine = false;
     };
     struct TypeView {
