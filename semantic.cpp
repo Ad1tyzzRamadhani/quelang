@@ -1667,9 +1667,14 @@ std::cout << "CURRENT MODIFIERS: "
     << (pending_symbol ? "YES" : "NO")
     << "\n";*/
                 if (pending_function && pending_function->is_coroutine) {
-                    error(expr, "cannot directly call coroutine '" +
-                    pending_function->name + "'");
-                    return {};
+                    for (auto& p : pending_function->params)
+                    if (p.type) {
+                        TypeModifier mod;
+                        modifiers.func_params.push_back(p.type);
+                    }
+                    mod.is_coroutine = true;
+                    mod.throws_type = pending_function->throws_type;
+                    pending_function->return_types->modifiers = std::move(mod);
                 }
                 if (pending_function) {
                     SemanticSymbol callable;
@@ -1684,6 +1689,7 @@ std::cout << "CURRENT MODIFIERS: "
                     callable.function_signature->is_const = pending_function->is_const;
                     callable.function_signature->is_noreturn = pending_function->is_noreturn;
                     callable.function_signature->is_throws = pending_function->is_throws;
+    
                     for (auto& p : pending_function->params)
                         if (p.type) callable.function_signature->parameters.push_back(p.type.get());
                     checkFunctionCall(callable, op.args, expr, ret);
