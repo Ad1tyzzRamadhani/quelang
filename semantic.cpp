@@ -1710,8 +1710,7 @@ std::cout << "CURRENT MODIFIERS: "
                         mod.func_params.push_back(p.type);
                     }
                     mod.is_coroutine = true;
-                    auto throws_type = pending_function->throws_type;
-                    mod.throws_type = &throws_type;
+                    mod.throws_type = std::make_unique<Type>(pending_function->throws_type);
                     pending_function->return_types->modifiers = std::move(mod);
                 }
                 if (pending_function) {
