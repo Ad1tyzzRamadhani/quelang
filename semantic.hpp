@@ -42,7 +42,7 @@ public:
     const SymbolTable& symbols() const { return symbols_; }
 
 private:
-
+    struct TypeView;
     struct FunctionTypeView {
         std::vector<TypeView> parameters;
         std::optional<TypeView> return_type;
