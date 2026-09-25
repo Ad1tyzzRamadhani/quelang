@@ -1666,6 +1666,11 @@ std::cout << "CURRENT MODIFIERS: "
     << " pending_symbol="
     << (pending_symbol ? "YES" : "NO")
     << "\n";*/
+                if (pending_function && pending_function->is_coroutine) {
+                    error(expr, "cannot directly call coroutine '" +
+                    pending_function->name + "'");
+                    return {};
+                }
                 if (pending_function) {
                     SemanticSymbol callable;
                     callable.name = pending_owner + "::" +
