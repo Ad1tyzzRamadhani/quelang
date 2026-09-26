@@ -919,13 +919,10 @@ bool SemanticAnalyzer::sameType(const TypeView& a, const TypeView& b) const {
     if (!a.valid || !b.valid) return false;
     if (a.base != b.base) return false;
 
-    if (a.function && b.function) {
+    if (a.is_coroutine && b.is_coroutine) {
         std::cout << "Found Coroutine Type in SameType" << "\n";
         const auto& af = *a.function;
         const auto& bf = *b.function;
- 
-        if (af.is_coroutine != bf.is_coroutine)
-            return false;
 
         if (af.parameters.size() != bf.parameters.size())
             return false;
