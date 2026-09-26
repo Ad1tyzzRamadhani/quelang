@@ -26,7 +26,7 @@ std::unique_ptr<Type> ParseState::parseType() {
         }
         break;
     }
-    type->base = MakeEmptyQualifiedName();
+    
     if (peek().type == TokenType::LPAREN) return parseFuncPtrType(type->qualifiers);
 
     type->base = parseQualifiedName();
@@ -77,6 +77,7 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
         // function pointer
     auto type = std::make_unique<Type>();
     type->qualifiers = tq;
+    type->base = MakeEmptyQualifiedName();
         if (peek().type == TokenType::LPAREN) {
             TypeModifier mod;
             consume(TokenType::LPAREN);
