@@ -933,13 +933,6 @@ bool SemanticAnalyzer::sameType(const TypeView& a, const TypeView& b) const {
             if (!sameType(af.parameters[i], bf.parameters[i]))
             return false;
         }
-
-        if (af.return_type == nullptr && bf.return_type == nullptr)
-            return false;
-
-        if (af.return_type &&
-            !sameType(view(af.return_type), view(bf.return_type)))
-            return false;
     }
     return true;
 }
