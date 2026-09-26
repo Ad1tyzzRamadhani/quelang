@@ -87,6 +87,7 @@ std::unique_ptr<QualifiedName> ParseState::MakeEmptyQualifiedName() {
     qn->line_start = tokens[pos].line;
     qn->column_start = tokens[pos].column;
     qn->parts.push_back("funcptr");
+    pos++;
 
     return qn;
 }
