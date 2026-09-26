@@ -918,8 +918,6 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
 bool SemanticAnalyzer::sameType(const TypeView& a, const TypeView& b) const {
     if (!a.valid || !b.valid) return false;
     if ((a.base != b.base || a.modifiers != b.modifiers)) return false;
-    if (!a.function && !b.function)
-    return false;
 
     if (a.function && b.function) {
         const auto& af = *a.function;
@@ -1710,6 +1708,8 @@ std::cout << "CURRENT MODIFIERS: "
     << (pending_symbol ? "YES" : "NO")
     << "\n";*/
                 if (pending_function) {
+                    if(pending_function->is_coroutine) std::cout << "Coroutine Call" << "\n";
+                    else std::cout << "Not Found Coroutine Call" << "\n";
                     SemanticSymbol callable;
                     callable.name = pending_owner + "::" +
                         (pending_function->name && !pending_function->name->parts.empty()
@@ -1734,6 +1734,7 @@ std::cout << "CURRENT MODIFIERS: "
                     ret.function->return_type = pending_function->return_types.get();
                     ret.function->throws_type = pending_function->throws_type.get();
                     ret.function->is_coroutine = pending_function->is_coroutine;
+                    ret.base = "funcptr(fnptr)";
                     std::cout << "Found Coroutine Function Init" << "\n";
                     checkFunctionCall(*pending_symbol, op.args, expr, ret);
                 } else if (pending_symbol && pending_symbol->type) {
