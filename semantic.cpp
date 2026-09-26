@@ -1722,10 +1722,11 @@ std::cout << "CURRENT MODIFIERS: "
                            (pending_symbol->kind == SymbolKind::Function ||
                             pending_symbol->kind == SymbolKind::ForwardFunction)) {
                     checkFunctionCall(*pending_symbol, op.args, expr, ret);
-                } else if (pending_function && pending_function.is_coroutine) {
+                } else if (pending_function && pending_function->is_coroutine) {
                     ret.function->return_type = pending_function->return_types.get();
                     ret.function->throws_type = pending_function->throws_type.get();
                     ret.function->is_coroutine = pending_function->is_coroutine;
+                    std::cout << "Found Coroutine Function Init" << "\n";
                     checkFunctionCall(*pending_symbol, op.args, expr, ret);
                 } else if (pending_symbol && pending_symbol->type) {
                     // Function-pointer variables/parameters carry their full
