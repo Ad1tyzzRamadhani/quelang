@@ -933,7 +933,7 @@ bool SemanticAnalyzer::sameType(const TypeView& a, const TypeView& b) const {
             if (!sameType(af.parameters[i], bf.parameters[i]))
             return false;
         }
-    }
+    } else std::cout << "Not Found Co Func in SameType?" << "\n";
     return true;
 }
 
