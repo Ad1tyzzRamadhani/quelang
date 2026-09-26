@@ -1708,12 +1708,27 @@ std::cout << "CURRENT MODIFIERS: "
     << (pending_symbol ? "YES" : "NO")
     << "\n";*/
                 if (pending_function && pending_function->is_coroutine) {
+                    SemanticSymbol callable;
+                    callable.name = pending_owner + "::" +
+                        (pending_function->name && !pending_function->name->parts.empty()
+                            ? pending_function->name->parts.back() : "function");
+                    callable.kind = SymbolKind::Function;
+                    callable.function_signature = std::make_unique<FunctionSignature>();
+                    callable.function_signature->return_type = pending_function->return_types.get();
+                    callable.function_signature->throws_type = pending_function->throws_type.get();
+                    callable.function_signature->is_coroutine = pending_function->is_coroutine;
+                    callable.function_signature->is_const = pending_function->is_const;
+                    callable.function_signature->is_noreturn = pending_function->is_noreturn;
+                    callable.function_signature->is_throws = pending_function->is_throws;
+    
+                    for (auto& p : pending_function->params)
+                        if (p.type) callable.function_signature->parameters.push_back(p.type.get());
+                    checkFunctionCall(callable, op.args, expr, ret);
                     ret.function->return_type = pending_function->return_types.get();
                     ret.function->throws_type = pending_function->throws_type.get();
                     ret.function->is_coroutine = pending_function->is_coroutine;
                     ret.base = "funcptr(fnptr)";
                     std::cout << "Found Coroutine Function Init" << "\n";
-                    checkFunctionCall(*pending_symbol, op.args, expr, ret);
                 } else if (pending_function) {
                     if(pending_function->is_coroutine) std::cout << "Coroutine Call" << "\n";
                     else std::cout << "Not Found Coroutine Call" << "\n";
