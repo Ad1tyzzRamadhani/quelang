@@ -917,6 +917,7 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
 }
 
 bool SemanticAnalyzer::sameType(const TypeView& a, const TypeView& b) const {
+    std::cout << "SameType Check..." << "\n";
     if (!a.valid || !b.valid) return false;
     if (a.base != b.base) return false;
 
