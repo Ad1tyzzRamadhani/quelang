@@ -1707,7 +1707,14 @@ std::cout << "CURRENT MODIFIERS: "
     << " pending_symbol="
     << (pending_symbol ? "YES" : "NO")
     << "\n";*/
-                if (pending_function) {
+                if (pending_function && pending_function->is_coroutine) {
+                    ret.function->return_type = pending_function->return_types.get();
+                    ret.function->throws_type = pending_function->throws_type.get();
+                    ret.function->is_coroutine = pending_function->is_coroutine;
+                    ret.base = "funcptr(fnptr)";
+                    std::cout << "Found Coroutine Function Init" << "\n";
+                    checkFunctionCall(*pending_symbol, op.args, expr, ret);
+                } else if (pending_function) {
                     if(pending_function->is_coroutine) std::cout << "Coroutine Call" << "\n";
                     else std::cout << "Not Found Coroutine Call" << "\n";
                     SemanticSymbol callable;
@@ -1729,13 +1736,6 @@ std::cout << "CURRENT MODIFIERS: "
                 } else if (pending_symbol &&
                            (pending_symbol->kind == SymbolKind::Function ||
                             pending_symbol->kind == SymbolKind::ForwardFunction)) {
-                    checkFunctionCall(*pending_symbol, op.args, expr, ret);
-                } else if (pending_function && pending_function->is_coroutine) {
-                    ret.function->return_type = pending_function->return_types.get();
-                    ret.function->throws_type = pending_function->throws_type.get();
-                    ret.function->is_coroutine = pending_function->is_coroutine;
-                    ret.base = "funcptr(fnptr)";
-                    std::cout << "Found Coroutine Function Init" << "\n";
                     checkFunctionCall(*pending_symbol, op.args, expr, ret);
                 } else if (pending_symbol && pending_symbol->type) {
                     // Function-pointer variables/parameters carry their full
