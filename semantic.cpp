@@ -846,6 +846,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
     for (auto& mod : type->modifiers) {
         out.modifiers.push_back(mod.kind);
         if (mod.kind == TypeModifier::Kind::FuncPtr) {
+            std::cout << "View FuncPtr" << "\n";
             FunctionTypeView fn;
             out.is_coroutine = mod.is_coroutine;
             for (auto& param : mod.func_params)
