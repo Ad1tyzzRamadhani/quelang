@@ -1724,6 +1724,7 @@ std::cout << "CURRENT MODIFIERS: "
                     for (auto& p : pending_function->params)
                         if (p.type) callable.function_signature->parameters.push_back(p.type.get());
                     checkFunctionCall(callable, op.args, expr, ret);
+                    ret.function = new FunctionTypeView();
                     ret.function->return_type = pending_function->return_types.get();
                     ret.function->throws_type = pending_function->throws_type.get();
                     ret.function->is_coroutine = pending_function->is_coroutine;
