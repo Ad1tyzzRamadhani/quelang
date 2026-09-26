@@ -954,7 +954,7 @@ bool SemanticAnalyzer::isBuiltin(const std::string& name) const {
     static const std::unordered_set<std::string> builtins = {
         "i8","i16","i32","i64","u8","u16","u32","u64",
         "f32","f64","char8","char16","char32","bool","void",
-        "usize","isize"
+        "usize","isize", "funcptr"
     };
     return builtins.find(name) != builtins.end();
 }
