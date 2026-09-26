@@ -917,7 +917,7 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
 
 bool SemanticAnalyzer::sameType(const TypeView& a, const TypeView& b) const {
     if (!a.valid || !b.valid) return false;
-    if ((a.base != b.base || a.modifiers != b.modifiers) && !a.function && !b.function) return false;
+    if ((a.base != b.base || a.modifiers != b.modifiers)) return false;
     if (!a.function && !b.function)
     return false;
 
