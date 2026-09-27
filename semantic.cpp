@@ -894,9 +894,9 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
 
     if (sameType(from, to))
         return true;
-    for(auto& mod : from.modifiers) {
+    for(const auto& mod : from.modifiers) {
     if (mod.size() == 1 &&
-        mod.kind == TypeModifier::Kind::FuncPtr &&
+        mod == TypeModifier::Kind::FuncPtr &&
         to.modifiers.empty()) {
         TypeView value = from;
         value.modifiers.clear();
