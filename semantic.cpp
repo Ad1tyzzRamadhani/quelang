@@ -1721,6 +1721,7 @@ std::cout << "CURRENT MODIFIERS: "
                     ret.function->return_type = pending_function->return_types.get();
                     ret.function->throws_type = pending_function->throws_type.get();
                     ret.function->is_coroutine = pending_function->is_coroutine;
+                    ret.is_coroutine = pending_function->is_coroutine;
                     ret.base = "funcptr(fnptr)";
                     std::cout << "Found Coroutine Function Init" << "\n";
                 } else if (pending_function) {
