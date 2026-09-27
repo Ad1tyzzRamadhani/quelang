@@ -849,6 +849,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
             std::cout << "View FuncPtr" << "\n";
             FunctionTypeView fn;
             out.is_coroutine = mod.is_coroutine;
+            fn.is_coroutine = mod.is_coroutine;
             for (auto& param : mod.func_params)
             fn.parameters.push_back(view(param.get()));
             if (mod.func_return) {
