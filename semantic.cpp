@@ -669,7 +669,7 @@ void SemanticAnalyzer::analyzeVarDecl(VarDecl& decl) {
                 }
             } else {
                 TypeView init = analyzeExpr(item.init.get());
-                if (!isAssignable(target, init)) {
+                if (!isAssignable(target, init) && !target.is_coroutine) {
                     error(item.init.get(), "cannot initialize '" + item.name + "' of type " +
                         typeString(target) + " with " + typeString(init));
                 }
