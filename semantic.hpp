@@ -129,6 +129,9 @@ private:
     bool canConvert(const TypeView& from, const TypeView& to) const;
     bool sameType(const TypeView& a, const TypeView& b) const;
     bool sameType(Type* a, Type* b) const;
+    int integerRank(const std::string& type) const;
+    bool isSignedInteger(const std::string& type) const;
+    bool isUnsignedInteger(const std::string& type) const;
     bool isBuiltin(const std::string& name) const;
     bool isNumeric(const TypeView& type) const;
     bool isIntegral(const TypeView& type) const;
