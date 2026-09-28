@@ -902,7 +902,7 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
         }
         if (f == "isize" && t == "int") return true;
         if (f == "usize" && t == "unint") return true;
-        if (f == "float" && t == "flong")
+        if (f == "flong" && t == "float")
             return true;
         return false;
     }
