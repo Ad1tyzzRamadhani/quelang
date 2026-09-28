@@ -891,9 +891,21 @@ std::string SemanticAnalyzer::typeString(Type* type) const {
 bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) const {
     if (!from.valid || !to.valid)
         return false;
-
     if (sameType(from, to))
         return true;
+    if (isNumeric(from) && isNumeric(to)) {
+        const std::string& f = from.base;
+        const std::string& t = to.base;
+        if (isSignedInteger(f) && isSignedInteger(t)) {
+            return integerRank(f) <= integerRank(t);
+        }
+        if (isUnsignedInteger(f) && isUnsignedInteger(t)) {
+            return integerRank(f) <= integerRank(t);
+        }
+        if (f == "float" && t == "flong")
+            return true;
+        return false;
+    }
     for(const auto& mod : from.modifiers) {
     if (mod == TypeModifier::Kind::FuncPtr &&
         to.modifiers.empty()) {
@@ -944,26 +956,49 @@ bool SemanticAnalyzer::sameType(Type* a, Type* b) const {
 
 bool SemanticAnalyzer::isBuiltin(const std::string& name) const {
     static const std::unordered_set<std::string> builtins = {
-        "i8","i16","i32","i64","u8","u16","u32","u64",
-        "f32","f64","char8","char16","char32","bool","void",
-        "usize","isize", "funcptr"
+        "char","short","int","long","unint","unlong",
+        "float","flong","bool","void",
+        "usize","isize","funcptr"
     };
     return builtins.find(name) != builtins.end();
 }
 
+int SemanticAnalyzer::integerRank(const std::string& type) const {
+    if (type == "char")   return 1;
+    if (type == "short")  return 2;
+    if (type == "int")    return 3;
+    if (type == "long")   return 4;
+
+    if (type == "unint")  return 3;
+    if (type == "unlong") return 4;
+
+    return -1;
+}
+
+bool SemanticAnalyzer::isSignedInteger(const std::string& type) const {
+    return type == "char" ||
+           type == "short" ||
+           type == "int" ||
+           type == "long";
+}
+
+bool SemanticAnalyzer::isUnsignedInteger(const std::string& type) const {
+    return type == "unint" ||
+           type == "unlong";
+}
+
 bool SemanticAnalyzer::isNumeric(const TypeView& type) const {
     if (!type.valid || !type.modifiers.empty()) return false;
-    return type.base == "i8" || type.base == "i16" || type.base == "i32" || type.base == "i64" ||
-           type.base == "u8" || type.base == "u16" || type.base == "u32" || type.base == "u64" ||
-           type.base == "f32" || type.base == "f64" || type.base == "usize" || type.base == "isize";
+    return type.base == "char" || type.base == "short" || type.base == "int" || type.base == "long" ||
+           type.base == "float" || type.base == "unshort" || type.base == "short" || type.base == "unint" || type.base == "unlong" ||
+           type.base == "usize" || type.base == "isize";
 }
 
 bool SemanticAnalyzer::isIntegral(const TypeView& type) const {
     if (!type.valid || !type.modifiers.empty()) return false;
-    return type.base == "i8" || type.base == "i16" || type.base == "i32" || type.base == "i64" ||
-           type.base == "u8" || type.base == "u16" || type.base == "u32" || type.base == "u64" ||
-           type.base == "usize" || type.base == "isize" ||
-           type.base == "char8" || type.base == "char16" || type.base == "char32";
+    return type.base == "char" || type.base == "short" || type.base == "int" || type.base == "long" ||
+           type.base == "float" || type.base == "unshort" || type.base == "short" || type.base == "unint" || type.base == "unlong" ||
+           type.base == "usize" || type.base == "isize";
 }
 
 bool SemanticAnalyzer::isBoolean(const TypeView& type) const {
@@ -1074,13 +1109,13 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeLiteral(Literal* literal) {
     if (!literal) return t;
     t.valid = true;
     switch (literal->kind) {
-        case Literal::Kind::Number: t.base = "i32"; break;
-        case Literal::Kind::Float: t.base = "f64"; break;
-        case Literal::Kind::Hex: t.base = "u64"; break;
-        case Literal::Kind::Binary: t.base = "u64"; break;
-        case Literal::Kind::Char: t.base = "char32"; break;
-        case Literal::Kind::String: t.base = "char8"; t.modifiers.push_back(TypeModifier::Kind::Pointer); break;
-        case Literal::Kind::RawString: t.base = "char8"; t.modifiers.push_back(TypeModifier::Kind::Pointer); break;
+        case Literal::Kind::Number: t.base = "int"; break;
+        case Literal::Kind::Float: t.base = "float"; break;
+        case Literal::Kind::Hex: t.base = "int"; break;
+        case Literal::Kind::Binary: t.base = "int"; break;
+        case Literal::Kind::Char: t.base = "char"; break;
+        case Literal::Kind::String: t.base = "char"; t.modifiers.push_back(TypeModifier::Kind::Pointer); break;
+        case Literal::Kind::RawString: t.base = "char"; t.modifiers.push_back(TypeModifier::Kind::Pointer); break;
         case Literal::Kind::True:
         case Literal::Kind::False: t.base = "bool"; break;
         case Literal::Kind::Null: t.base = "null"; break;
