@@ -959,7 +959,7 @@ bool SemanticAnalyzer::sameType(Type* a, Type* b) const {
 
 bool SemanticAnalyzer::isBuiltin(const std::string& name) const {
     static const std::unordered_set<std::string> builtins = {
-        "char","short","int","long","unint","unlong",
+        "char","short","unshort","int","long","unint","unlong",
         "float","flong","bool","void",
         "usize","isize","funcptr"
     };
