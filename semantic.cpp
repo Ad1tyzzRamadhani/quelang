@@ -902,6 +902,8 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
         if (isUnsignedInteger(f) && isUnsignedInteger(t)) {
             return integerRank(f) <= integerRank(t);
         }
+        if (f == "int" && t == "isize") return true;
+        if (f == "uint" && t == "usize") return true;
         if (f == "float" && t == "flong")
             return true;
         return false;
@@ -932,6 +934,7 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
 bool SemanticAnalyzer::sameType(const TypeView& a, const TypeView& b) const {
     std::cout << "SameType Check..." << "\n";
     if (!a.valid || !b.valid) return false;
+    if (a.modifiers != b.modifiers) return false;
     if (a.base != b.base) return false;
 
     if (a.is_coroutine && b.is_coroutine) {
@@ -969,6 +972,7 @@ int SemanticAnalyzer::integerRank(const std::string& type) const {
     if (type == "int")    return 3;
     if (type == "long")   return 4;
 
+    if (type == "unshort") return 2;
     if (type == "unint")  return 3;
     if (type == "unlong") return 4;
 
@@ -984,20 +988,21 @@ bool SemanticAnalyzer::isSignedInteger(const std::string& type) const {
 
 bool SemanticAnalyzer::isUnsignedInteger(const std::string& type) const {
     return type == "unint" ||
+           type == "unshort" ||
            type == "unlong";
 }
 
 bool SemanticAnalyzer::isNumeric(const TypeView& type) const {
     if (!type.valid || !type.modifiers.empty()) return false;
     return type.base == "char" || type.base == "short" || type.base == "int" || type.base == "long" ||
-           type.base == "float" || type.base == "unshort" || type.base == "short" || type.base == "unint" || type.base == "unlong" ||
+           type.base == "float" || type.base == "flong" || type.base == "unshort" || type.base == "short" || type.base == "unint" || type.base == "unlong" ||
            type.base == "usize" || type.base == "isize";
 }
 
 bool SemanticAnalyzer::isIntegral(const TypeView& type) const {
     if (!type.valid || !type.modifiers.empty()) return false;
     return type.base == "char" || type.base == "short" || type.base == "int" || type.base == "long" ||
-           type.base == "float" || type.base == "unshort" || type.base == "short" || type.base == "unint" || type.base == "unlong" ||
+           type.base == "float" || type.base == "flong" || type.base == "unshort" || type.base == "short" || type.base == "unint" || type.base == "unlong" ||
            type.base == "usize" || type.base == "isize";
 }
 
