@@ -891,8 +891,6 @@ std::string SemanticAnalyzer::typeString(Type* type) const {
 bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) const {
     if (!from.valid || !to.valid)
         return false;
-    if (sameType(from, to))
-        return true;
     if (isNumeric(from) && isNumeric(to)) {
         const std::string& f = from.base;
         const std::string& t = to.base;
@@ -908,6 +906,8 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
             return true;
         return false;
     }
+    if (sameType(from, to))
+        return true;
     for(const auto& mod : from.modifiers) {
     if (mod == TypeModifier::Kind::FuncPtr &&
         to.modifiers.empty()) {
