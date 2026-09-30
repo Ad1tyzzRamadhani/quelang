@@ -620,7 +620,7 @@ void SemanticAnalyzer::analyzeVarDecl(VarDecl& decl) {
         symbol->is_extern = decl.is_extern;
         symbol->is_atomic = decl.is_atomic;
         symbol->is_defined = true;
-        symbol->array_size = item.array_dims;
+        symbol->array_size = std::move(item.array_dims);
         symbol->state = SymbolState::Valid;
         if (!declareSymbol(std::move(symbol), &decl)) continue;
 
