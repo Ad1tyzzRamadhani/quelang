@@ -620,11 +620,13 @@ void SemanticAnalyzer::analyzeVarDecl(VarDecl& decl) {
         symbol->is_extern = decl.is_extern;
         symbol->is_atomic = decl.is_atomic;
         symbol->is_defined = true;
+        symbol->array_size = item.array_dims;
         symbol->state = SymbolState::Valid;
         if (!declareSymbol(std::move(symbol), &decl)) continue;
 
         if (item.init) {
             TypeView target = view(decl.type.get());
+            target.array_size = item.array_dims;
             if (item.init->kind == Expr::Kind::ArrayLiteral) {
                 if (item.array_dims.empty()) {
                     error(item.init.get(), "array literal requires an array declaration type");
