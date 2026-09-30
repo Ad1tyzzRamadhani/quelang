@@ -746,7 +746,13 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
             if (item.init) analyzeExpr(item.init.get());
         }
     }
-    if (stmt.for_stmt.source) analyzeExpr(stmt.for_stmt.source.get());
+    TypeView source;
+    if (stmt.for_stmt.source) source = analyzeExpr(stmt.for_stmt.source.get());
+    for(auto& modkind : source.modifiers)
+        if(modkind != TypeModifier::Kind::Pointer || modkind != TypeModifier::Kind::Reference || source.array_size > 0) {
+            error(&stmt, "Iteration Target must Pointer or Reference or Fixed Size Array");
+            return;
+        }
     function_stack_.back().loop_depth++;
     if (stmt.for_stmt.body) analyzeStmt(*stmt.for_stmt.body);
     function_stack_.back().loop_depth--;
