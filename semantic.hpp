@@ -54,10 +54,10 @@ private:
         std::vector<TypeModifier::Kind> modifiers;
         std::vector<TypeQualifier> qualifiers;
         FunctionTypeView* function = nullptr;
-        std::vector<int> array_size;
         bool is_coroutine = false;
         bool valid = false;
         bool unknown = false;
+        std::vector<int> array_size;
     };
 
     struct FunctionContext {
