@@ -106,7 +106,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         stmt->kind = Stmt::Kind::For;
 
         consume(TokenType::LPAREN);
-        if(!match(TokenType::KW_IN))
+        //if(!match(TokenType::KW_IN))
         stmt->for_stmt.init = parseVarDecl();
 
         consume(TokenType::KW_IN);
