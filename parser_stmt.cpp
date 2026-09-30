@@ -321,7 +321,7 @@ VarDecl ParseState::parseVarDecl(Visibility visibility) {
                 error("array dimension must be constant number");
 
             item.array_dims.push_back(
-                stoi(parseLiteral(advance())->value);
+                parseLiteral(advance());
             );
 
             consume(TokenType::RBRACKET);
