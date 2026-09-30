@@ -57,7 +57,6 @@ private:
         bool is_coroutine = false;
         bool valid = false;
         bool unknown = false;
-        std::vector<std::unique_ptr<Literal>> array_size;
     };
 
     struct FunctionContext {
