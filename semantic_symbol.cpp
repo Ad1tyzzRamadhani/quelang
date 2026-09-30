@@ -95,8 +95,6 @@ struct SemanticSymbol {
     bool is_defined = false;
     bool is_forward = false;
 
-    std::vector<std::unique_ptr<Literal>> array_size;
-
     std::string default_field;
 
     std::string qualified_name;
