@@ -43,7 +43,6 @@ struct TypeModifier {
     enum class Kind { Pointer, Reference, Restrict , FuncPtr } kind;
     std::vector<std::unique_ptr<Type>> func_params;
     bool is_coroutine = false;
-    bool is_array = false;
     std::unique_ptr<Type> func_return;
     std::unique_ptr<Type> throws_type;
 };
@@ -52,6 +51,7 @@ struct Type : Node {
     std::vector<TypeQualifier> qualifiers;
     std::unique_ptr<QualifiedName> base;
     std::vector<TypeModifier> modifiers;
+    bool is_array = false;
 };
 
 // Expr System
