@@ -43,6 +43,7 @@ struct TypeModifier {
     enum class Kind { Pointer, Reference, Restrict , FuncPtr } kind;
     std::vector<std::unique_ptr<Type>> func_params;
     bool is_coroutine = false;
+    bool is_array = false;
     std::unique_ptr<Type> func_return;
     std::unique_ptr<Type> throws_type;
 };
