@@ -295,6 +295,8 @@ std::unique_ptr<Expr> ParseState::parseCast() {
 
         castExpr->cast.base = std::move(expr);
         castExpr->cast.target = parseType();
+        if(match(TokenType::COLON))
+        castExpr->cast.target->bit_width = parseLiteral(advance());
 
         expr = std::move(castExpr);
     }
