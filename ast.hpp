@@ -52,6 +52,7 @@ struct Type : Node {
     std::unique_ptr<QualifiedName> base;
     std::vector<TypeModifier> modifiers;
     bool is_array = false;
+    int bit_width = 0;
 };
 
 // Expr System
