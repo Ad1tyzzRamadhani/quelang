@@ -57,6 +57,7 @@ private:
         bool is_coroutine = false;
         bool valid = false;
         bool unknown = false;
+        int bit_width = 0;
         std::vector<int> array_size;
     };
 
