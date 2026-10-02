@@ -850,6 +850,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
     out.base = qualifiedName(*type->base);
     out.valid = true;
     out.qualifiers = type->qualifiers;
+    out.bit_width = stoi(type->bit_width->value);
     for (auto& mod : type->modifiers) {
         out.modifiers.push_back(mod.kind);
         if (mod.kind == TypeModifier::Kind::FuncPtr) {
