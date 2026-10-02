@@ -905,6 +905,7 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
         const std::string& t = to.base;
         if (from.bit_width == 4 && t == "nibble") return true;
         if (from.bit_width == to.bit_width) return true;
+        else return false;
         if (isSignedInteger(f) && isSignedInteger(t)) {
             return integerRank(f) <= integerRank(t);
         }
