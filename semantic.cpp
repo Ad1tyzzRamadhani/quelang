@@ -908,6 +908,8 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
         if (isUnsignedInteger(f) && isUnsignedInteger(t)) {
             return integerRank(f) <= integerRank(t);
         }
+        if (from.bit_width == 4 && t == "nibble") return true;
+        if (from.bit_width == to.bit_width) return true;
         if (f == "isize" && t == "int") return true;
         if (f == "usize" && t == "unint") return true;
         if (f == "flong" && t == "float")
