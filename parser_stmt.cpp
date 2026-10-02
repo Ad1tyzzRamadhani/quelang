@@ -308,8 +308,10 @@ VarDecl ParseState::parseVarDecl(Visibility visibility) {
         item.name = advance().value;
 
         if (match(TokenType::COLON)) {
-            if (peek().type == TokenType::NUMBER)
+            if (peek().type == TokenType::NUMBER) {
                 item.bit_width = parseLiteral(advance());
+                std::cout << "Found Bit Width Variable" << "\n";
+            }
         }
 
         // -------------------------
