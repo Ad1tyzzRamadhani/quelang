@@ -900,11 +900,11 @@ std::string SemanticAnalyzer::typeString(Type* type) const {
 bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) const {
     if (!from.valid || !to.valid)
         return false;
-    if (from.bit_width == 4 && t == "nibble") return true;
-    if (from.bit_width == to.bit_width) return true;
     if (isNumeric(from) && isNumeric(to)) {
         const std::string& f = from.base;
         const std::string& t = to.base;
+        if (from.bit_width == 4 && t == "nibble") return true;
+        if (from.bit_width == to.bit_width) return true;
         if (isSignedInteger(f) && isSignedInteger(t)) {
             return integerRank(f) <= integerRank(t);
         }
