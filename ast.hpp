@@ -32,7 +32,7 @@ struct Literal : Node {
         True, False, Null, None
     } kind;
 
-    std::string value;
+    std::string value = "";
 };
 
 // Type System
