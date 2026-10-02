@@ -309,7 +309,7 @@ VarDecl ParseState::parseVarDecl(Visibility visibility) {
 
         if (match(TokenType::COLON)) {
             if (peek().type == TokenType::NUMBER)
-            decl.type.bit_width = parseLiteral(advance());
+            decl.type->bit_width = parseLiteral(advance());
         }
 
         // -------------------------
