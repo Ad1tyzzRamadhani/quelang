@@ -622,7 +622,6 @@ void SemanticAnalyzer::analyzeVarDecl(VarDecl& decl) {
         symbol->is_defined = true;
         symbol->state = SymbolState::Valid;
         if (!declareSymbol(std::move(symbol), &decl)) continue;
-
         if (item.init) {
             TypeView target = view(decl.type.get());
             if (item.init->kind == Expr::Kind::ArrayLiteral) {
@@ -852,7 +851,9 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
     out.qualifiers = type->qualifiers;
     if(type->bit_width && !type->bit_width->value.empty())
     out.bit_width = std::stoi(type->bit_width->value);
-    std::cout << out.bit_width << "\n";
+    if(!type->array_dims.empty())
+    for(auto& dim : type->array_dims) {
+        out.array_size.push_back(std::stoi(dim->value));
     for (auto& mod : type->modifiers) {
         out.modifiers.push_back(mod.kind);
         if (mod.kind == TypeModifier::Kind::FuncPtr) {
