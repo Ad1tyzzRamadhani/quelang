@@ -1863,6 +1863,8 @@ std::cout << "CURRENT MODIFIERS: "
                     (current.modifiers.back() != TypeModifier::Kind::Pointer &&
                      current.modifiers.back() != TypeModifier::Kind::Reference) ||
                     current.array_size != idx.array_size) {
+                    for(auto& i : current.array_size) std::cout << "Array Index 1" << i << "\n";
+                    for(auto& i : current.array_size) std::cout << "Array Index 2" << i << "\n";
                     error(expr, "indexing requires pointer/reference-like/array literal value");
                     return {};
                 }
