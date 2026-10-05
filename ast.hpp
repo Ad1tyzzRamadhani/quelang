@@ -89,6 +89,7 @@ struct Expr : Node {
         Cast,
         New,
         Move,
+        Codone,
 
         StructInit,
         ArrayLiteral
