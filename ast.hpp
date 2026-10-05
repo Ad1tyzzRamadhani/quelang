@@ -53,6 +53,7 @@ struct Type : Node {
     std::vector<TypeModifier> modifiers;
     bool is_array = false;
     std::unique_ptr<Literal> bit_width;
+    std::vector<std::unique_ptr<Literal>> array_dims;
 };
 
 // Expr System
