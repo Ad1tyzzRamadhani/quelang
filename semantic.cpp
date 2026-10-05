@@ -1861,8 +1861,9 @@ std::cout << "CURRENT MODIFIERS: "
                 requireIntegral(idx, op.index.get(), "index expression");
                 if (current.modifiers.empty() ||
                     (current.modifiers.back() != TypeModifier::Kind::Pointer &&
-                     current.modifiers.back() != TypeModifier::Kind::Reference)) {
-                    error(expr, "indexing requires pointer/reference-like value");
+                     current.modifiers.back() != TypeModifier::Kind::Reference) ||
+                    current.array_size != idx.array_size) {
+                    error(expr, "indexing requires pointer/reference-like/array literal value");
                     return {};
                 }
                 current.modifiers.pop_back();
