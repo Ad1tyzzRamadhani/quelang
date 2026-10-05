@@ -852,7 +852,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
     if(type->bit_width && !type->bit_width->value.empty())
     out.bit_width = std::stoi(type->bit_width->value);
     if(!type->array_dims.empty())
-    for(auto& dim : type->array_dims) {
+    for(auto& dim : type->array_dims)
         out.array_size.push_back(std::stoi(dim->value));
     for (auto& mod : type->modifiers) {
         out.modifiers.push_back(mod.kind);
