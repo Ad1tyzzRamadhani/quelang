@@ -1259,6 +1259,21 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeUnary(Expr* expr) {
             symbol->state = SymbolState::Moved;
             return t;
         }
+        case UnaryOp::CoDone: {
+            SemanticSymbol* symbol = symbolForLValue(expr->unary.expr.get());
+            if(!symbol) {
+                error(expr, "co_done requires a named value");
+                return t;
+            }
+            if (!symbol->is_coroutine) {
+                error(expr, "cannot co_done non-coroutine symbol '" + symbol->name + "'");
+                return t;
+            }
+            TypeView tres;
+            tres.base = "bool";
+            t = tres;
+            return t;
+        }
     }
     return t;
 }
