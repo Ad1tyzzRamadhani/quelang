@@ -747,13 +747,13 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
     }
     TypeView base_type;
     if (stmt.for_stmt.source) base_type = analyzeExpr(stmt.for_stmt.source.get());
-    SemanticSymbol* source = resolveSymbol(base_type.base);
+    /*SemanticSymbol* source = resolveSymbol(base_type.base);
     if(source->type != nullptr && source->type->modifiers != nullptr)
     for(auto& modkind : source->type->modifiers)
         if(modkind.kind != TypeModifier::Kind::Pointer || modkind.kind != TypeModifier::Kind::Reference || source->type->is_array) {
             error(&stmt, "Iteration Target must Pointer or Reference or Fixed Size Array");
             return;
-        }
+        }*/
     function_stack_.back().loop_depth++;
     if (stmt.for_stmt.body) analyzeStmt(*stmt.for_stmt.body);
     function_stack_.back().loop_depth--;
