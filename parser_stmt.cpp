@@ -323,6 +323,7 @@ VarDecl ParseState::parseVarDecl(Visibility visibility) {
             decl.type->array_dims.push_back(
                 parseLiteral(advance())
             );
+            decl.type->is_array = true;
 
             consume(TokenType::RBRACKET);
         }
