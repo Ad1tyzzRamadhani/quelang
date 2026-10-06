@@ -69,7 +69,7 @@ enum class BinaryOp {
 };
 
 enum class UnaryOp {
-    Neg, Deref, Ref, Not, BitNot, Move
+    Neg, Deref, Ref, Not, BitNot, Move, CoDone
 };
 
 enum class AssignOp {
@@ -89,7 +89,6 @@ struct Expr : Node {
         Cast,
         New,
         Move,
-        Codone,
 
         StructInit,
         ArrayLiteral
