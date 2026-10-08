@@ -320,7 +320,7 @@ VarDecl ParseState::parseVarDecl(Visibility visibility) {
             if (peek().type != TokenType::NUMBER)
                 error("array dimension must be constant number");
 
-            decl.array_dims.push_back(
+            item.array_dims.push_back(
                 parseLiteral(advance())
             );
             decl.type->is_array = true;
