@@ -656,8 +656,16 @@ void SemanticAnalyzer::analyzeVarDecl(VarDecl& decl) {
                             error(field.second.get(), "unknown struct initializer field '" + name + "'");
                             continue;
                         }
-                        TypeView actual = analyzeExpr(field.second.get());
+                        TypeView actual;
                         TypeView expected = view(member.type);
+                        if (field.second->kind == Expr::Kind::StructInit) {
+                            actual = analyzeStructInit(
+                            field.second.get(),
+                            &expected
+                            );
+                        } else {
+                            actual = analyzeExpr(field.second.get());
+                        }
                         if (!isAssignable(expected, actual)) {
                             error(field.second.get(), "cannot initialize struct field '" + name + "' of type " +
                                 typeString(expected) + " with " + typeString(actual));
@@ -1428,14 +1436,77 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeNew(Expr* expr) {
     return out;
 }
 
-SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeStructInit(Expr* expr) {
+SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeStructInit(
+    Expr* expr,
+    const TypeView* expected
+) {
     TypeView out;
-    for (auto& field : expr->struct_init.fields) {
-        if (field.second) analyzeExpr(field.second.get());
+
+    if (!expr || !expected || !expected->valid)
+        return out;
+
+    SemanticSymbol* type_symbol = resolveSymbol(expected->base);
+
+    auto* st = type_symbol
+        ? dynamic_cast<StructDef*>(type_symbol->declaration)
+        : nullptr;
+
+    if (!st) {
+        error(expr, "struct initializer requires a struct type, got " +
+            typeString(*expected));
+        return out;
     }
-    // The current AST does not store the target struct type for StructInit.
-    // Therefore field-name/type matching cannot be performed without inventing
-    // information that is not present in ast.hpp.
+
+    std::unordered_set<std::string> initialized;
+
+    for (auto& field : expr->struct_init.fields) {
+        if (!field.second)
+            continue;
+
+        if (!field.first.has_value()) {
+            error(field.second.get(),
+                "struct initializer field is missing a name");
+            continue;
+        }
+
+        const std::string& name = *field.first;
+
+        if (!initialized.insert(name).second) {
+            error(field.second.get(),
+                "duplicate struct initializer field '" + name + "'");
+            continue;
+        }
+
+        MemberInfo member = findMemberInStruct(*st, name);
+
+        if (!member.found || !member.type || member.is_function) {
+            error(field.second.get(),
+                "unknown struct initializer field '" + name + "'");
+            continue;
+        }
+
+        TypeView field_type = view(member.type);
+
+        TypeView actual;
+
+        if (field.second->kind == Expr::Kind::StructInit) {
+            actual = analyzeStructInit(
+                field.second.get(),
+                &field_type
+            );
+        } else {
+            actual = analyzeExpr(field.second.get());
+        }
+
+        if (!isAssignable(field_type, actual)) {
+            error(field.second.get(),
+                "cannot initialize struct field '" + name +
+                "' of type " + typeString(field_type) +
+                " with " + typeString(actual));
+        }
+    }
+
+    out = *expected;
     return out;
 }
 
