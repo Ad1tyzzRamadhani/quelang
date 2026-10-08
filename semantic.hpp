@@ -155,7 +155,7 @@ private:
     TypeView analyzePostfix(Expr* expr);
     TypeView analyzeCast(Expr* expr);
     TypeView analyzeNew(Expr* expr);
-    TypeView analyzeStructInit(Expr* expr);
+    TypeView analyzeStructInit(Expr* expr, const TypeView* expected = nullptr);
     TypeView analyzeArrayLiteral(Expr* expr);
 
     bool requireBoolean(const TypeView& type, const Node* node, const char* context);
