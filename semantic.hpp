@@ -156,7 +156,7 @@ private:
     TypeView analyzeCast(Expr* expr);
     TypeView analyzeNew(Expr* expr);
     TypeView analyzeStructInit(Expr* expr, const TypeView* expected = nullptr);
-    TypeView analyzeArrayLiteral(Expr* expr);
+    TypeView analyzeArrayLiteral(Expr* expr, std::vector<int> dims);
 
     bool requireBoolean(const TypeView& type, const Node* node, const char* context);
     bool requireNumeric(const TypeView& type, const Node* node, const char* context);
