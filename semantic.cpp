@@ -346,7 +346,7 @@ void SemanticAnalyzer::resolveVar(VarDecl& decl) {
                     // instead of inventing an array TypeModifier.
                     std::vector<int> dims;
                     for(auto& dim : item.array_dims)
-                    dims.push_back(std::stoi(dim->value);
+                    dims.push_back(std::stoi(dim->value));
                     TypeView init = analyzeArrayLiteral(item.init.get(), dims);
                     if (init.valid && !sameType(target, init)) {
                         error(item.init.get(), "array literal element type " +
@@ -633,7 +633,7 @@ void SemanticAnalyzer::analyzeVarDecl(VarDecl& decl) {
                 } else {
                     std::vector<int> dims;
                     for(auto& dim : item.array_dims)
-                    dims.push_back(std::stoi(dim->value);
+                    dims.push_back(std::stoi(dim->value));
                     TypeView init = analyzeArrayLiteral(item.init.get(), dims);
                     if (init.valid && !sameType(target, init)) {
                         error(item.init.get(), "array literal element type " +
