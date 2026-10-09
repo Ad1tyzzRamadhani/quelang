@@ -156,6 +156,7 @@ struct Expr : Node {
     } struct_init;
 
     std::vector<std::unique_ptr<Expr>> array_items;
+    std::vector<int> array_size;
 };
 
 // Statement
