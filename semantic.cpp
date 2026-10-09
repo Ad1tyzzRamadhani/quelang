@@ -344,7 +344,10 @@ void SemanticAnalyzer::resolveVar(VarDecl& decl) {
                     // Type represents the element type; array_dims represents the
                     // array shape in the current AST. Keep that representation
                     // instead of inventing an array TypeModifier.
-                    TypeView init = analyzeArrayLiteral(item.init.get());
+                    std::vector<int> dims;
+                    for(auto& dim : item.array_dims)
+                    dims.push_back(std::stoi(dim.value);
+                    TypeView init = analyzeArrayLiteral(item.init.get(), dims);
                     if (init.valid && !sameType(target, init)) {
                         error(item.init.get(), "array literal element type " +
                             typeString(init) + " does not match array element type " +
@@ -1510,9 +1513,12 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeStructInit(
     return out;
 }
 
-SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeArrayLiteral(Expr* expr) {
+SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeArrayLiteral(Expr* expr, std::vector<int> dims) {
     TypeView element_type;
+    for (auto& dim : dims)
     for (auto& item : expr->array_items) {
+        if (dim != expr->array_items.size())
+            error(item.get(), "array literal size is not same with declaration");
         TypeView t = analyzeExpr(item.get());
         if (!t.valid) continue;
         if (!element_type.valid) element_type = t;
