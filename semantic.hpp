@@ -58,6 +58,7 @@ private:
         bool valid = false;
         bool unknown = false;
         int bit_width = 0;
+        bool is_array = false;
         std::vector<int> array_size;
     };
 
