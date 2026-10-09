@@ -1749,6 +1749,38 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzePostfix(Expr* expr) {
 
                 current = view(pending_symbol->type);
 
+                
+                if (pending_symbol->kind == SymbolKind::Variable) {
+                    if (auto* decl =
+                    dynamic_cast<VarDecl*>(pending_symbol->declaration)) {
+
+                    std::string item_name = pending_symbol->name;
+                    const auto pos = item_name.rfind("::");
+
+                    if (pos != std::string::npos) {
+                        item_name = item_name.substr(pos + 2);
+                    }
+
+                    for (const auto& item : decl->items) {
+                        if (item.name != item_name) continue;
+
+                // Dimensi variabel berasal dari VarDecl::Item.
+                        current.array_size.clear();
+
+                        for (const auto& dim : item.array_dims) {
+                            if (dim && !dim->value.empty()) {
+                                current.array_size.push_back(
+                                    std::stoi(dim->value)
+                                );
+                            }
+                        }
+
+                        break;
+                        }
+                    }
+                }
+                
+
                 if (pending_symbol->kind == SymbolKind::Struct ||
                     pending_symbol->kind == SymbolKind::Enum ||
                     pending_symbol->kind == SymbolKind::Union) {
