@@ -2045,30 +2045,30 @@ std::cout << "CURRENT MODIFIERS: "
 
                 requireIntegral(idx, op.index.get(), "index expression");
 
-    // Fixed-size array: consume one dimension.
-    if (!current.array_size.empty()) {
-        current.array_size.erase(current.array_size.begin());
+                // Fixed-size array: consume one dimension.
+                if (!current.array_size.empty()) {
+                current.array_size.erase(current.array_size.begin());
 
-        // No dimensions left: expression is an element.
-        if (current.array_size.empty()) {
-            current.is_array = false;
+                // No dimensions left: expression is an element.
+                if (current.array_size.empty()) {
+                    current.is_array = false;
+                }
+
+                break;
+            }
+
+            // Pointer/reference indexing.
+            if (!current.modifiers.empty() &&
+                (current.modifiers.back() == TypeModifier::Kind::Pointer ||
+                 current.modifiers.back() == TypeModifier::Kind::Reference)) {
+                current.modifiers.pop_back();
+                break;
+            }
+
+            error(expr,
+                "indexing requires an array, pointer, or reference");
+            return {};
         }
-
-        break;
-    }
-
-    // Pointer/reference indexing.
-    if (!current.modifiers.empty() &&
-        (current.modifiers.back() == TypeModifier::Kind::Pointer ||
-         current.modifiers.back() == TypeModifier::Kind::Reference)) {
-        current.modifiers.pop_back();
-        break;
-    }
-
-    error(expr,
-        "indexing requires an array, pointer, or reference");
-    return {};
-}
             
         }
     }
