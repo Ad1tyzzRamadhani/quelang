@@ -346,7 +346,7 @@ void SemanticAnalyzer::resolveVar(VarDecl& decl) {
                     // instead of inventing an array TypeModifier.
                     std::vector<int> dims;
                     for(auto& dim : item.array_dims)
-                    dims.push_back(std::stoi(dim.value);
+                    dims.push_back(std::stoi(dim->value);
                     TypeView init = analyzeArrayLiteral(item.init.get(), dims);
                     if (init.valid && !sameType(target, init)) {
                         error(item.init.get(), "array literal element type " +
@@ -631,7 +631,10 @@ void SemanticAnalyzer::analyzeVarDecl(VarDecl& decl) {
                 if (item.array_dims.empty()) {
                     error(item.init.get(), "array literal requires an array declaration type");
                 } else {
-                    TypeView init = analyzeArrayLiteral(item.init.get());
+                    std::vector<int> dims;
+                    for(auto& dim : item.array_dims)
+                    dims.push_back(std::stoi(dim->value);
+                    TypeView init = analyzeArrayLiteral(item.init.get(), dims);
                     if (init.valid && !sameType(target, init)) {
                         error(item.init.get(), "array literal element type " +
                             typeString(init) + " does not match array element type " +
@@ -1231,7 +1234,11 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
         case Expr::Kind::Move:
             return analyzeUnary(expr);
         case Expr::Kind::StructInit: return analyzeStructInit(expr);
-        case Expr::Kind::ArrayLiteral: return analyzeArrayLiteral(expr);
+        case Expr::Kind::ArrayLiteral: {
+            std::vector<int> dims;
+            dims.push_back(expr->array_items.size());
+            return analyzeArrayLiteral(expr, dims);
+        }
     }
     return invalid;
 }
