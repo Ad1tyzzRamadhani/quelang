@@ -1721,6 +1721,38 @@ bool SemanticAnalyzer::checkCall(
     return false;
 }
 
+static std::optional<long long> getConstantIndex(const Expr* expr) {
+    if (!expr) return std::nullopt;
+
+    if (expr->kind == Expr::Kind::Literal &&
+        expr->literal &&
+        expr->literal->kind == Literal::Kind::Number) {
+        try {
+            size_t pos = 0;
+            long long value = std::stoll(expr->literal->value, &pos);
+
+            if (pos != expr->literal->value.size())
+                return std::nullopt;
+
+            return value;
+        } catch (...) {
+            return std::nullopt;
+        }
+    }
+
+    // Mendukung indeks negatif, misalnya nums[-1].
+    if (expr->kind == Expr::Kind::Unary &&
+        expr->unary.op == UnaryOp::Neg &&
+        expr->unary.expr) {
+        auto value = getConstantIndex(expr->unary.expr.get());
+
+        if (value && *value != std::numeric_limits<long long>::min())
+            return -*value;
+    }
+
+    return std::nullopt;
+}
+
 SemanticAnalyzer::TypeView SemanticAnalyzer::analyzePostfix(Expr* expr) {
     TypeView current;
     SemanticSymbol* pending_symbol = nullptr;
@@ -2044,6 +2076,16 @@ std::cout << "CURRENT MODIFIERS: "
                 return {};
 
                 requireIntegral(idx, op.index.get(), "index expression");
+
+                if (!current.array_size.empty()) {
+                    auto index = getConstantIndex(op.index.get());
+                    const int size = current.array_size.front();
+
+                    if (index && (*index < 0 || *index >= size)) {
+                        error(expr, "array index out of bounds");
+                        return {};
+                    }
+                }
 
                 // Fixed-size array: consume one dimension.
                 if (!current.array_size.empty()) {
