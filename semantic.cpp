@@ -2004,21 +2004,40 @@ std::cout << "CURRENT MODIFIERS: "
                 pending_function = nullptr;
                 break;
             }
+            
             case Expr::PostfixOp::Kind::Index: {
                 TypeView idx = analyzeExpr(op.index.get());
+
+                if (!idx.valid)
+                return {};
+
                 requireIntegral(idx, op.index.get(), "index expression");
-                if (current.modifiers.empty() ||
-                    (current.modifiers.back() != TypeModifier::Kind::Pointer &&
-                     current.modifiers.back() != TypeModifier::Kind::Reference) ||
-                    current.array_size != idx.array_size) {
-                    for(auto& i : current.array_size) std::cout << "Array Index 1 : " << i << "\n";
-                    for(auto& i : idx.array_size) std::cout << "Array Index 2 : " << i << "\n";
-                    error(expr, "indexing requires pointer/reference-like/array literal value");
-                    return {};
-                }
-                current.modifiers.pop_back();
-                break;
-            }
+
+    // Fixed-size array: consume one dimension.
+    if (!current.array_size.empty()) {
+        current.array_size.erase(current.array_size.begin());
+
+        // No dimensions left: expression is an element.
+        if (current.array_size.empty()) {
+            current.is_array = false;
+        }
+
+        break;
+    }
+
+    // Pointer/reference indexing.
+    if (!current.modifiers.empty() &&
+        (current.modifiers.back() == TypeModifier::Kind::Pointer ||
+         current.modifiers.back() == TypeModifier::Kind::Reference)) {
+        current.modifiers.pop_back();
+        break;
+    }
+
+    error(expr,
+        "indexing requires an array, pointer, or reference");
+    return {};
+}
+            
         }
     }
     return current;
