@@ -1520,23 +1520,65 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeStructInit(
     return out;
 }
 
-SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeArrayLiteral(Expr* expr, std::vector<int> dims) {
+
+SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeArrayLiteral(
+    Expr* expr,
+    std::vector<int> dims
+) {
     TypeView element_type;
-    for (auto& dim : dims)
-    for (auto& item : expr->array_items) {
-        if (dim != expr->array_items.size())
-            error(item.get(), "array literal size is not same with declaration");
-        TypeView t = analyzeExpr(item.get());
-        if (!t.valid) continue;
-        if (!element_type.valid) element_type = t;
-        else if (!sameType(element_type, t))
-            error(item.get(), "array literal elements must have matching types");
-    }
-    // The current AST represents array shape separately through VarDecl::array_dims.
-    // Therefore the expression can expose its element type, while the contextual
-    // declaration check validates that element type against the declared array type.
+
+    auto checkArray = [&](auto&& self, Expr* array, size_t depth) -> void {
+        if (!array || array->kind != Expr::Kind::ArrayLiteral) {
+            error(array, "expected nested array literal");
+            return;
+        }
+
+        // Periksa ukuran dimensi saat ini.
+        if (depth >= dims.size()) {
+            error(array, "array literal has too many dimensions");
+            return;
+        }
+
+        if (array->array_items.size() !=
+            static_cast<size_t>(dims[depth])) {
+            error(array,
+                "array literal size is not same with declaration");
+        }
+
+        for (auto& item : array->array_items) {
+            if (depth + 1 < dims.size()) {
+                // Masih ada dimensi berikutnya.
+                self(self, item.get(), depth + 1);
+                continue;
+            }
+
+            // Dimensi terakhir harus berisi elemen, bukan
+            // array literal tambahan.
+            if (item->kind == Expr::Kind::ArrayLiteral) {
+                error(item.get(),
+                    "array literal has too many dimensions");
+                continue;
+            }
+
+            TypeView t = analyzeExpr(item.get());
+
+            if (!t.valid)
+                continue;
+
+            if (!element_type.valid) {
+                element_type = t;
+            } else if (!sameType(element_type, t)) {
+                error(item.get(),
+                    "array literal elements must have matching types");
+            }
+        }
+    };
+
+    checkArray(checkArray, expr, 0);
+
     return element_type;
 }
+
 
 SemanticAnalyzer::MemberInfo SemanticAnalyzer::findMemberInStruct(
     const StructDef& st, const std::string& name) const {
