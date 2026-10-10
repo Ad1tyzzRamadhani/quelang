@@ -1185,6 +1185,15 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
                 return t;
             }
             SemanticSymbol* symbol = resolveSymbol(name);
+
+            if (symbol->kind == SymbolKind::Function ||
+                symbol->kind == SymbolKind::ForwardFunction) {
+                TypeView t;
+                t.base = "funcptr";
+                t.valid = true;
+                t.modifiers.push_back(TypeModifier::Kind::FuncPtr);
+                return t;
+            }
             if (!symbol) {
                 error(expr, "unknown identifier '" + name + "'");
                 return invalid;
