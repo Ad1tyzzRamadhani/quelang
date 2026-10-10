@@ -26,7 +26,7 @@ int main() {
       std::cout << diagnostic.file + " : " + diagnostic.message + "\n";
       continue;
     }
-    std::cerr << diagnostic.file + " : " + diagnostic.line + ":" + diagnostic.column + ": " + diagnostic.message + "\n";
+    std::cerr << diagnostic.file + " : " << diagnostic.line << ":" << diagnostic.column << ": " + diagnostic.message + "\n";
   }
   } catch (const std::exception& e) {
         std::cerr << "FATAL: " << e.what() << "\n";
