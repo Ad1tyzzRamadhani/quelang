@@ -1188,6 +1188,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
 
             if (symbol->kind == SymbolKind::Function ||
                 symbol->kind == SymbolKind::ForwardFunction) {
+                if(symbol->is_coroutine) error(expr, "Coroutine function must initialize uses '()'");
                 TypeView t;
                 t.base = "funcptr";
                 t.valid = true;
@@ -1966,19 +1967,19 @@ std::cout << "CURRENT MODIFIERS: "
 
                 if (expr->postfix.base &&
                     expr->postfix.base->kind == Expr::Kind::Ident &&
-    expr->postfix.base->ident) {
+                    expr->postfix.base->ident) {
 
-    const std::string name =
-        qualifiedName(*expr->postfix.base->ident);
+                    const std::string name =
+                    qualifiedName(*expr->postfix.base->ident);
+  
+                    SemanticSymbol* resolved = resolveSymbol(name);
 
-    SemanticSymbol* resolved = resolveSymbol(name);
-
-    if (resolved &&
-        (resolved->kind == SymbolKind::Function ||
-         resolved->kind == SymbolKind::ForwardFunction)) {
-        call_symbol = resolved;
-    }
-}
+                    if (resolved &&
+                    (resolved->kind == SymbolKind::Function ||
+                    resolved->kind == SymbolKind::ForwardFunction)) {
+                        call_symbol = resolved;
+                    }
+                }
                 /*std::cout
     << "CALL BASE KIND: "
     << static_cast<int>(expr->postfix.base->kind)
