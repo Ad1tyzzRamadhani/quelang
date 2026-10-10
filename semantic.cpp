@@ -1986,7 +1986,7 @@ std::cout << "CURRENT MODIFIERS: "
     << (pending_symbol ? "YES" : "NO")
     << "\n";*/
 
-    std::cerr << "\n=== CALL DEBUG ===\n";
+    /*std::cerr << "\n=== CALL DEBUG ===\n";
 
 if (expr->postfix.base &&
     expr->postfix.base->kind == Expr::Kind::Ident &&
@@ -2016,7 +2016,7 @@ if (pending_symbol) {
 std::cerr << "pending_function = "
           << (pending_function ? "YES" : "NO")
           << '\n';
-std::cerr << "==================\n";
+std::cerr << "==================\n";*/
                 if (pending_function && pending_function->is_coroutine) {
                     SemanticSymbol callable;
                     callable.name = pending_owner + "::" +
