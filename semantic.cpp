@@ -1985,6 +1985,38 @@ std::cout << "CURRENT MODIFIERS: "
     << " pending_symbol="
     << (pending_symbol ? "YES" : "NO")
     << "\n";*/
+
+    std::cerr << "\n=== CALL DEBUG ===\n";
+
+if (expr->postfix.base &&
+    expr->postfix.base->kind == Expr::Kind::Ident &&
+    expr->postfix.base->ident) {
+    std::cerr << "base = "
+              << qualifiedName(*expr->postfix.base->ident)
+              << '\n';
+}
+
+std::cerr << "pending_symbol = "
+          << (pending_symbol ? pending_symbol->name : "<null>")
+          << '\n';
+
+if (pending_symbol) {
+    std::cerr << "symbol_kind = "
+              << static_cast<int>(pending_symbol->kind)
+              << '\n';
+    std::cerr << "is_extern = "
+              << pending_symbol->is_extern
+              << '\n';
+    std::cerr << "has_signature = "
+              << static_cast<bool>(
+                     pending_symbol->function_signature)
+              << '\n';
+}
+
+std::cerr << "pending_function = "
+          << (pending_function ? "YES" : "NO")
+          << '\n';
+std::cerr << "==================\n";
                 if (pending_function && pending_function->is_coroutine) {
                     SemanticSymbol callable;
                     callable.name = pending_owner + "::" +
