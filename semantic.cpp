@@ -1953,6 +1953,23 @@ std::cout << "CURRENT MODIFIERS: "
             }
             case Expr::PostfixOp::Kind::Call: {
                 TypeView ret;
+                SemanticSymbol* call_symbol = pending_symbol;
+
+                if (expr->postfix.base &&
+                    expr->postfix.base->kind == Expr::Kind::Ident &&
+    expr->postfix.base->ident) {
+
+    const std::string name =
+        qualifiedName(*expr->postfix.base->ident);
+
+    SemanticSymbol* resolved = resolveSymbol(name);
+
+    if (resolved &&
+        (resolved->kind == SymbolKind::Function ||
+         resolved->kind == SymbolKind::ForwardFunction)) {
+        call_symbol = resolved;
+    }
+}
                 /*std::cout
     << "CALL BASE KIND: "
     << static_cast<int>(expr->postfix.base->kind)
@@ -2011,10 +2028,10 @@ std::cout << "CURRENT MODIFIERS: "
                     for (auto& p : pending_function->params)
                         if (p.type) callable.function_signature->parameters.push_back(p.type.get());
                     checkFunctionCall(callable, op.args, expr, ret);
-                } else if (pending_symbol &&
-                           (pending_symbol->kind == SymbolKind::Function ||
-                            pending_symbol->kind == SymbolKind::ForwardFunction)) {
-                    checkFunctionCall(*pending_symbol, op.args, expr, ret);
+                } else if (call_symbol &&
+                           (call_symbol->kind == SymbolKind::Function ||
+                            call_symbol->kind == SymbolKind::ForwardFunction)) {
+                    checkFunctionCall(*call_symbol, op.args, expr, ret);
                 } else if (pending_symbol && pending_symbol->type) {
                     // Function-pointer variables/parameters carry their full
                     // signature in TypeModifier::FuncPtr. The existing TypeView
