@@ -182,7 +182,6 @@ void SemanticAnalyzer::registerFunction(Function& fn) {
     symbol->is_static = fn.is_static;
     symbol->is_const = fn.is_const;
     symbol->is_noreturn = fn.is_noreturn;
-    symbol->is_extern = fn.is_extern;
     symbol->is_coroutine = fn.is_coroutine;
     symbol->is_throws = fn.is_throws;
     symbol->is_defined = fn.body != nullptr;
