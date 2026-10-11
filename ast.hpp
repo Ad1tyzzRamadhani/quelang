@@ -174,6 +174,7 @@ struct VarDecl : Node {
         std::vector<std::unique_ptr<Expr>> args;
         std::unique_ptr<Literal> bit_width;
         std::vector<std::unique_ptr<Literal>> array_dims;
+        bool is_array = false;
     };
 
     std::vector<Item> items;
