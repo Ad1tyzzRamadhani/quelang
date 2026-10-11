@@ -761,7 +761,6 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
     }
     TypeView source;
     if (stmt.for_stmt.source) source = analyzeExpr(stmt.for_stmt.source.get());
-    if(source.array_size.empty()) error(stmt, "
     /*SemanticSymbol* source = resolveSymbol(base_type.base);
     if(source->type != nullptr && source->type->modifiers != nullptr)*/
     for(auto& mod : source.modifiers)
