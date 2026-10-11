@@ -762,7 +762,9 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
     /*TypeView source;
     if (stmt.for_stmt.source) source = analyzeExpr(stmt.for_stmt.source.get());
     std::cout << source.base << "\n";*/
-    SemanticSymbol* symbol = resolveSymbol(stmt.for_stmt.source->ident);
+    std::string base_name = qualifiedName(stmt.for_stmt.source->ident);
+    std::cout << base_name << "\n";
+    SemanticSymbol* symbol = resolveSymbol(base_name);
     /*SemanticSymbol* source = resolveSymbol(base_type.base);
     if(source->type != nullptr && source->type->modifiers != nullptr)*/
     TypeView target = view(symbol->type);
