@@ -1927,23 +1927,27 @@ std::cout << "CURRENT MODIFIERS: "
                     return {};
                 }
 
-    if (!accessAllowed(m.visibility, current.base)) {
-        error(
-            expr,
-            "member '" + op.name + "' is private"
-        );
-        return {};
-    }
+                if (!accessAllowed(m.visibility, current.base)) {
+                    error(
+                    expr,
+                    "member '" + op.name + "' is private"
+                    );
+                    return {};
+                }
 
-    pending_symbol = nullptr;
-    pending_function = m.function;
-    pending_owner = current.base;
+                pending_symbol = nullptr;
+                pending_function = m.function;
+                pending_owner = current.base;
 
-    current = m.is_function
-        ? TypeView{}
-        : view(m.type);
+                current = m.is_function
+                ? TypeView{}
+                : view(m.type);
+                if (!m.is_function) {
+                    current.array_size = m.array_size;
+                    current.is_array = !current.array_size.empty();
+                }
 
-    break;
+                break;
             }
             case Expr::PostfixOp::Kind::SafeArrow: {
                 if (current.modifiers.empty() ||
@@ -1966,6 +1970,10 @@ std::cout << "CURRENT MODIFIERS: "
                 pending_function = m.function;
                 pending_owner = current.base;
                 current = m.is_function ? TypeView{} : view(m.type);
+                if (!m.is_function) {
+                    current.array_size = m.array_size;
+                    current.is_array = !current.array_size.empty();
+                }
                 break;
             }
             case Expr::PostfixOp::Kind::StaticAccess:
@@ -1980,8 +1988,13 @@ std::cout << "CURRENT MODIFIERS: "
                 pending_function = m.function;
                 pending_owner = type_name;
                 if (m.is_function) current = {};
-                else if (m.type) current = view(m.type);
-                else {
+                else if (m.type) {
+                    current = view(m.type);
+                    if (!m.is_function) {
+                        current.array_size = m.array_size;
+                        current.is_array = !current.array_size.empty();
+                    }
+                } else {
                     current = {};
                     if (resolveSymbol(type_name) &&
                         resolveSymbol(type_name)->kind == SymbolKind::Enum) {
