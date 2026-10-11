@@ -759,17 +759,16 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
             if (item.init) analyzeExpr(item.init.get());
         }
     }
-    /*TypeView source;
+    TypeView source;
     if (stmt.for_stmt.source) source = analyzeExpr(stmt.for_stmt.source.get());
-    std::cout << source.base << "\n";*/
-    std::string base_name = qualifiedName(stmt.for_stmt.source->ident);
-    std::cout << base_name << "\n";
-    SemanticSymbol* symbol = resolveSymbol(base_name);
-    /*SemanticSymbol* source = resolveSymbol(base_type.base);
-    if(source->type != nullptr && source->type->modifiers != nullptr)*/
-    TypeView target = view(symbol->type);
-    bool is_ptr=false, is_ref=false, is_array=false;
-    if (symbol->kind == SymbolKind::Variable) {
+    bool is_ptr=false, is_ref=false, is_array=!source.array_size.empty();
+    if (!source.modifiers.empty()) {
+        auto last = source.modifiers.back();
+
+        is_ptr = last == TypeModifier::Kind::Pointer;
+        is_ref = last == TypeModifier::Kind::Reference;
+    }
+    /*if (symbol->kind == SymbolKind::Variable) {
         if (auto* decl = dynamic_cast<VarDecl*>(symbol->declaration)) {
             for(auto& item : decl->items) {
             std::cout << item.name << "\n";
@@ -782,7 +781,7 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
         if(kind == TypeModifier::Kind::Pointer) is_ptr = true;
         if(kind == TypeModifier::Kind::Reference) is_ref = true;
         if(!target.array_size.empty()) is_array = true;
-    }
+    }*/
     if(!is_ptr && !is_ref && !is_array)
     error(&stmt, "Iteration must be Pointer or Reference or Fixed Size Array");
     function_stack_.back().loop_depth++;
@@ -1616,6 +1615,16 @@ SemanticAnalyzer::MemberInfo SemanticAnalyzer::findMemberInStruct(
                     result.visibility = var->visibility;
                     result.is_static = var->is_static;
                     result.is_function = false;
+
+                    result.array_size.clear();
+
+                    for (const auto& dim : item.array_dims) {
+                        if (dim && !dim->value.empty()) {
+                            result.array_size.push_back(
+                            std::stoi(dim->value)
+                            );
+                        }
+                    }
                     return result;
                 }
             }
@@ -1894,6 +1903,10 @@ std::cout << "CURRENT MODIFIERS: "
                 pending_function = m.function;
                 pending_owner = current.base;
                 current = m.is_function ? TypeView{} : view(m.type);
+                if (!m.is_function) {
+                    current.array_size = m.array_size;
+                    current.is_array = !current.array_size.empty();
+                }
                 break;
             }
             case Expr::PostfixOp::Kind::Arrow: {
