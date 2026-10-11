@@ -770,7 +770,7 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
     TypeView target = view(symbol->type);
 
     if (symbol->kind == SymbolKind::Variable) {
-        if (auto* decl = dynamic_cast<VarDecl*>(pending_symbol->declaration)) {
+        if (auto* decl = dynamic_cast<VarDecl*>(symbol->declaration)) {
 
             std::string item_name = symbol->name;
             const auto pos = item_name.rfind("::");
