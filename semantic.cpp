@@ -798,12 +798,14 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
             }
         }
     }
-
-    for(auto& kind : target.modifiers)
-    if(kind != TypeModifier::Kind::Pointer && kind != TypeModifier::Kind::Reference && target.array_size.empty()) {
-        error(&stmt, "Iteration Target must Pointer or Reference or Fixed Size Array");
-        return;
+    bool is_ptr=false, is_ref=false, is_array=false
+    for(auto& kind : target.modifiers) {
+        if(kind == TypeModifier::Kind::Pointer) is_ptr = true;
+        if(kind == TypeModifier::Kind::Reference) is_ref = true;
+        if(!target.array_size.empty()) is_array = true;
     }
+    if(!is_ptr && !is_ref && !is_array)
+    error(&stmt, "Iteration must be Pointer or Reference or Fixed Size Array");
     function_stack_.back().loop_depth++;
     if (stmt.for_stmt.body) analyzeStmt(*stmt.for_stmt.body);
     function_stack_.back().loop_depth--;
