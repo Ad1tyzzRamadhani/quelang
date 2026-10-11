@@ -798,7 +798,7 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
             }
         }
     }
-    bool is_ptr=false, is_ref=false, is_array=false
+    bool is_ptr=false, is_ref=false, is_array=false;
     for(auto& kind : target.modifiers) {
         if(kind == TypeModifier::Kind::Pointer) is_ptr = true;
         if(kind == TypeModifier::Kind::Reference) is_ref = true;
