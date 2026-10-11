@@ -773,6 +773,7 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
         if (auto* decl = dynamic_cast<VarDecl*>(symbol->declaration)) {
             for(auto& item : decl->items) {
             std::cout << item.name << "\n";
+            if(item.name == base_name)
             if(item.is_array) is_array = true;
             }
         }
