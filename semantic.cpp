@@ -784,7 +784,7 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
                 if (item.name != item_name) continue;
 
                 // Dimensi variabel berasal dari VarDecl::Item.
-                current.array_size.clear();
+                target.array_size.clear();
 
                 for (const auto& dim : item.array_dims) {
                     if (dim && !dim->value.empty()) {
