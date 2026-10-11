@@ -774,6 +774,7 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
             for(auto& item : decl->items) {
             std::cout << item.name << "\n";
             if(item.is_array) is_array = true;
+            }
         }
     }
     for(auto& kind : target.modifiers) {
