@@ -169,6 +169,7 @@ private:
         Function* function = nullptr;
         bool found = false;
         Visibility visibility = Visibility::Private;
+        std::vector<int> array_size;
         bool is_static = false;
         bool is_function = false;
     };
