@@ -764,7 +764,7 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
     SemanticSymbol* symbol = resolveSymbol(source.base);
     /*SemanticSymbol* source = resolveSymbol(base_type.base);
     if(source->type != nullptr && source->type->modifiers != nullptr)*/
-    for(auto& mod : symbol->modifiers)
+    for(auto& mod : symbol->type->modifiers)
     source.modifiers.push_back(mod.kind);
 
     for(auto& kind : source.modifiers)
