@@ -769,8 +769,38 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
     if(source->type != nullptr && source->type->modifiers != nullptr)*/
     TypeView target = view(symbol->type);
 
+    if (symbol->kind == SymbolKind::Variable) {
+        if (auto* decl = dynamic_cast<VarDecl*>(pending_symbol->declaration)) {
+
+            std::string item_name = symbol->name;
+            const auto pos = item_name.rfind("::");
+
+                    
+            if (pos != std::string::npos) {
+                item_name = item_name.substr(pos + 2);
+            }
+
+            for (const auto& item : decl->items) {
+                if (item.name != item_name) continue;
+
+                // Dimensi variabel berasal dari VarDecl::Item.
+                current.array_size.clear();
+
+                for (const auto& dim : item.array_dims) {
+                    if (dim && !dim->value.empty()) {
+                        target.array_size.push_back(
+                            std::stoi(dim->value)
+                        );
+                    }
+                }
+
+                break;
+            }
+        }
+    }
+
     for(auto& kind : target.modifiers)
-    if(kind != TypeModifier::Kind::Pointer && kind != TypeModifier::Kind::Reference && !target.is_array) {
+    if(kind != TypeModifier::Kind::Pointer && kind != TypeModifier::Kind::Reference && target.array_size.empty()) {
         error(&stmt, "Iteration Target must Pointer or Reference or Fixed Size Array");
         return;
     }
