@@ -768,37 +768,13 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
     /*SemanticSymbol* source = resolveSymbol(base_type.base);
     if(source->type != nullptr && source->type->modifiers != nullptr)*/
     TypeView target = view(symbol->type);
-
+    bool is_ptr=false, is_ref=false, is_array=false;
     if (symbol->kind == SymbolKind::Variable) {
         if (auto* decl = dynamic_cast<VarDecl*>(symbol->declaration)) {
-
-            std::string item_name = symbol->name;
-            const auto pos = item_name.rfind("::");
-
-                    
-            if (pos != std::string::npos) {
-                item_name = item_name.substr(pos + 2);
-            }
-
-            for (const auto& item : decl->items) {
-                if (item.name != item_name) continue;
-
-                // Dimensi variabel berasal dari VarDecl::Item.
-                target.array_size.clear();
-
-                for (const auto& dim : item.array_dims) {
-                    if (dim && !dim->value.empty()) {
-                        target.array_size.push_back(
-                            std::stoi(dim->value)
-                        );
-                    }
-                }
-
-                break;
-            }
+            for(auto& item : decl->items)
+            if(item.is_array) is_array = true;
         }
     }
-    bool is_ptr=false, is_ref=false, is_array=false;
     for(auto& kind : target.modifiers) {
         if(kind == TypeModifier::Kind::Pointer) is_ptr = true;
         if(kind == TypeModifier::Kind::Reference) is_ref = true;
