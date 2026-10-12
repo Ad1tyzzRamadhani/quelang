@@ -1105,7 +1105,8 @@ bool SemanticAnalyzer::validateTypeBase(const std::string& name, const Node* whe
         return false;
     }
     if (symbol->kind != SymbolKind::Struct && symbol->kind != SymbolKind::Enum &&
-        symbol->kind != SymbolKind::Union && symbol->kind != SymbolKind::ForwardStruct) {
+        symbol->kind != SymbolKind::Union && symbol->kind != SymbolKind::ForwardStruct &&
+        !symbol->is_coroutine) {
         error(where, "'" + name + "' is not a type");
         return false;
     }
