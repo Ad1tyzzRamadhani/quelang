@@ -134,7 +134,7 @@ SemanticSymbol* SemanticAnalyzer::resolveSymbol(const std::string& name) const {
     if (name.find("::") != std::string::npos) {
         if (auto* s = symbols_.lookup(name)) return s;
         if (!current_struct_.empty()) {
-            std::string owner = current_struct();
+            std::string owner = current_struct_;
 
             while (!owner.empty()) {
                 if (auto* symbol =
