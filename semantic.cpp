@@ -242,6 +242,16 @@ void SemanticAnalyzer::registerStruct(StructDef& st) {
     symbol->default_field = st.default_field.value_or("");
     symbol->qualified_name = symbol->name;
     declareSymbol(std::move(symbol), &st);
+    // Register nested type declarations, including nested enums.
+    namespace_stack_.push_back(qualifiedName(st.name));
+
+    for (auto& member : st.members) {
+        if (auto* en = dynamic_cast<EnumDef*>(member.get())) {
+            registerEnum(*en);
+        }
+    }
+
+    namespace_stack_.pop_back();
 }
 
 void SemanticAnalyzer::registerEnum(EnumDef& en) {
@@ -1229,10 +1239,18 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
                     return invalid;
                 }
                 TypeView t;
-                t.base = qualifiedName(en->name);
+                const size_t sep = symbol->name.rfind("::");
+                if (sep != std::string::npos) {
+                    t.base = symbol->name.substr(0, sep);
+                } else {
+                    t.base = qualifiedName(en->name);
+                }
+   
+                t.valid = true;
+                /*t.base = qualifiedName(en->name);
                 if (!currentNamespace().empty() && name.rfind(currentNamespace() + "::", 0) == 0)
                     t.base = currentNamespace() + "::" + t.base;
-                t.valid = true;
+                t.valid = true;*/
                 return t;
             }
             if (symbol->state == SymbolState::Moved) {
