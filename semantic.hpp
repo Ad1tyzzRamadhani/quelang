@@ -127,6 +127,10 @@ private:
     // ---- types ----
     TypeView view(Type* type) const;
     TypeView view(const std::unique_ptr<Type>& type) const;
+    TypeView resolveTypeView(
+        TypeView type,
+        const std::string& owner
+    ) const;
     std::string typeString(const TypeView& type) const;
     std::string typeString(Type* type) const;
     bool canConvert(const TypeView& from, const TypeView& to) const;
