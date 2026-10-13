@@ -129,12 +129,52 @@ SemanticSymbol* SemanticAnalyzer::resolveSymbolInNamespace(const std::string& na
 }
 
 SemanticSymbol* SemanticAnalyzer::resolveSymbol(const std::string& name) const {
+    if (name.empty())
+        return nullptr;
     if (name.find("::") != std::string::npos) {
         if (auto* s = symbols_.lookup(name)) return s;
+        if (!current_struct_.empty()) {
+            std::string owner = current_struct();
+
+            while (!owner.empty()) {
+                if (auto* symbol =
+                        symbols_.lookup(owner + "::" + name)) {
+                    return symbol;
+                }
+
+                const size_t pos = owner.rfind("::");
+                if (pos == std::string::npos)
+                    break;
+
+                owner.erase(pos);
+            }
+        }
+        
+        return resolveSymbolInNamespace(name);
     }
 
-    if (auto* s = symbols_.lookup(name)) return s;
+    if (!current_struct_.empty()) {
+        std::string owner = current_struct_;
+
+        while (!owner.empty()) {
+            if (auto* symbol =
+                    symbols_.lookup(owner + "::" + name)) {
+                return symbol;
+            }
+
+            const size_t pos = owner.rfind("::");
+            if (pos == std::string::npos)
+                break;
+
+            owner.erase(pos);
+        }
+    }
+
+    // Then the active namespace and its parents.
     return resolveSymbolInNamespace(name);
+
+    //if (auto* s = symbols_.lookup(name)) return s;
+    //return resolveSymbolInNamespace(name);
 }
 
 void SemanticAnalyzer::registerProgram(FileProgram& program) {
@@ -439,6 +479,13 @@ void SemanticAnalyzer::resolveUnion(UnionDef& un) {
 void SemanticAnalyzer::resolveStruct(StructDef& st) {
     const std::string old_struct = current_struct_;
     current_struct_ = qualifiedName(st.name);
+
+    const std::string local_name = qualifiedName(st.name);
+    const std::string ns = currentNamespace();
+
+    current_struct_ = ns.empty()
+        ? local_name
+        : ns + "::" + local_name;
 
     std::unordered_set<std::string> field_names;
     for (auto& member : st.members) {
@@ -1110,6 +1157,18 @@ bool SemanticAnalyzer::validateTypeBase(const std::string& name, const Node* whe
     }
     if (isBuiltin(name)) return true;
     SemanticSymbol* symbol = resolveSymbol(name);
+
+    const size_t sep = symbol->name.rfind("::");
+    if (sep != std::string::npos) {
+        const std::string owner = symbol->name.substr(0, sep);
+
+        // A nested type owned by a struct must obey that
+        // struct's visibility rules.
+        if (!accessAllowed(symbol->visibility, owner)) {
+            error(where, "type '" + name + "' is private");
+            return false;
+        }
+    }
     if (!symbol) {
         error(where, "unknown type '" + name + "'");
         return false;
