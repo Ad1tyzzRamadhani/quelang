@@ -1280,6 +1280,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeLiteral(Literal* literal) {
     if (!literal) return t;
     t.valid = true;
     switch (literal->kind) {
+        std::cout << "Analyze Literal" << "\n";
         case Literal::Kind::Number: t.base = "int"; break;
         case Literal::Kind::Float: t.base = "float"; break;
         case Literal::Kind::Hex: t.base = "int"; break;
@@ -1302,6 +1303,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
         case Expr::Kind::Literal: return analyzeLiteral(expr->literal.get());
         case Expr::Kind::Ident: {
             if (!expr->ident) return invalid;
+            std::cout << "Analyze Ident" << "\n";
             const std::string name = qualifiedName(*expr->ident);
             if (name == "this") {
                 if (current_struct_.empty()) {
@@ -1393,6 +1395,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeUnary(Expr* expr) {
     TypeView t = analyzeExpr(expr->unary.expr.get());
     if (!t.valid) return t;
     switch (expr->unary.op) {
+        std::cout << "Analyze Unary" << "\n";
         case UnaryOp::Neg:
             requireNumeric(t, expr, "unary '-'");
             return t;
