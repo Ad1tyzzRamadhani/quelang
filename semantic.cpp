@@ -984,6 +984,51 @@ std::string SemanticAnalyzer::typeString(Type* type) const {
     return typeString(view(type));
 }
 
+SemanticAnalyzer::TypeView SemanticAnalyzer::resolveTypeView(
+    TypeView type,
+    const std::string& owner
+) const {
+    if (!type.valid || type.base.empty() || owner.empty())
+        return type;
+
+    // Built-in type tidak perlu di-resolve.
+    if (isBuiltin(type.base))
+        return type;
+
+    // Nama yang sudah qualified tidak perlu diubah.
+    if (type.base.find("::") != std::string::npos)
+        return type;
+
+    std::string scope = owner;
+
+    while (!scope.empty()) {
+        const std::string candidate = scope + "::" + type.base;
+
+        if (SemanticSymbol* symbol = symbols_.lookup(candidate)) {
+            if (symbol->kind == SymbolKind::Struct ||
+                symbol->kind == SymbolKind::Enum ||
+                symbol->kind == SymbolKind::Union ||
+                symbol->kind == SymbolKind::ForwardStruct) {
+
+                type.base = symbol->qualified_name.empty()
+                    ? symbol->name
+                    : symbol->qualified_name;
+
+                return type;
+            }
+        }
+
+        const size_t pos = scope.rfind("::");
+
+        if (pos == std::string::npos)
+            break;
+
+        scope.erase(pos);
+    }
+
+    return type;
+}
+
 bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) const {
     if (!from.valid || !to.valid)
         return false;
@@ -1270,6 +1315,10 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
                 return t;
             }
             SemanticSymbol* symbol = resolveSymbol(name);
+            if (!symbol) {
+                error(expr, "unknown identifier '" + name + "'");
+                return invalid;
+            }
 
             if (symbol->kind == SymbolKind::Function ||
                 symbol->kind == SymbolKind::ForwardFunction) {
@@ -1280,10 +1329,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
                 t.modifiers.push_back(TypeModifier::Kind::FuncPtr);
                 return t;
             }
-            if (!symbol) {
-                error(expr, "unknown identifier '" + name + "'");
-                return invalid;
-            }
+    
             if (symbol->kind == SymbolKind::Struct || symbol->kind == SymbolKind::Enum ||
                 symbol->kind == SymbolKind::Union || symbol->kind == SymbolKind::Namespace) {
                 TypeView t;
@@ -1976,10 +2022,13 @@ std::cout << "CURRENT MODIFIERS: "
                     error(expr, "member '" + op.name + "' is private");
                     return {};
                 }
+
+                const std::string member_owner = current.base;
+                
                 pending_symbol = nullptr;
                 pending_function = m.function;
                 pending_owner = current.base;
-                current = m.is_function ? TypeView{} : view(m.type);
+                current = m.is_function ? TypeView{} : resolveTypeView(view(m.type), member_owner);
                 if (!m.is_function) {
                     current.array_size = m.array_size;
                     current.is_array = !current.array_size.empty();
@@ -2242,9 +2291,11 @@ std::cerr << "==================\n";*/
                 /*ret.function->return_type = pending_function->return_types.get();
                 ret.function->throws_type = pending_function->throws_type.get();
                 ret.function->is_coroutine = pending_function->is_coroutine;*/
+                ret = resolveTypeView(ret, pending_owner);
                 current = ret;
                 pending_symbol = nullptr;
                 pending_function = nullptr;
+                pending_owner.clear();
                 break;
             }
             
