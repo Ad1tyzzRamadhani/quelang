@@ -1458,6 +1458,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeBinary(Expr* expr) {
     if (!lhs.valid || !rhs.valid) return {};
 
     switch (expr->binary.op) {
+        std::cout << "Analyze Binary Expr" << "\n";
         case BinaryOp::Add:
         case BinaryOp::Sub:
         case BinaryOp::Mul:
