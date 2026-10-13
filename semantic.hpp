@@ -54,9 +54,9 @@ private:
         std::vector<TypeModifier::Kind> modifiers;
         std::vector<TypeQualifier> qualifiers;
         FunctionTypeView* function = nullptr;
-        bool is_coroutine = false;
         bool valid = false;
         bool unknown = false;
+        bool is_coroutine = false;
         int bit_width = 0;
         bool is_array = false;
         std::vector<int> array_size;
