@@ -1032,6 +1032,8 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::resolveTypeView(
 bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) const {
     if (!from.valid || !to.valid)
         return false;
+    if (!from.is_unaligned && !to.is_unaligned)
+        return false;
     if (isNumeric(from) && isNumeric(to)) {
         const std::string& f = from.base;
         const std::string& t = to.base;
