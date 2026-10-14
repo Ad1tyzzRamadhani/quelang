@@ -1448,6 +1448,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeUnary(Expr* expr) {
         }
         case UnaryOp::CoDone: {
             SemanticSymbol* symbol = symbolForLValue(expr->unary.expr.get());
+            std::cout << "Symbol CoDone" + symbol->name << "\n";
             if(!symbol) {
                 error(expr, "co_done requires a named value");
                 return t;
