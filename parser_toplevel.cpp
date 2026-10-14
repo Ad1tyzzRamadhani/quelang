@@ -393,8 +393,8 @@ std::unique_ptr<Function> ParseState::parseFunction(Visibility visibility) {
      */
     if (match(TokenType::KW_CO)) {
         fn->is_coroutine = true;
-        fn->return_types->base.clear();
-        fn->return_types->base.push_back("funcptr(fnptr)");
+        fn->return_types->base->parts.clear();
+        fn->return_types->base->parts.push_back("funcptr(fnptr)");
     }
 
     /*
