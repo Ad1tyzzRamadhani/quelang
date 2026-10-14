@@ -1448,7 +1448,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeUnary(Expr* expr) {
                 error(expr, "cannot co_done non-coroutine symbol '" + symbol->name + "'");
                 return t;
             }
-            
+            t.modifiers.clear();
             t.base = "bool";
             return t;
         }
