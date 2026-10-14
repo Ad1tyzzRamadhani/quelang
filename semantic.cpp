@@ -1077,7 +1077,7 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
         from.modifiers.empty()) {
 
         TypeView value = from;
-        value.push_back(TypeModifier::Kind::Reference);
+        value.modifiers.push_back(TypeModifier::Kind::Reference);
 
         return sameType(value, to);
     }
