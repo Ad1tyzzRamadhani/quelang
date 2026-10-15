@@ -289,6 +289,13 @@ void SemanticAnalyzer::registerStruct(StructDef& st) {
         if (auto* en = dynamic_cast<EnumDef*>(member.get())) {
             registerEnum(*en);
         }
+        if (auto* nested = dynamic_cast<StructDef*>(member.get())) {
+            registerStruct(*nested);
+        } else if (auto* nested_enum = dynamic_cast<EnumDef*>(member.get())) {
+            registerEnum(*nested_enum);
+        } else if (auto* nested_union = dynamic_cast<UnionDef*>(member.get())) {
+            registerUnion(*nested_union);
+        }
     }
 
     namespace_stack_.pop_back();
