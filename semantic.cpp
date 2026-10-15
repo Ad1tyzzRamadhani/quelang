@@ -1199,6 +1199,10 @@ bool SemanticAnalyzer::isAssignable(const TypeView& lhs, const TypeView& rhs) co
 }
 
 bool SemanticAnalyzer::validateTypeBase(const std::string& name, const Node* where, bool allow_void) {
+    if (!symbol) {
+        error(where, "unknown type '" + name + "'");
+        return false;
+    }
     if (name.empty()) {
         error(where, "missing type name");
         return false;
@@ -1224,10 +1228,7 @@ bool SemanticAnalyzer::validateTypeBase(const std::string& name, const Node* whe
             return false;
         }
     }
-    if (!symbol) {
-        error(where, "unknown type '" + name + "'");
-        return false;
-    }
+    
     if (symbol->kind != SymbolKind::Struct && symbol->kind != SymbolKind::Enum &&
         symbol->kind != SymbolKind::Union && symbol->kind != SymbolKind::ForwardStruct) {
         error(where, "'" + name + "' is not a type");
