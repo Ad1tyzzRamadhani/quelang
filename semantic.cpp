@@ -1580,7 +1580,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeNew(Expr* expr) {
             TypeView size = analyzeLiteral(expr->new_expr.alloc_size.get());
             requireIntegral(size, expr, "raw new allocation size");
             TypeView out;
-            out.base = "u8";
+            out.base = "char";
             out.modifiers.push_back(TypeModifier::Kind::Pointer);
             out.valid = true;
             return out;
@@ -1594,7 +1594,83 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeNew(Expr* expr) {
         error(expr, "unknown type in new expression '" + name + "'");
         return {};
     }
-    for (auto& arg : expr->new_expr.args) analyzeExpr(arg.get());
+    
+    // Resolve constructor for struct/class allocation.
+    if (symbol &&
+        (symbol->kind == SymbolKind::Struct ||
+         symbol->kind == SymbolKind::ForwardStruct)) {
+
+        auto* st = dynamic_cast<StructDef*>(symbol->declaration);
+
+        if (!st) {
+            error(expr,
+                "cannot allocate incomplete type '" + name + "'");
+            return {};
+        }
+
+        Constructor* ctor = nullptr;
+
+        if (expr->new_expr.args.empty()) {
+            // Explicit default constructor.
+            if (st->default_ctor) {
+                ctor = st->default_ctor.get();
+            } else if (st->ctor &&
+                       st->ctor->params.empty()) {
+                // Allow a zero-parameter constructor.
+                ctor = st->ctor.get();
+            } else if (st->ctor) {
+                // A parameterized constructor exists, but no
+                // default constructor is available.
+                error(expr,
+                    "no default constructor available for '" +
+                    name + "'");
+                return {};
+            }
+            // Otherwise, allow implicit default construction.
+        } else {
+            if (!st->ctor) {
+                error(expr,
+                    "no matching constructor for '" + name + "'");
+                return {};
+            }
+
+            ctor = st->ctor.get();
+        }
+
+        if (ctor) {
+            if (ctor->params.size() != expr->new_expr.args.size()) {
+                error(expr,
+                    "constructor for '" + name + "' expects " +
+                    std::to_string(ctor->params.size()) +
+                    " argument(s), got " +
+                    std::to_string(expr->new_expr.args.size()));
+                return {};
+            }
+
+            for (size_t i = 0;
+                 i < expr->new_expr.args.size(); ++i) {
+
+                TypeView actual =
+                    analyzeExpr(expr->new_expr.args[i].get());
+
+                TypeView expected =
+                    view(ctor->params[i].type.get());
+
+                if (!isAssignable(expected, actual)) {
+                    error(expr->new_expr.args[i].get(),
+                        "constructor argument " +
+                        std::to_string(i + 1) +
+                        " expects " + typeString(expected) +
+                        ", got " + typeString(actual));
+                }
+            }
+        }
+    } else {
+        // Non-struct types do not use struct constructors here.
+        for (auto& arg : expr->new_expr.args) {
+            analyzeExpr(arg.get());
+        }
+    }
     for (auto& dim : expr->new_expr.array_dims) {
         TypeView t = analyzeExpr(dim.get());
         requireIntegral(t, dim.get(), "array dimension");
