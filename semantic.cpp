@@ -497,9 +497,9 @@ void SemanticAnalyzer::resolveStruct(StructDef& st) {
             : ns + "::" + local_name;
     }
 
-    current_struct_ = ns.empty()
+    /*current_struct_ = ns.empty()
         ? local_name
-        : ns + "::" + local_name;
+        : ns + "::" + local_name;*/
 
     std::unordered_set<std::string> field_names;
     for (auto& member : st.members) {
