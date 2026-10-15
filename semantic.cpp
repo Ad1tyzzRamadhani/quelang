@@ -1199,10 +1199,6 @@ bool SemanticAnalyzer::isAssignable(const TypeView& lhs, const TypeView& rhs) co
 }
 
 bool SemanticAnalyzer::validateTypeBase(const std::string& name, const Node* where, bool allow_void) {
-    if (!symbol) {
-        error(where, "unknown type '" + name + "'");
-        return false;
-    }
     if (name.empty()) {
         error(where, "missing type name");
         return false;
@@ -1216,6 +1212,10 @@ bool SemanticAnalyzer::validateTypeBase(const std::string& name, const Node* whe
     }
     if (isBuiltin(name)) return true;
     SemanticSymbol* symbol = resolveSymbol(name);
+    if (!symbol) {
+        error(where, "unknown type '" + name + "'");
+        return false;
+    }
 
     const size_t sep = symbol->name.rfind("::");
     if (sep != std::string::npos) {
