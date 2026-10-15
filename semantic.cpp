@@ -484,10 +484,18 @@ void SemanticAnalyzer::resolveUnion(UnionDef& un) {
 
 void SemanticAnalyzer::resolveStruct(StructDef& st) {
     const std::string old_struct = current_struct_;
-    current_struct_ = qualifiedName(st.name);
+    //current_struct_ = qualifiedName(st.name);
 
     const std::string local_name = qualifiedName(st.name);
     const std::string ns = currentNamespace();
+
+    if (!old_struct.empty()) {
+        current_struct_ = old_struct + "::" + local_name;
+    } else {
+        current_struct_ = ns.empty()
+            ? local_name
+            : ns + "::" + local_name;
+    }
 
     current_struct_ = ns.empty()
         ? local_name
