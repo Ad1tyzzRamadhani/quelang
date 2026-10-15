@@ -2148,6 +2148,95 @@ std::cout << "CURRENT MODIFIERS: "
                 TypeView ret;
                 SemanticSymbol* call_symbol = pending_symbol;
 
+    // Constructor call: Point(...)
+    if (call_symbol &&
+        (call_symbol->kind == SymbolKind::Struct ||
+         call_symbol->kind == SymbolKind::ForwardStruct)) {
+
+        auto* st = dynamic_cast<StructDef*>(
+            call_symbol->declaration
+        );
+
+        // Forward declaration belum tentu memiliki definisi.
+        if (!st) {
+            error(expr, "cannot construct incomplete type '" +
+                call_symbol->name + "'");
+            return {};
+        }
+
+        Constructor* ctor = nullptr;
+
+        // Constructor default diprioritaskan untuk Point().
+        if (op.args.empty() && st->default_ctor) {
+            ctor = st->default_ctor.get();
+        } else if (st->ctor) {
+            ctor = st->ctor.get();
+        }
+
+        // Tidak ada constructor eksplisit.
+        if (!ctor) {
+            if (!op.args.empty()) {
+                error(expr,
+                    "no matching constructor for type '" +
+                    call_symbol->name + "'");
+                return {};
+            }
+
+            // Kebijakan: izinkan default construction implisit.
+        } else {
+            // Validasi jumlah dan tipe argumen.
+            if (ctor->params.size() != op.args.size()) {
+                error(expr,
+                    "constructor for '" + call_symbol->name +
+                    "' expects " +
+                    std::to_string(ctor->params.size()) +
+                    " argument(s), got " +
+                    std::to_string(op.args.size()));
+                return {};
+            }
+
+            bool valid_args = true;
+
+            for (size_t i = 0; i < op.args.size(); ++i) {
+                TypeView actual =
+                    analyzeExpr(op.args[i].get());
+
+                TypeView expected =
+                    view(ctor->params[i].type.get());
+
+                if (!isAssignable(expected, actual)) {
+                    error(op.args[i].get(),
+                        "constructor argument " +
+                        std::to_string(i + 1) +
+                        " expects " + typeString(expected) +
+                        ", got " + typeString(actual));
+
+                    valid_args = false;
+                }
+            }
+
+            if (!valid_args)
+                return {};
+        }
+
+        // Constructor call menghasilkan tipe objeknya.
+        ret.base = call_symbol->qualified_name.empty()
+            ? call_symbol->name
+            : call_symbol->qualified_name;
+
+        ret.valid = true;
+
+        current = ret;
+        pending_symbol = nullptr;
+        pending_function = nullptr;
+        pending_owner.clear();
+
+        break;
+    }
+
+    // Lanjutkan kode Call lama di sini:
+    // pemanggilan fungsi, method, function pointer, dan coroutine.
+
                 if (expr->postfix.base &&
                     expr->postfix.base->kind == Expr::Kind::Ident &&
                     expr->postfix.base->ident) {
