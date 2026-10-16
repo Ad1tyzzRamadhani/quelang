@@ -249,7 +249,18 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     // -------------------------
     // VARIABLE DECL / EXPRESSIONS
     // -------------------------
-    if (isVarDeclAhead()) {
+    std::cout << "Before isVarDeclAhead: "
+          << peek().value << '\n';
+
+    bool is_decl = isVarDeclAhead();
+
+    std::cout << "isVarDeclAhead = "
+          << is_decl << '\n';
+    
+
+    
+    //if (isVarDeclAhead())
+    if (is_decl).{
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::VarDecl;
 
