@@ -142,6 +142,15 @@ bool ParseState::isVarDeclAhead() {
 
         advance();
 
+        if (!check(TokenType::EQ) &&
+            !check(TokenType::COMMA) &&
+            !check(TokenType::LBRACKET) &&
+            !check(TokenType::LBRACE) &&
+            !check(TokenType::SEMICOLON)) {
+            pos = save;
+            return false;
+        }
+
         // ArrayDimsOpt
 
         if (match(TokenType::LBRACE)) {
