@@ -260,7 +260,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 
     
     //if (isVarDeclAhead())
-    if (is_decl).{
+    if (is_decl){
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::VarDecl;
 
