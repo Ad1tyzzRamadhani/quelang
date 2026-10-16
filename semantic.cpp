@@ -2499,6 +2499,8 @@ std::cerr << "==================\n";*/
                 if (!idx.valid)
                 return {};
 
+                std::cout << "Index type: " << typeString(idx)
+                << ", valid: " << idx.valid << '\n';
                 requireIntegral(idx, op.index.get(), "index expression");
 
                 if (!current.array_size.empty()) {
