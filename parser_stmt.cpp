@@ -249,12 +249,12 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     // -------------------------
     // VARIABLE DECL / EXPRESSIONS
     // -------------------------
-    std::cout << "Before isVarDeclAhead: "
+    std::cerr << "Before isVarDeclAhead: "
           << peek().value << '\n';
 
     bool is_decl = isVarDeclAhead();
 
-    std::cout << "isVarDeclAhead = "
+    std::cerr << "isVarDeclAhead = "
           << is_decl << '\n';
     
 
