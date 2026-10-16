@@ -1171,6 +1171,12 @@ bool SemanticAnalyzer::isUnsignedInteger(const std::string& type) const {
 }
 
 bool SemanticAnalyzer::isNumeric(const TypeView& type) const {
+    if (type.modifiers.size() == 1 &&
+        type.modifiers.back() == TypeModifier::Kind::Reference) {
+        TypeView value = type;
+        value.modifiers.clear();
+        return isIntegral(value);
+    }
     if (!type.valid || !type.modifiers.empty()) return false;
     return type.base == "char" || type.base == "short" || type.base == "int" || type.base == "long" ||
            type.base == "float" || type.base == "flong" || type.base == "unshort" || type.base == "short" || type.base == "unint" || type.base == "unlong" ||
@@ -2498,9 +2504,6 @@ std::cerr << "==================\n";*/
 
                 if (!idx.valid)
                 return {};
-
-                std::cout << "Index type: " << typeString(idx)
-                << ", valid: " << idx.valid << '\n';
                 requireIntegral(idx, op.index.get(), "index expression");
 
                 if (!current.array_size.empty()) {
