@@ -518,8 +518,33 @@ void SemanticAnalyzer::resolveStruct(StructDef& st) {
     }
 
     if (st.default_field) {
-        if (field_names.find(*st.default_field) == field_names.end())
-            error(&st, "unknown default struct field '" + *st.default_field + "'");
+    const std::string& default_name = *st.default_field;
+
+    if (field_names.find(default_name) == field_names.end()) {
+        error(
+            &st,
+            "unknown default struct field '" + default_name + "'"
+        );
+    } else {
+        // Default field harus berupa data field, bukan function.
+        MemberInfo member = findMemberInStruct(st, default_name);
+
+        if (!member.found || !member.type || member.is_function) {
+            error(
+                &st,
+                "default field '" + default_name +
+                "' must be a data field"
+            );
+        } else {
+            // Pastikan tipe field valid.
+            if (!validateType(member.type, &st, false)) {
+                error(
+                    &st,
+                    "invalid type for default field '" + default_name + "'"
+                );
+            }
+        }
+    }
     }
 
     if (st.ctor) analyzeConstructor(*st.ctor, current_struct_);
@@ -1066,6 +1091,55 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
     }
     if (sameType(from, to))
         return true;
+// Default-field conversion:
+// Struct -> tipe default field
+// Tipe default field -> Struct
+auto matchesDefaultField =
+    [this](const TypeView& wrapper,
+           const TypeView& value) -> bool {
+
+    // Default conversion hanya berlaku untuk tipe struct
+    // tanpa pointer/reference modifier.
+    if (!wrapper.valid ||
+        !value.valid ||
+        !wrapper.modifiers.empty()) {
+        return false;
+    }
+
+    SemanticSymbol* symbol = resolveSymbol(wrapper.base);
+
+    if (!symbol || symbol->kind != SymbolKind::Struct)
+        return false;
+
+    auto* st = dynamic_cast<StructDef*>(symbol->declaration);
+
+    if (!st || !st->default_field)
+        return false;
+
+    MemberInfo member =
+        findMemberInStruct(*st, *st->default_field);
+
+    if (!member.found ||
+        !member.type ||
+        member.is_function) {
+        return false;
+    }
+
+    // Resolusi tipe field mengikuti scope pemilik struct.
+    TypeView field_type =
+        resolveTypeView(view(member.type), symbol->name);
+
+    return sameType(field_type, value);
+};
+
+// isAssignable() pada implementasi saat ini meneruskan
+// argumen lhs/rhs ke canConvert() dalam urutan yang sama.
+// Periksa kedua arah agar konversi inbound dan outbound
+// sama-sama dikenali.
+if (matchesDefaultField(from, to) ||
+    matchesDefaultField(to, from)) {
+    return true;
+}
     for(const auto& mod : from.modifiers) {
     if (mod == TypeModifier::Kind::FuncPtr &&
         to.modifiers.empty()) {
