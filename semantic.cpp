@@ -1542,21 +1542,37 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeUnary(Expr* expr) {
             return t;
         }
         case UnaryOp::CoDone: {
-            SemanticSymbol* symbol = resolveSymbol(qualifiedName(expr->unary.expr->ident));
-            std::cout << "Symbol CoDone" + symbol->name << "\n";
-            if(!symbol) {
-                error(expr, "co_done requires a named value");
-                return t;
+            Expr* operand = expr->unary.expr.get();
+
+            if (!operand) {
+                error(expr, "co_done requires a coroutine handle");
+                return {};
             }
-            if (!symbol->is_coroutine) {
-                error(expr, "cannot co_done non-coroutine symbol '" + symbol->name + "'");
-                return t;
+
+            TypeView handle = analyzeExpr(operand);
+            if (!handle.valid)
+                return {};
+  
+            const bool is_coroutine_handle =
+                handle.is_coroutine &&
+                std::find(
+                    handle.modifiers.begin(),
+                    handle.modifiers.end(),
+                    TypeModifier::Kind::FuncPtr
+                ) != handle.modifiers.end();
+
+            if (!is_coroutine_handle) {
+                error(expr,
+                    "co_done requires a coroutine handle, got " +
+                    typeString(handle));
+                return {};
             }
-            t.modifiers.clear();
-            t.base = "bool";
-            return t;
+
+            TypeView result;
+            result.base = "bool";
+            result.valid = true;
+            return result;
         }
-    }
     return t;
 }
 
@@ -2490,9 +2506,19 @@ std::cerr << "==================\n";*/
                     ret.function = new FunctionTypeView();
                     ret.function->return_type = pending_function->return_types.get();
                     ret.function->throws_type = pending_function->throws_type.get();
-                    ret.function->is_coroutine = pending_function->is_coroutine;
-                    ret.is_coroutine = pending_function->is_coroutine;
-                    ret.base = "funcptr(fnptr)";
+                    ret.function->is_coroutine = true;
+                    ret.is_valid = true;
+                    ret.is_coroutine = true;
+                    ret.base = qualifiedName(*pending_function->return_types->base);
+                    ret.modifiers.push_back(TypeModifier::Kind::FuncPtr);
+                    ret.function = new FunctionTypeView();
+                    ret.function->return_type =
+                    pending_function->return_types.get();
+
+                    for (auto& p : pending_function->params) {
+                        if (p.type)
+                        ret.function->parameters.push_back(view(p.type.get()));
+                    }
                     std::cout << "Found Coroutine Function Init" << "\n";
                 } else if (pending_function) {
                     if(pending_function->is_coroutine) std::cout << "Coroutine Call" << "\n";
@@ -2690,12 +2716,26 @@ bool SemanticAnalyzer::checkThrow(Stmt& stmt) {
 }
 
 bool SemanticAnalyzer::checkResume(Stmt& stmt) {
-    TypeView target = analyzeExpr(stmt.resume_stmt.target.get());
-    if (!target.valid) return false;
-    if (target.modifiers.empty() || target.modifiers.back() != TypeModifier::Kind::FuncPtr) {
-        error(&stmt, "resume requires a coroutine function pointer/handle");
+    TypeView target =
+        analyzeExpr(stmt.resume_stmt.target.get());
+
+    if (!target.valid)
+        return false;
+
+    const bool is_coroutine_handle =
+        target.is_coroutine &&
+        std::find(
+            target.modifiers.begin(),
+            target.modifiers.end(),
+            TypeModifier::Kind::FuncPtr
+        ) != target.modifiers.end();
+
+    if (!is_coroutine_handle) {
+        error(&stmt,
+            "resume requires a coroutine handle");
         return false;
     }
+
     return true;
 }
 
