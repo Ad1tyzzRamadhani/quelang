@@ -353,6 +353,7 @@ private:
             case '|': emit(TokenType::BAR,"",l,c); break;
             case '^': emit(TokenType::CARET,"",l,c); break;
             case '~': emit(TokenType::TILDE,"",l,c); break;
+            case '!': emit(TokenType::KW_NOT,"",l,c);break;
             default:error("unknown character");
         }
     }
