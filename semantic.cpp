@@ -981,7 +981,6 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
     for (auto& mod : type->modifiers) {
         out.modifiers.push_back(mod.kind);
         if (mod.kind == TypeModifier::Kind::FuncPtr) {
-            std::cout << "View FuncPtr" << "\n";
             FunctionTypeView fn;
             out.is_coroutine = mod.is_coroutine;
             fn.is_coroutine = mod.is_coroutine;
@@ -1183,14 +1182,12 @@ if (matchesDefaultField(from, to) ||
 }
 
 bool SemanticAnalyzer::sameType(const TypeView& a, const TypeView& b) const {
-    std::cout << "SameType Check..." << "\n";
     if (!a.valid || !b.valid) return false;
     if (a.bit_width != b.bit_width) return false;
     if (a.modifiers != b.modifiers) return false;
     if (a.base != b.base) return false;
 
     if (a.is_coroutine && b.is_coroutine) {
-        std::cout << "Found Coroutine Type in SameType" << "\n";
         const auto& af = *a.function;
         const auto& bf = *b.function;
 
@@ -1201,7 +1198,7 @@ bool SemanticAnalyzer::sameType(const TypeView& a, const TypeView& b) const {
             if (!sameType(af.parameters[i], bf.parameters[i]))
             return false;
         }
-    } else std::cout << "Not Found Co Func in SameType?" << "\n";
+    }
     return true;
 }
 
@@ -1408,7 +1405,6 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
         case Expr::Kind::Literal: return analyzeLiteral(expr->literal.get());
         case Expr::Kind::Ident: {
             if (!expr->ident) return invalid;
-            std::cout << "Analyze Ident" << "\n";
             const std::string name = qualifiedName(*expr->ident);
             if (name == "this") {
                 if (current_struct_.empty()) {
@@ -1500,7 +1496,6 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeUnary(Expr* expr) {
     TypeView t = analyzeExpr(expr->unary.expr.get());
     if (!t.valid) return t;
     switch (expr->unary.op) {
-        std::cout << "Analyze Unary" << "\n";
         case UnaryOp::Neg:
             requireNumeric(t, expr, "unary '-'");
             return t;
@@ -1583,7 +1578,6 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeBinary(Expr* expr) {
     if (!lhs.valid || !rhs.valid) return {};
 
     switch (expr->binary.op) {
-        std::cout << "Analyze Binary Expr" << "\n";
         case BinaryOp::Add:
         case BinaryOp::Sub:
         case BinaryOp::Mul:
