@@ -599,7 +599,6 @@ std::unique_ptr<Expr> ParseState::parseRelational() {
 std::unique_ptr<Expr> ParseState::parseEquality() {
 
     auto expr = parseRelational();
-    std::cout << "Parse Equality" << "\n";
 
     while (true) {
 
