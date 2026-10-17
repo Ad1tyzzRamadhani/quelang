@@ -2508,7 +2508,7 @@ std::cerr << "==================\n";*/
                     ret.function->return_type = pending_function->return_types.get();
                     ret.function->throws_type = pending_function->throws_type.get();
                     ret.function->is_coroutine = true;
-                    ret.is_valid = true;
+                    ret.valid = true;
                     ret.is_coroutine = true;
                     ret.base = qualifiedName(*pending_function->return_types->base);
                     ret.modifiers.push_back(TypeModifier::Kind::FuncPtr);
