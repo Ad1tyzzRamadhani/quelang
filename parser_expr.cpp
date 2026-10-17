@@ -316,6 +316,7 @@ std::unique_ptr<Expr> ParseState::parseUnary() {
         match(TokenType::TILDE) ||
         match(TokenType::KW_MOVE) ||
         match(TokenType::KW_NOT) ||
+        match(TokenType::BANG) ||
         match(TokenType::KW_CO_DONE))
     {
         TokenType opTok = tokens[pos - 1].type;
@@ -339,7 +340,7 @@ std::unique_ptr<Expr> ParseState::parseUnary() {
             case TokenType::TILDE:
                 expr->unary.op = UnaryOp::BitNot;
                 break;
-
+            case TokenType::BANG:
             case TokenType::KW_NOT:
                 expr->unary.op = UnaryOp::Not;
                 break;
