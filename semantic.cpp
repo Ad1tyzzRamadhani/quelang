@@ -1573,6 +1573,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeUnary(Expr* expr) {
             result.valid = true;
             return result;
         }
+    }
     return t;
 }
 
