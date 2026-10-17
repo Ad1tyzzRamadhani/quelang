@@ -21,10 +21,10 @@ int main() {
   auto ast = parser.parseProgram();
   if(semantic.analyze(*ast)) return 0;
   auto diagnostics = semantic.diagnostics();
-  if (diagnostics.empty()) std::cerr << "program compiled" << "\n";
+  if (semantic.diagnostics.empty()) std::cerr << "program compiled" << "\n";
   for(auto diagnostic : diagnostics) {
     if(diagnostic.is_warning) {
-      std::cout << diagnostic.file + " : " + diagnostic.message + "\n";
+      std::cerr << diagnostic.file + " : " + diagnostic.message + "\n";
       continue;
     }
     std::cerr << diagnostic.file + " : " << diagnostic.line << ":" << diagnostic.column << ": " + diagnostic.message + "\n";
