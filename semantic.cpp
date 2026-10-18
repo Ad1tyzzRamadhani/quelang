@@ -1252,7 +1252,7 @@ bool SemanticAnalyzer::isNumeric(const TypeView& type) const {
 }
 
 bool SemanticAnalyzer::isIntegral(const TypeView& type) const {
-    if (type.modifiers.back() == TypeModifier::Kind::Reference) {
+    if(!type.modifiers.empty()) {
         TypeView value = type;
         value.modifiers.clear();
         return isIntegral(value);
