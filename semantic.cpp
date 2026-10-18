@@ -857,7 +857,6 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
     }
     TypeView source;
     if (stmt.for_stmt.source) source = analyzeExpr(stmt.for_stmt.source.get());
-    std::cerr << source.base << "\n";
     bool is_ptr=false, is_ref=false, is_array=!source.array_size.empty();
     if (!source.modifiers.empty()) {
         auto last = source.modifiers.back();
@@ -865,7 +864,7 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
         is_ptr = last == TypeModifier::Kind::Pointer;
         is_ref = last == TypeModifier::Kind::Reference;
     }
-    std::string base_name = source.base;
+    std::string base_name = qualifiedName(stmt.for_stmt.source->ident);
     auto* symbol = resolveSymbol(base_name);
     if (symbol->kind == SymbolKind::Variable) {
         if (auto* decl = dynamic_cast<VarDecl*>(symbol->declaration)) {
