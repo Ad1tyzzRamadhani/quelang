@@ -874,7 +874,7 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
         }
     }
 
-    auto target = view(symbol->type)
+    auto target = view(symbol->type);
     for(auto& kind : target.modifiers) {
         if(kind == TypeModifier::Kind::Pointer) is_ptr = true;
         if(kind == TypeModifier::Kind::Reference) is_ref = true;
