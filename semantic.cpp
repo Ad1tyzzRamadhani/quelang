@@ -1256,11 +1256,10 @@ bool SemanticAnalyzer::isIntegral(const TypeView& type) const {
         type.modifiers.back() == TypeModifier::Kind::Reference) {
         TypeView value = type;
         value.modifiers.clear();
-        return isIntegral(value);
     }
     if (!type.valid || !type.modifiers.empty()) return false;
     return type.base == "char" || type.base == "short" || type.base == "int" || type.base == "long" ||
-           type.base == "float" || type.base == "flong" || type.base == "unshort" || type.base == "short" || type.base == "unint" || type.base == "unlong" ||
+           type.base == "unshort" || type.base == "short" || type.base == "unint" || type.base == "unlong" ||
            type.base == "usize" || type.base == "isize";
 }
 
