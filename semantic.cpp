@@ -867,12 +867,13 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
     if (symbol->kind == SymbolKind::Variable) {
         if (auto* decl = dynamic_cast<VarDecl*>(symbol->declaration)) {
             for(auto& item : decl->items) {
-            std::cout << item.name << "\n";
             if(item.name == base_name)
             if(item.is_array) is_array = true;
             }
         }
     }
+
+    auto target = view(symbol->type)
     for(auto& kind : target.modifiers) {
         if(kind == TypeModifier::Kind::Pointer) is_ptr = true;
         if(kind == TypeModifier::Kind::Reference) is_ref = true;
