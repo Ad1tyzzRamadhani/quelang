@@ -858,13 +858,13 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
     TypeView source;
     if (stmt.for_stmt.source) source = analyzeExpr(stmt.for_stmt.source.get());
     bool is_ptr=false, is_ref=false, is_array=!source.array_size.empty();
-    if (!source.modifiers.empty()) {
+    /*if (!source.modifiers.empty()) {
         auto last = source.modifiers.back();
 
         is_ptr = last == TypeModifier::Kind::Pointer;
         is_ref = last == TypeModifier::Kind::Reference;
-    }
-    /*if (symbol->kind == SymbolKind::Variable) {
+    }*/
+    if (symbol->kind == SymbolKind::Variable) {
         if (auto* decl = dynamic_cast<VarDecl*>(symbol->declaration)) {
             for(auto& item : decl->items) {
             std::cout << item.name << "\n";
@@ -877,7 +877,7 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
         if(kind == TypeModifier::Kind::Pointer) is_ptr = true;
         if(kind == TypeModifier::Kind::Reference) is_ref = true;
         if(!target.array_size.empty()) is_array = true;
-    }*/
+    }
     if(!is_ptr && !is_ref && !is_array)
     error(&stmt, "Iteration must be Pointer or Reference or Fixed Size Array");
     function_stack_.back().loop_depth++;
