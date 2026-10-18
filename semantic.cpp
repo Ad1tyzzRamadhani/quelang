@@ -1592,7 +1592,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeBinary(Expr* expr) {
         case BinaryOp::Mod:
             requireNumeric(lhs, expr, "arithmetic operator");
             requireNumeric(rhs, expr, "arithmetic operator");
-            if (!sameType(lhs, rhs)) {
+            if (!canConvert(lhs, rhs)) {
                 error(expr, "arithmetic operands must have matching types: " +
                     typeString(lhs) + " and " + typeString(rhs));
                 return {};
