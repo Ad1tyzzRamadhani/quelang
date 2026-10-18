@@ -1245,6 +1245,11 @@ bool SemanticAnalyzer::isUnsignedInteger(const std::string& type) const {
 }
 
 bool SemanticAnalyzer::isNumeric(const TypeView& type) const {
+    if(!type.modifiers.empty()) {
+        TypeView value = type;
+        value.modifiers.clear();
+        return isNumeric(value);
+    }
     if (!type.valid || !type.modifiers.empty()) return false;
     return type.base == "char" || type.base == "short" || type.base == "int" || type.base == "long" ||
            type.base == "float" || type.base == "flong" || type.base == "unshort" || type.base == "short" || type.base == "unint" || type.base == "unlong" ||
