@@ -856,6 +856,7 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
         }
     }
     TypeView source;
+    std::cerr << source.base << "\n";
     if (stmt.for_stmt.source) source = analyzeExpr(stmt.for_stmt.source.get());
     bool is_ptr=false, is_ref=false, is_array=!source.array_size.empty();
     if (!source.modifiers.empty()) {
