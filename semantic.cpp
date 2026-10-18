@@ -864,7 +864,8 @@ void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
         is_ptr = last == TypeModifier::Kind::Pointer;
         is_ref = last == TypeModifier::Kind::Reference;
     }
-    auto* symbol = resolveSymbol(source.base);
+    std::string base_name = source.base;
+    auto* symbol = resolveSymbol(base_name);
     if (symbol->kind == SymbolKind::Variable) {
         if (auto* decl = dynamic_cast<VarDecl*>(symbol->declaration)) {
             for(auto& item : decl->items) {
