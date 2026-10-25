@@ -87,23 +87,88 @@ private:
     // Output helpers
     // --------------------------------------------------------
 
-    void emit(std::string_view text);
-    void emitLine(std::string_view text = {});
+    // --------------------------------------------------------
+// Output helpers
+// --------------------------------------------------------
 
-    void emitIndent();
-    void pushIndent() noexcept;
-    void popIndent();
+inline void emit(std::string_view text) {
+    output_.append(text.data(), text.size());
+}
+
+inline void emitIndent() {
+    output_.append(indent_ * 4, ' ');
+}
+
+inline void emitLine(std::string_view text = {}) {
+    if (!text.empty()) {
+        emitIndent();
+        emit(text);
+    }
+
+    output_.push_back('\n');
+}
+
+inline void pushIndent() noexcept {
+    ++indent_;
+}
+
+inline void popIndent() {
+    if (indent_ == 0) {
+        throw CodegenError(
+            "Internal codegen error: indentation underflow"
+        );
+    }
+
+    --indent_;
+}
 
     // --------------------------------------------------------
     // Diagnostics
     // --------------------------------------------------------
 
-    void report(
-        CodegenDiagnostic::Severity severity,
-        std::string message,
-        const ::Node* node = nullptr
+    // --------------------------------------------------------
+// Diagnostics
+// --------------------------------------------------------
+
+inline void report(
+    CodegenDiagnostic::Severity severity,
+    std::string message,
+    const ::Node* node = nullptr
+) {
+    CodegenDiagnostic diagnostic;
+
+    diagnostic.severity = severity;
+    diagnostic.message = std::move(message);
+
+    if (node != nullptr) {
+        diagnostic.file = node->file;
+        diagnostic.line = node->line_start;
+        diagnostic.column = node->column_start;
+    }
+
+    diagnostics_.push_back(std::move(diagnostic));
+}
+
+[[noreturn]] inline void fail(
+    std::string message,
+    const ::Node* node = nullptr
+) {
+    if (node != nullptr) {
+        message =
+            node->file + ":" +
+            std::to_string(node->line_start) + ":" +
+            std::to_string(node->column_start) + ": " +
+            message;
+    }
+
+    report(
+        CodegenDiagnostic::Severity::Error,
+        message,
+        node
     );
 
+    throw CodegenError(message);
+}
     [[noreturn]] void fail(
         std::string message,
         const ::Node* node = nullptr
@@ -126,17 +191,37 @@ private:
     void emitExpr(const ::Expr& expr);
     void emitStmt(const ::Stmt& stmt);
 
-    // Prevent accidental reuse of stale output state.
-    void reset();
+    // --------------------------------------------------------
+// State management
+// --------------------------------------------------------
+
+inline void reset() {
+    output_.clear();
+    diagnostics_.clear();
+    indent_ = 0;
+}
 };
 
 // ============================================================
 // Public API
 // ============================================================
 
-std::string generateCRU(
+inline std::string Generator::generate(
+    const ::FileProgram& program
+) {
+    reset();
+
+    emitTopLevel(program);
+
+    return output_;
+}
+
+inline std::string generateCRU(
     const ::FileProgram& program,
-    const CodegenOptions& options = {}
-);
+    const CodegenOptions& options
+) {
+    Generator generator(options);
+    return generator.generate(program);
+}
 
 } // namespace quelang::codegen
