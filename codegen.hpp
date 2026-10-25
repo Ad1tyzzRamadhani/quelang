@@ -178,6 +178,7 @@ inline void report(
     // Top-level declarations
     // --------------------------------------------------------
 
+    void emitProgram(const ::FileProgram& program);
     void emitTopLevel(const ::Node& node);
     void emitFunction(const ::Function& function);
 
@@ -211,7 +212,7 @@ inline std::string Generator::generate(
 ) {
     reset();
 
-    emitTopLevel(program);
+    emitProgram(program);
 
     return output_;
 }
