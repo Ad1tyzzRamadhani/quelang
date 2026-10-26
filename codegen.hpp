@@ -181,6 +181,12 @@ inline void report(
     void emitProgram(const ::FileProgram& program);
     void emitTopLevel(const ::Node& node);
     void emitFunction(const ::Function& function);
+    // Program traversal
+void emitStruct(const ::StructDef& structure);
+void emitUnion(const ::UnionDef& union_def);
+void emitEnum(const ::EnumDef& enum_def);
+void emitNamespace(const ::NamespaceDecl& ns);
+void emitForwardDecl(const ::ForwardDecl& decl);
 
     // --------------------------------------------------------
     // Types, expressions and statements
@@ -223,6 +229,118 @@ inline std::string generateCRU(
 ) {
     Generator generator(options);
     return generator.generate(program);
+}
+
+inline void Generator::emitProgram(
+    const ::FileProgram& program
+) {
+    if (options_.emit_source_info && !program.file.empty()) {
+        emitLine("// Generated from: " + program.file);
+        emitLine();
+    }
+
+    bool first = true;
+
+    for (const auto& decl : program.decls) {
+        if (!decl) {
+            fail("Null declaration found in FileProgram");
+        }
+
+        if (!first) {
+            emitLine();
+        }
+
+        emitTopLevel(*decl);
+        first = false;
+    }
+}
+
+inline void Generator::emitTopLevel(
+    const ::Node& node
+) {
+    if (const auto* function =
+            dynamic_cast<const ::Function*>(&node)) {
+        emitFunction(*function);
+        return;
+    }
+
+    if (const auto* structure =
+            dynamic_cast<const ::StructDef*>(&node)) {
+        emitStruct(*structure);
+        return;
+    }
+
+    if (const auto* union_def =
+            dynamic_cast<const ::UnionDef*>(&node)) {
+        emitUnion(*union_def);
+        return;
+    }
+
+    if (const auto* enum_def =
+            dynamic_cast<const ::EnumDef*>(&node)) {
+        emitEnum(*enum_def);
+        return;
+    }
+
+    if (const auto* ns =
+            dynamic_cast<const ::NamespaceDecl*>(&node)) {
+        emitNamespace(*ns);
+        return;
+    }
+
+    if (const auto* forward =
+            dynamic_cast<const ::ForwardDecl*>(&node)) {
+        emitForwardDecl(*forward);
+        return;
+    }
+
+    if (dynamic_cast<const ::VarDecl*>(&node)) {
+        fail("Global variable codegen is not implemented", &node);
+    }
+
+    fail("Unsupported top-level declaration", &node);
+}
+
+inline void Generator::emitNamespace(
+    const ::NamespaceDecl& ns
+) {
+    for (const auto& item : ns.items) {
+        if (!item) {
+            fail("Null declaration inside namespace", &ns);
+        }
+
+        emitTopLevel(*item);
+    }
+}
+
+inline void Generator::emitFunction(
+    const ::Function& function
+) {
+    fail("Function codegen is not implemented yet", &function);
+}
+
+inline void Generator::emitStruct(
+    const ::StructDef& structure
+) {
+    fail("Struct codegen is not implemented yet", &structure);
+}
+
+inline void Generator::emitUnion(
+    const ::UnionDef& union_def
+) {
+    fail("Union codegen is not implemented yet", &union_def);
+}
+
+inline void Generator::emitEnum(
+    const ::EnumDef& enum_def
+) {
+    fail("Enum codegen is not implemented yet", &enum_def);
+}
+
+inline void Generator::emitForwardDecl(
+    const ::ForwardDecl& decl
+) {
+    fail("Forward declaration codegen is not implemented yet", &decl);
 }
 
 } // namespace quelang::codegen
