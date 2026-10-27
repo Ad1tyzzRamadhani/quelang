@@ -191,6 +191,19 @@ std::string emitQualifiedName(const ::QualifiedName& name) const;
 std::string emitFunctionName(const ::Function& function);
 void emitFunctionSignature(const ::Function& function);
 
+std::string emitExpr(const ::Expr& expr);
+std::string inferExprType(const ::Expr& expr);
+std::string emitLiteral(const ::Literal& literal);
+std::string emitUnary(const ::Expr& expr);
+std::string emitBinary(const ::Expr& expr);
+std::string emitCast(const ::Expr& expr);
+
+std::string makeTemp();
+std::string normalizeType(std::string type);
+
+std::size_t next_temp_ = 0;
+std::unordered_map<std::string, std::string> value_types_;
+
     // --------------------------------------------------------
     // Types, expressions and statements
     // Implementations will be added incrementally.
@@ -205,10 +218,12 @@ void emitFunctionSignature(const ::Function& function);
 // State management
 // --------------------------------------------------------
 
-inline void reset() {
+inline void Generator::reset() {
     output_.clear();
     diagnostics_.clear();
     indent_ = 0;
+    next_temp_ = 0;
+    value_types_.clear();
 }
 };
 
@@ -314,6 +329,315 @@ inline void Generator::emitNamespace(
 
         emitTopLevel(*item);
     }
+}
+
+inline std::string Generator::makeTemp() {
+    return "%v" + std::to_string(next_temp_++);
+}
+
+inline std::string Generator::normalizeType(std::string type) {
+    if (type == "char") return "i8";
+    if (type == "string" || type == "String") return "ptr";
+    return type;
+}
+
+inline std::string Generator::emitLiteral(
+    const ::Literal& literal
+) {
+    using Kind = ::Literal::Kind;
+
+    std::string type;
+    std::string value = literal.value;
+
+    switch (literal.kind) {
+    case Kind::Number:
+        // Tipe integer default sementara.
+        type = "i32";
+        break;
+
+    case Kind::Hex:
+    case Kind::Binary:
+        type = "i32";
+        break;
+
+    case Kind::Float:
+        type = "f64";
+        break;
+
+    case Kind::True:
+        type = "bool";
+        value = "true";
+        break;
+
+    case Kind::False:
+        type = "bool";
+        value = "false";
+        break;
+
+    case Kind::Null:
+        type = "ptr";
+        value = "null";
+        break;
+
+    case Kind::Char: {
+        // Grammar CRU saat ini tidak memiliki char literal.
+        // Untuk ASCII satu karakter, turunkan menjadi integer i8.
+        if (value.size() >= 3 &&
+            value.front() == '\'' &&
+            value.back() == '\'') {
+            value = value.substr(1, value.size() - 2);
+        }
+
+        if (value.size() != 1) {
+            fail(
+                "Character literal must be a single-byte character "
+                "until escape/Unicode lowering is implemented",
+                &literal
+            );
+        }
+
+        const auto byte =
+            static_cast<unsigned char>(value.front());
+
+        type = "i8";
+        value = std::to_string(static_cast<unsigned int>(byte));
+        break;
+    }
+
+    case Kind::String:
+    case Kind::RawString:
+        fail(
+            "String literal lowering requires CRU string storage "
+            "or a string constant representation",
+            &literal
+        );
+
+    case Kind::None:
+        fail(
+            "'none' has no CRU literal representation",
+            &literal
+        );
+    }
+
+    type = normalizeType(std::move(type));
+
+    const std::string result = makeTemp();
+    emitLine(result + " = const." + type + " " + value);
+    value_types_[result] = type;
+
+    return result;
+}
+
+inline std::string Generator::inferExprType(
+    const ::Expr& expr
+) {
+    using Kind = ::Expr::Kind;
+
+    switch (expr.kind) {
+    case Kind::Literal: {
+        switch (expr.literal->kind) {
+        case ::Literal::Kind::Number:
+        case ::Literal::Kind::Hex:
+        case ::Literal::Kind::Binary:
+            return "i32";
+
+        case ::Literal::Kind::Float:
+            return "f64";
+
+        case ::Literal::Kind::Char:
+            return "i8";
+
+        case ::Literal::Kind::String:
+        case ::Literal::Kind::RawString:
+        case ::Literal::Kind::Null:
+            return "ptr";
+
+        case ::Literal::Kind::True:
+        case ::Literal::Kind::False:
+            return "bool";
+
+        case ::Literal::Kind::None:
+            fail("'none' does not have a CRU value type", &expr);
+        }
+        break;
+    }
+
+    case Kind::Ident:
+        fail(
+            "Identifier type lookup requires a symbol table",
+            &expr
+        );
+
+    case Kind::Cast:
+        if (!expr.cast.target) {
+            fail("Cast expression has no target type", &expr);
+        }
+        return normalizeType(emitType(*expr.cast.target));
+
+    case Kind::Unary:
+        if (!expr.unary.expr) {
+            fail("Unary expression has no operand", &expr);
+        }
+        return inferExprType(*expr.unary.expr);
+
+    case Kind::Binary:
+        if (!expr.binary.lhs || !expr.binary.rhs) {
+            fail("Binary expression has a missing operand", &expr);
+        }
+        return inferExprType(*expr.binary.lhs);
+
+    default:
+        fail(
+            "Type inference for this expression kind "
+            "is not implemented yet",
+            &expr
+        );
+    }
+
+    fail("Cannot infer expression type", &expr);
+}
+
+inline std::string Generator::emitUnary(const ::Expr& expr) {
+    using Op = ::UnaryOp;
+
+    if (!expr.unary.expr) {
+        fail("Unary expression has no operand", &expr);
+    }
+
+    const std::string operand = emitExpr(*expr.unary.expr);
+    const std::string type = inferExprType(*expr.unary.expr);
+
+    std::string opcode;
+
+    switch (expr.unary.op) {
+    case Op::Neg:
+        opcode = "neg";
+        break;
+
+    case Op::Not:
+        opcode = "not";
+        break;
+
+    case Op::BitNot:
+        opcode = "bitnot";
+        break;
+    }
+
+    const std::string result = makeTemp();
+
+    emitLine(
+        result + " = " + opcode + "." + type + " " + operand
+    );
+
+    value_types_[result] = type;
+    return result;
+}
+
+inline std::string Generator::emitBinary(const ::Expr& expr) {
+    using Op = ::BinaryOp;
+
+    if (!expr.binary.lhs || !expr.binary.rhs) {
+        fail("Binary expression has a missing operand", &expr);
+    }
+
+    const std::string lhs = emitExpr(*expr.binary.lhs);
+    const std::string rhs = emitExpr(*expr.binary.rhs);
+
+    const std::string type = inferExprType(*expr.binary.lhs);
+
+    std::string opcode;
+
+    switch (expr.binary.op) {
+    case Op::Add:   opcode = "add";   break;
+    case Op::Sub:   opcode = "sub";   break;
+    case Op::Mul:   opcode = "mul";   break;
+    case Op::Div:   opcode = "div";   break;
+    case Op::Rem:   opcode = "rem";   break;
+    case Op::And:   opcode = "and";   break;
+    case Op::Or:    opcode = "or";    break;
+    case Op::Xor:   opcode = "xor";   break;
+    case Op::Shl:   opcode = "shl";   break;
+    case Op::Shr:   opcode = "shr";   break;
+    }
+
+    const std::string result = makeTemp();
+
+    emitLine(
+        result + " = " + opcode + "." + type + " " +
+        lhs + ", " + rhs
+    );
+
+    value_types_[result] = type;
+    return result;
+}
+
+inline std::string Generator::emitCast(const ::Expr& expr) {
+    if (!expr.cast.base || !expr.cast.target) {
+        fail("Invalid cast expression", &expr);
+    }
+
+    const std::string operand = emitExpr(*expr.cast.base);
+    const std::string target =
+        normalizeType(emitType(*expr.cast.target));
+
+    const std::string result = makeTemp();
+
+    emitLine(
+        result + " = cast " + operand + " to " + target
+    );
+
+    value_types_[result] = target;
+    return result;
+}
+
+inline std::string Generator::emitExpr(const ::Expr& expr) {
+    using Kind = ::Expr::Kind;
+
+    switch (expr.kind) {
+    case Kind::Literal:
+        if (!expr.literal) {
+            fail("Literal expression has no literal value", &expr);
+        }
+        return emitLiteral(*expr.literal);
+
+    case Kind::Unary:
+        return emitUnary(expr);
+
+    case Kind::Binary:
+        return emitBinary(expr);
+
+    case Kind::Cast:
+        return emitCast(expr);
+
+    case Kind::Ident:
+        fail(
+            "Identifier lowering requires local/global symbol lookup",
+            &expr
+        );
+
+    case Kind::Assign:
+        fail("Assignment lowering is not implemented yet", &expr);
+
+    case Kind::Ternary:
+        fail("Ternary lowering requires control-flow blocks", &expr);
+
+    case Kind::Postfix:
+        fail("Postfix lowering is not implemented yet", &expr);
+
+    case Kind::New:
+        fail("New expression lowering is not implemented yet", &expr);
+
+    case Kind::Move:
+        fail("Move expression lowering is not implemented yet", &expr);
+
+    case Kind::StructInit:
+        fail("Struct initializer lowering is not implemented yet", &expr);
+
+    case Kind::ArrayLiteral:
+        fail("Array literal lowering is not implemented yet", &expr);
+    }
+
+    fail("Unknown expression kind", &expr);
 }
 
 inline void Generator::emitFunction(
