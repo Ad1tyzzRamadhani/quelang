@@ -27,6 +27,48 @@ private:
         return "%t" + std::to_string(tempCounter_++);
     }
 
+    std::string qualifyName(QualifiedName* qname, const std::string& fallback = "anonymous") {
+        std::vector<std::string> parts = currentNamespace_;
+        if (qname && !qname->parts.empty()) {
+            parts.insert(parts.end(), qname->parts.begin(), qname->parts.end());
+        }
+
+        if (parts.empty()) {
+            return fallback;
+        }
+
+        std::string result = parts[0];
+        for (std::size_t i = 1; i < parts.size(); ++i) {
+            result += "_" + parts[i];
+        }
+        return result;
+    }
+
+    void emitNamespace(NamespaceDecl* ns) {
+        if (!ns) return;
+
+        // 1. Masukkan bagian nama namespace ke dalam stack konteks aktif
+        std::vector<std::string> pushedParts;
+        if (ns->name) {
+            pushedParts = ns->name->parts;
+            currentNamespace_.insert(currentNamespace_.end(), pushedParts.begin(), pushedParts.end());
+        }
+
+        // 2. Iterasi seluruh item di dalam namespace
+        for (const auto& item : ns->items) {
+            emitNode(item.get());
+        }
+
+        // 3. Keluar dari konteks namespace (pop stack)
+        if (!pushedParts.empty()) {
+            currentNamespace_.erase(
+                currentNamespace_.end() - pushedParts.size(), 
+                currentNamespace_.end()
+            );
+        }
+    }
+
+
     void emitNode(Node* node) {
         if (!node) return;
 
@@ -44,9 +86,7 @@ private:
         } else if (auto varDecl = dynamic_cast<VarDecl*>(node)) {
             emitGlobalVar(varDecl);
         } else if (auto ns = dynamic_cast<NamespaceDecl*>(node)) {
-            for (const auto& item : ns->items) {
-                emitNode(item.get());
-            }
+            emitNamespace(ns);
         }
     }
 
