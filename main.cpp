@@ -20,7 +20,7 @@ int main() {
   ParseState parser{token};
   SemanticAnalyzer semantic;
   auto ast = parser.parseProgram();
-  semantic.analyze(*ast)
+  semantic.analyze(*ast);
   auto diagnostics = semantic.diagnostics();
   for(auto diagnostic : diagnostics) {
     if(diagnostic.is_warning) {
