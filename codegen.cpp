@@ -328,7 +328,8 @@ private:
                     if (symbolTypes_.find(varName) != symbolTypes_.end()) {
                         varType = symbolTypes_[varName]; // Ambil tipe asli yang tersimpan
                     }
-                    out_ << "    " << loadRes << " = load." + varType + " %" << varName << "\n";
+                    //out_ << "    " << loadRes << " = load." + varType + " %" << varName << "\n";
+                    out_ << " %" << varName << "\n";
                     return loadRes;
                 }
                 break;
