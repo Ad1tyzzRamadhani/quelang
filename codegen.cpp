@@ -55,7 +55,6 @@ private:
             if (name == "f32" || name == "float") return "f32";
             if (name == "f64" || name == "double") return "f64";
             if (name == "bool") return "bool";
-            if (name == "string") return "ptr";
             return name;
         }
 
@@ -82,7 +81,7 @@ private:
         
         for (size_t i = 0; i < func->params.size(); ++i) {
             const auto& p = func->params[i];
-            out_ << emitType(p.type.get()) << " %" << p.name;
+            out_ << emitType(p.type.get()) << p.name;
             if (i + 1 < func->params.size()) out_ << ", ";
         }
         out_ << ")\n";
