@@ -374,6 +374,53 @@ private:
                 }
                 return rhsVal;
             }
+            case Expr::Kind::Unary: {
+                std::string operandVal = emitExpr(expr->unary.expr.get());
+                std::string res = freshTemp();
+                
+                switch (expr->unary.op) {
+                    case UnaryOp::Ref: {
+                        // Operator referensi (&): Mengambil alamat dari identifier
+                        if (expr->unary.expr->kind == Expr::Kind::Ident && 
+                            expr->unary.expr->ident && 
+                            !expr->unary.expr->ident->parts.empty()) {
+                            return "%" + expr->unary.expr->ident->parts.back();
+                     }
+                     return operandVal;
+                }
+
+            case UnaryOp::Deref: {
+                        // Operator dereferensi (*): Melakukan load dari alamat pointer
+                        std::string varType = "i32"; // Default fallback tipe data
+                        if (expr->unary.expr->kind == Expr::Kind::Ident && 
+                            expr->unary.expr->ident && 
+                            !expr->unary.expr->ident->parts.empty()) {
+                            std::string idName = expr->unary.expr->ident->parts.back();
+                            if (symbolTypes_.find(idName) != symbolTypes_.end()) {
+                                varType = symbolTypes_[idName];
+                            }
+                        }
+
+                        out_ << "    " << res << " = load." << varType << " " << operandVal << "\n";
+                        return res;
+                    }
+
+                    case UnaryOp::Neg: {
+                        out_ << "    " << res << " = sub.i32 0, " << operandVal << "\n";
+                        return res;
+                    }
+
+                    case UnaryOp::Not: {
+                        out_ << "    " << res << " = xor.bool " << operandVal << ", true\n";
+                        return res;
+                    }
+
+                    default:
+                        break;
+                }
+                return operandVal;
+            }
+
 
             case Expr::Kind::Postfix: {
                 std::string baseName = "";
