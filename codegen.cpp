@@ -10,6 +10,7 @@ public:
         out_.str("");
         out_.clear();
         tempCounter_ = 0;
+        currentNamespace_.clear();
 
         for (const auto& node : program->decls) {
             emitNode(node.get());
@@ -22,6 +23,7 @@ private:
     std::unordered_map<std::string, std::string> symbolTypes_;
     std::ostringstream out_;
     int tempCounter_ = 0;
+    std::vector<std::string> currentNamespace_;
 
     std::string freshTemp() {
         return "%t" + std::to_string(tempCounter_++);
@@ -135,7 +137,7 @@ private:
 
     void emitFunction(Function* func) {
         std::string retType = emitType(func->return_types.get());
-        std::string name = flattenQualifiedName(func->name.get(), "AnonymousFunction");
+        std::string name = qualifyName(func->name.get(), "AnonymousFunction");
         tempCounter_ = 0;
 
         if (func->is_coroutine) {
@@ -161,7 +163,7 @@ private:
     }
 
     void emitStruct(StructDef* structDef) {
-        std::string name = flattenQualifiedName(structDef->name.get(), "AnonymousStruct");
+        std::string name = qualifyName(structDef->name.get(), "AnonymousStruct");
         out_ << "struct " << name << ":\n";
         
         for (const auto& member : structDef->members) {
@@ -175,7 +177,7 @@ private:
     }
 
     void emitUnion(UnionDef* unionDef) {
-        std::string name = flattenQualifiedName(unionDef->name.get(), "AnonymousUnion");
+        std::string name = qualifyName(unionDef->name.get(), "AnonymousUnion");
         out_ << "union " << name << ":\n";
         for (const auto& field : unionDef->fields) {
             out_ << "    " << field.name << ": " << emitType(field.type.get()) << "\n";
