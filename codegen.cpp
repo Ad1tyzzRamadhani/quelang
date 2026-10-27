@@ -426,7 +426,7 @@ private:
                 std::string baseName = "";
                 if (expr->postfix.base && expr->postfix.base->kind == Expr::Kind::Ident) {
                     if (expr->postfix.base->ident && !expr->postfix.base->ident->parts.empty()) {
-                        baseName = expr->postfix.base->ident->parts.back());
+                        baseName = expr->postfix.base->ident->parts.back();
                     }
                 }
 
