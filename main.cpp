@@ -10,6 +10,7 @@
 #include "semantic_symbol.cpp"
 #include "semantic.hpp"
 #include "semantic.cpp"
+#include "codegen.cpp"
 
 int main() {
   try {
@@ -32,5 +33,7 @@ int main() {
         std::cerr << "FATAL: " << e.what() << "\n";
         return 1;
   }
+  std::string outputcru = codegen(ast);
+  std::cout << outputcru;
   return 1;
 }
