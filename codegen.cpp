@@ -154,6 +154,19 @@ private:
         }
     }
 
+    std::string flattenQualifiedName(QualifiedName* qname, const std::string& fallback = "anonymous") {
+        if (!qname || qname->parts.empty()) {
+            return fallback;
+        }
+    
+        std::string result = qname->parts[0];
+        for (std::size_t i = 1; i < qname->parts.size(); ++i) {
+            result += "_" + qname->parts[i];
+        }
+        return result;
+    }
+
+
     void emitStmt(Stmt* stmt) {
         if (!stmt) return;
 
@@ -246,6 +259,7 @@ private:
 
     std::string emitExpr(Expr* expr) {
         if (!expr) return "0";
+        std::string varName = flattenQualifiedName(expr->ident);
 
         switch (expr->kind) {
             case Expr::Kind::Literal:
