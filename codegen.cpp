@@ -19,6 +19,7 @@ public:
     }
 
 private:
+    std::unordered_map<std::string, std::string> symbolTypes_;
     std::ostringstream out_;
     int tempCounter_ = 0;
 
@@ -167,6 +168,7 @@ private:
             case Stmt::Kind::VarDecl: {
                 for (const auto& item : stmt->var_decl.items) {
                     std::string t = emitType(stmt->var_decl.type.get());
+                    symbolTypes_[item.name] = t;
                     std::string reg = "%" + item.name;
                     if (item.is_array && !item.array_dims.empty()) {
                         // Alokasi array lokal menggunakan ukuran dimensi pertama
@@ -266,7 +268,11 @@ private:
                 if (expr->ident && !expr->ident->parts.empty()) {
                     std::string varName = expr->ident->parts.back();
                     std::string loadRes = freshTemp();
-                    out_ << "    " << loadRes << " = load.i32 %" << varName << "\n";
+                    std::string varType = "i32";
+                    if (symbolTypes_.find(varName) != symbolTypes_.end()) {
+                        varType = symbolTypes_[varName]; // Ambil tipe asli yang tersimpan
+                    }
+                    out_ << "    " << loadRes << " = load." + varType + " %" << varName << "\n";
                     return loadRes;
                 }
                 break;
@@ -277,6 +283,10 @@ private:
                 std::string res = freshTemp();
                 std::string opStr = "add";
                 bool isFloatOp = false;
+                std::string varType = "i32";
+                if (symbolTypes_.find(varName) != symbolTypes_.end()) {
+                    varType = symbolTypes_[varName]; // Ambil tipe asli yang tersimpan
+                }
 
                 switch (expr->binary.op) {
                     case BinaryOp::Add: opStr = "add"; break;
@@ -296,15 +306,19 @@ private:
                     opStr = "f" + opStr;
                 }
 
-                out_ << "    " << res << " = " << opStr << ".i32 " << lhs << ", " << rhs << "\n";
+                out_ << "    " << res << " = " << opStr << "." + varType + " " << lhs << ", " << rhs << "\n";
                 return res;
             }
 
             case Expr::Kind::Assign: {
                 std::string rhsVal = emitExpr(expr->assign.rhs.get());
                 if (expr->assign.lhs->kind == Expr::Kind::Ident && expr->assign.lhs->ident) {
+                    std::string varType = "i32";
+                    if (symbolTypes_.find(varName) != symbolTypes_.end()) {
+                        varType = symbolTypes_[varName]; // Ambil tipe asli yang tersimpan
+                    }
                     std::string varName = "%" + expr->assign.lhs->ident->parts.back();
-                    out_ << "    store.i32 " << rhsVal << ", " << varName << "\n";
+                    out_ << "    store." + varType + " " << rhsVal << ", " << varName << "\n";
                 }
                 return rhsVal;
             }
@@ -336,10 +350,14 @@ private:
                         // Dukungan akses elemen array menggunakan element.addr CRU
                         std::string indexVal = emitExpr(op.index.get());
                         std::string elemAddrRes = freshTemp();
-                        out_ << "    " << elemAddrRes << " = elem.addr.i32 %" << baseName << ", " << indexVal << "\n";
+                        std::string varType = "i32";
+                        if (symbolTypes_.find(varName) != symbolTypes_.end()) {
+                        varType = symbolTypes_[varName]; // Ambil tipe asli yang tersimpan
+                        }
+                        out_ << "    " << elemAddrRes << " = elem.addr." + varType + " %" << baseName << ", " << indexVal << "\n";
                         
                         std::string loadRes = freshTemp();
-                        out_ << "    " << loadRes << " = load.i32 " << elemAddrRes << "\n";
+                        out_ << "    " << loadRes << " = load." + varType + " " << elemAddrRes << "\n";
                         return loadRes;
                     }
                 }
