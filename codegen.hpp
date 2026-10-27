@@ -187,6 +187,7 @@ void emitUnion(const ::UnionDef& union_def);
 void emitEnum(const ::EnumDef& enum_def);
 void emitNamespace(const ::NamespaceDecl& ns);
 void emitForwardDecl(const ::ForwardDecl& decl);
+std::string emitQualifiedName(const ::QualifiedName& name) const;
 
     // --------------------------------------------------------
     // Types, expressions and statements
@@ -329,6 +330,105 @@ inline void Generator::emitUnion(
     const ::UnionDef& union_def
 ) {
     fail("Union codegen is not implemented yet", &union_def);
+}
+
+inline std::string Generator::emitQualifiedName(
+    const ::QualifiedName& name
+) const {
+    if (name.parts.empty()) {
+        throw CodegenError(
+            "Invalid empty qualified type name"
+        );
+    }
+
+    std::string result;
+
+    for (const auto& part : name.parts) {
+        if (part.empty()) {
+            throw CodegenError(
+                "Invalid empty component in qualified type name"
+            );
+        }
+
+        if (!result.empty()) {
+            result += "::";
+        }
+
+        result += part;
+    }
+
+    return result;
+}
+
+inline std::string Generator::emitType(
+    const ::Type& type
+) {
+    if (!type.base) {
+        fail("Type is missing its base name", &type);
+    }
+
+    if (type.bit_width) {
+        fail(
+            "Bit-width types are not implemented yet",
+            &type
+        );
+    }
+
+    std::string result = emitQualifiedName(*type.base);
+
+    // Base types are passed through unchanged for now.
+    // This assumes that QueLang and CRU share the same
+    // spelling for the supported primitive types.
+    for (const auto& modifier : type.modifiers) {
+        switch (modifier.kind) {
+        case ::TypeModifier::Kind::Pointer:
+            // CRU currently uses a generic pointer type.
+            result = "ptr";
+            break;
+
+        case ::TypeModifier::Kind::Reference:
+            fail(
+                "Reference type lowering is not implemented yet",
+                &type
+            );
+
+        case ::TypeModifier::Kind::Restrict:
+            fail(
+                "Restrict type lowering is not implemented yet",
+                &type
+            );
+
+        case ::TypeModifier::Kind::FuncPtr:
+            fail(
+                "Function pointer type lowering is not implemented yet",
+                &type
+            );
+        }
+    }
+
+    for (const auto qualifier : type.qualifiers) {
+        switch (qualifier) {
+        case ::TypeQualifier::Const:
+        case ::TypeQualifier::Volatile:
+            // These qualifiers do not change the storage type.
+            // Their semantic effects must be handled elsewhere.
+            break;
+
+        case ::TypeQualifier::Atomic:
+            fail(
+                "Atomic type lowering is not implemented yet",
+                &type
+            );
+
+        case ::TypeQualifier::Unaligned:
+            fail(
+                "Unaligned type lowering is not implemented yet",
+                &type
+            );
+        }
+    }
+
+    return result;
 }
 
 inline void Generator::emitEnum(
