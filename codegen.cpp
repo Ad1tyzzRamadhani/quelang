@@ -135,7 +135,7 @@ private:
     }
 
     void emitUnion(UnionDef* unionDef) {
-        std::string name = flattenQualifiedName(structDef->name.get(), "AnonymousUnion");
+        std::string name = flattenQualifiedName(unionDef->name.get(), "AnonymousUnion");
         out_ << "union " << name << ":\n";
         for (const auto& field : unionDef->fields) {
             out_ << "    " << field.name << ": " << emitType(field.type.get()) << "\n";
