@@ -148,7 +148,9 @@ private:
         
         for (size_t i = 0; i < func->params.size(); ++i) {
             const auto& p = func->params[i];
-            out_ << emitType(p.type.get())  << " " + p.name;
+            std::string pType = emitType(p.type.get());
+            symbolTypes_[p.name] = pType;
+            out_ << pType  << " " + p.name;
             if (i + 1 < func->params.size()) out_ << ", ";
         }
         out_ << ")\n";
@@ -323,14 +325,7 @@ private:
             case Expr::Kind::Ident:
                 if (expr->ident && !expr->ident->parts.empty()) {
                     std::string varName = expr->ident->parts.back();
-                    std::string loadRes = freshTemp();
-                    std::string varType = "i32";
-                    if (symbolTypes_.find(varName) != symbolTypes_.end()) {
-                        varType = symbolTypes_[varName]; // Ambil tipe asli yang tersimpan
-                    }
-                    //out_ << "    " << loadRes << " = load." + varType + " %" << varName << "\n";
-                    out_ << "    " << loadRes << " = %" << varName << "\n";
-                    return loadRes;
+                    return "%" + varName;
                 }
                 break;
 
