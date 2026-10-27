@@ -95,7 +95,7 @@ private:
 
     void emitFunction(Function* func) {
         std::string retType = emitType(func->return_types.get());
-        std::string name = func->name ? func->name->parts.back() : "anonymous";
+        std::string name = flattenQualifiedName(func->name.get(), "AnonymousFunction");
         tempCounter_ = 0;
 
         if (func->is_coroutine) {
@@ -121,7 +121,7 @@ private:
     }
 
     void emitStruct(StructDef* structDef) {
-        std::string name = structDef->name ? structDef->name->parts.back() : "AnonymousStruct";
+        std::string name = flattenQualifiedName(structDef->name.get(), "AnonymousStruct");
         out_ << "struct " << name << ":\n";
         
         for (const auto& member : structDef->members) {
@@ -135,7 +135,7 @@ private:
     }
 
     void emitUnion(UnionDef* unionDef) {
-        std::string name = unionDef->name ? unionDef->name->parts.back() : "AnonymousUnion";
+        std::string name = flattenQualifiedName(structDef->name.get(), "AnonymousUnion");
         out_ << "union " << name << ":\n";
         for (const auto& field : unionDef->fields) {
             out_ << "    " << field.name << ": " << emitType(field.type.get()) << "\n";
