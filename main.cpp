@@ -29,11 +29,11 @@ int main() {
     }
     std::cerr << diagnostic.file + " : " << diagnostic.line << ":" << diagnostic.column << ": " + diagnostic.message + "\n";
   }
+  std::string outputcru = codegen(ast);
+  std::cout << outputcru;
   } catch (const std::exception& e) {
         std::cerr << "FATAL: " << e.what() << "\n";
         return 1;
   }
-  std::string outputcru = codegen(ast);
-  std::cout << outputcru;
   return 1;
 }
