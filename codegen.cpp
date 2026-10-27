@@ -31,6 +31,11 @@ private:
 
         if (auto func = dynamic_cast<Function*>(node)) {
             emitFunction(func);
+        } else if (auto forwardDecl = dynamic_cast<ForwardDecl*>(node)) {
+            // Menangani deklarasi extern / forward declaration
+            if (forwardDecl->is_extern) {
+                emitExtern(forwardDecl);
+            }
         } else if (auto structDef = dynamic_cast<StructDef*>(node)) {
             emitStruct(structDef);
         } else if (auto unionDef = dynamic_cast<UnionDef*>(node)) {
@@ -67,6 +72,25 @@ private:
 
         return "ptr";
     }
+
+    bool isFloatType(Type* type) {
+        if (!type || !type->base || type->base->parts.empty()) return false;
+        std::string name = type->base->parts.back();
+        return name == "f32" || name == "float" || name == "f64" || name == "double";
+    }
+
+    void emitExtern(ForwardDecl* decl) {
+        std::string name = decl->name ? decl->name->parts.back() : "unknown";
+        std::string retType = emitType(decl->return_types.get());
+        
+        out_ << "extern def " << retType << " " << name << "(";
+        for (size_t i = 0; i < decl->params.size(); ++i) {
+            out_ << emitType(decl->params[i].get());
+            if (i + 1 < decl->params.size()) out_ << ", ";
+        }
+        out_ << ")\n";
+    }
+
 
     void emitFunction(Function* func) {
         std::string retType = emitType(func->return_types.get());
@@ -144,10 +168,16 @@ private:
                 for (const auto& item : stmt->var_decl.items) {
                     std::string t = emitType(stmt->var_decl.type.get());
                     std::string reg = "%" + item.name;
-                    out_ << "    " << reg << " = alloca." << t << "\n";
-                    if (item.init) {
-                        std::string valRes = emitExpr(item.init.get());
-                        out_ << "    store." << t << " " << valRes << ", " << reg << "\n";
+                    if (item.is_array && !item.array_dims.empty()) {
+                        // Alokasi array lokal menggunakan ukuran dimensi pertama
+                        std::string sizeStr = item.array_dims[0]->value;
+                        out_ << "    " << reg << " = alloca [" << sizeStr << "]" << t << "\n";
+                    } else {
+                        out_ << "    " << reg << " = alloca." << t << "\n";
+                        if (item.init) {
+                            std::string valRes = emitExpr(item.init.get());
+                            out_ << "    store." << t << " " << valRes << ", " << reg << "\n";
+                        }
                     }
                 }
                 break;
@@ -246,6 +276,7 @@ private:
                 std::string rhs = emitExpr(expr->binary.rhs.get());
                 std::string res = freshTemp();
                 std::string opStr = "add";
+                bool isFloatOp = false;
 
                 switch (expr->binary.op) {
                     case BinaryOp::Add: opStr = "add"; break;
@@ -260,6 +291,9 @@ private:
                     case BinaryOp::Gt:  opStr = "gt"; break;
                     case BinaryOp::Gte: opStr = "ge"; break;
                     default: opStr = "add"; break;
+                }
+                if (isFloatOp) {
+                    opStr = "f" + opStr;
                 }
 
                 out_ << "    " << res << " = " << opStr << ".i32 " << lhs << ", " << rhs << "\n";
@@ -298,6 +332,15 @@ private:
                         }
                         out_ << ")\n";
                         return callRes;
+                    } else if (op.kind == Expr::PostfixOp::Kind::Index) {
+                        // Dukungan akses elemen array menggunakan element.addr CRU
+                        std::string indexVal = emitExpr(op.index.get());
+                        std::string elemAddrRes = freshTemp();
+                        out_ << "    " << elemAddrRes << " = elem.addr.i32 %" << baseName << ", " << indexVal << "\n";
+                        
+                        std::string loadRes = freshTemp();
+                        out_ << "    " << loadRes << " = load.i32 " << elemAddrRes << "\n";
+                        return loadRes;
                     }
                 }
                 break;
