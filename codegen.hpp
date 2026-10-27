@@ -327,10 +327,11 @@ inline void Generator::emitFunction(
         return;
     }
 
-    fail(
-        "Function body codegen is not implemented yet",
-        &function
-    );
+    pushIndent();
+    emitStmt(*function.body);
+
+    popIndent();
+    emitLine("end");
 }
 
 inline void Generator::emitStruct(
@@ -492,6 +493,98 @@ inline void Generator::emitFunctionSignature(
 
     signature += ")";
     emitLine(signature);
+}
+
+inline void Generator::emitStmt(const ::Stmt& stmt) {
+    using Kind = ::Stmt::Kind;
+
+    switch (stmt.kind) {
+    case Kind::Block: {
+        for (const auto& child : stmt.block.stmts) {
+            if (!child) {
+                fail("Null statement found inside block", &stmt);
+            }
+
+            emitStmt(*child);
+        }
+        return;
+    }
+
+    case Kind::Return: {
+        if (!stmt.return_values.empty()) {
+            fail(
+                "Return values require expression lowering, "
+                "which is not implemented yet",
+                &stmt
+            );
+        }
+
+        emitLine("ret");
+        return;
+    }
+
+    case Kind::ExprStmt:
+        fail(
+            "Expression statement lowering is not implemented yet",
+            &stmt
+        );
+
+    case Kind::VarDecl:
+        fail(
+            "Local variable declaration lowering is not implemented yet",
+            &stmt
+        );
+
+    case Kind::If:
+        fail("If statement lowering is not implemented yet", &stmt);
+
+    case Kind::While:
+        fail("While statement lowering is not implemented yet", &stmt);
+
+    case Kind::DoStmt:
+        fail("Do-while statement lowering is not implemented yet", &stmt);
+
+    case Kind::For:
+        fail("For statement lowering is not implemented yet", &stmt);
+
+    case Kind::SwitchCase:
+        fail("Switch statement lowering is not implemented yet", &stmt);
+
+    case Kind::Break:
+        fail("Break statement lowering is not implemented yet", &stmt);
+
+    case Kind::Continue:
+        fail("Continue statement lowering is not implemented yet", &stmt);
+
+    case Kind::Resume:
+        fail("Resume statement lowering is not implemented yet", &stmt);
+
+    case Kind::Yield:
+        fail("Yield statement lowering is not implemented yet", &stmt);
+
+    case Kind::ThrowStmt:
+        fail("Throw statement lowering is not implemented yet", &stmt);
+
+    case Kind::Drop:
+        fail("Drop statement lowering is not implemented yet", &stmt);
+
+    case Kind::Wipe:
+        fail("Wipe statement lowering is not implemented yet", &stmt);
+
+    case Kind::Unsafe:
+        fail("Unsafe block lowering is not implemented yet", &stmt);
+
+    case Kind::Label:
+        fail("Label lowering is not implemented yet", &stmt);
+
+    case Kind::Jump:
+        fail("Jump statement lowering is not implemented yet", &stmt);
+
+    case Kind::UseStmt:
+        fail("Use statement lowering is not implemented yet", &stmt);
+    }
+
+    fail("Unknown statement kind", &stmt);
 }
 
 inline void Generator::emitEnum(
