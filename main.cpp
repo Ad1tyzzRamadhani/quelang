@@ -31,6 +31,8 @@ int main() {
   }
   std::string outputcru = codegen(ast.get());
   std::cerr << outputcru;
+  std::ofstream outFile("a.cro");
+  outFile << outputcru;
   } catch (const std::exception& e) {
         std::cerr << "FATAL: " << e.what() << "\n";
         return 1;
