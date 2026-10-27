@@ -43,7 +43,7 @@ private:
         if (!type) return "void";
 
         // Jika memiliki base qualified name
-        if (type->base && !type->base->parts.empty()) {
+        if (type->base && !type->base->parts.empty() && type->modifiers.empty()) {
             std::string name = type->base->parts.back();
             // Pemetaan tipe dasar Quelang ke CRU
             if (name == "int" || name == "i32") return "i32";
@@ -52,7 +52,6 @@ private:
             if (name == "f32" || name == "float") return "f32";
             if (name == "f64" || name == "double") return "f64";
             if (name == "bool") return "bool";
-            if (name == "string") return "ptr"; // String menjadi ptr
             return name;
         }
 
