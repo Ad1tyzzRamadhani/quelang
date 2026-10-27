@@ -81,7 +81,7 @@ private:
         
         for (size_t i = 0; i < func->params.size(); ++i) {
             const auto& p = func->params[i];
-            out_ << emitType(p.type.get()) << p.name;
+            out_ << emitType(p.type.get())  << " " + p.name;
             if (i + 1 < func->params.size()) out_ << ", ";
         }
         out_ << ")\n";
