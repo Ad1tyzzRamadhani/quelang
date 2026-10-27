@@ -188,6 +188,8 @@ void emitEnum(const ::EnumDef& enum_def);
 void emitNamespace(const ::NamespaceDecl& ns);
 void emitForwardDecl(const ::ForwardDecl& decl);
 std::string emitQualifiedName(const ::QualifiedName& name) const;
+std::string emitFunctionName(const ::Function& function);
+void emitFunctionSignature(const ::Function& function);
 
     // --------------------------------------------------------
     // Types, expressions and statements
@@ -317,7 +319,18 @@ inline void Generator::emitNamespace(
 inline void Generator::emitFunction(
     const ::Function& function
 ) {
-    fail("Function codegen is not implemented yet", &function);
+    emitFunctionSignature(function);
+
+    if (!function.body) {
+        // Declaration without a body.
+        emitLine();
+        return;
+    }
+
+    fail(
+        "Function body codegen is not implemented yet",
+        &function
+    );
 }
 
 inline void Generator::emitStruct(
@@ -429,6 +442,56 @@ inline std::string Generator::emitType(
     }
 
     return result;
+}
+
+inline std::string Generator::emitFunctionName(
+    const ::Function& function
+) {
+    if (!function.name) {
+        fail("Function is missing its name", &function);
+    }
+
+    return emitQualifiedName(*function.name);
+}
+
+inline void Generator::emitFunctionSignature(
+    const ::Function& function
+) {
+    if (!function.return_types) {
+        fail("Function is missing its return type", &function);
+    }
+
+    const std::string return_type =
+        emitType(*function.return_types);
+
+    const std::string name =
+        emitFunctionName(function);
+
+    std::string signature =
+        "def " + return_type + " " + name + "(";
+
+    for (std::size_t i = 0; i < function.params.size(); ++i) {
+        const auto& param = function.params[i];
+
+        if (!param.type) {
+            fail("Function parameter is missing its type", &function);
+        }
+
+        if (param.name.empty()) {
+            fail("Function parameter is missing its name", &function);
+        }
+
+        if (i != 0) {
+            signature += ", ";
+        }
+
+        signature += emitType(*param.type);
+        signature += " ";
+        signature += param.name;
+    }
+
+    signature += ")";
+    emitLine(signature);
 }
 
 inline void Generator::emitEnum(
