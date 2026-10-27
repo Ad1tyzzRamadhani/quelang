@@ -329,7 +329,7 @@ private:
                         varType = symbolTypes_[varName]; // Ambil tipe asli yang tersimpan
                     }
                     //out_ << "    " << loadRes << " = load." + varType + " %" << varName << "\n";
-                    out_ << " %" << varName << "\n";
+                    out_ << "    " << loadRes << " = %" << varName << "\n";
                     return loadRes;
                 }
                 break;
