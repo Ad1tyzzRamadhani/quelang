@@ -259,7 +259,7 @@ private:
 
     std::string emitExpr(Expr* expr) {
         if (!expr) return "0";
-        std::string varName = flattenQualifiedName(expr->ident);
+        std::string varName = flattenQualifiedName(expr->ident.get());
 
         switch (expr->kind) {
             case Expr::Kind::Literal:
