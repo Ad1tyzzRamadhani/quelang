@@ -277,6 +277,69 @@ private:
                 break;
             }
 
+            case Stmt::Kind::SwitchCase: {
+                // 1. Evaluasi ekspresi utama yang di-switch
+                std::string condVal = emitExpr(stmt->switch_stmt.expr.get());
+                std::string switchEndLabel = freshTemp() + "_switch_end";
+
+                // Simpan label untuk setiap case agar bisa dilompati
+                std::vector<std::string> caseLabels;
+                for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
+                    caseLabels.push_back(freshTemp() + "_case_" + std::to_string(i));
+                }
+                std::string defaultLabel = freshTemp() + "_default";
+                std::string targetDefault = defaultLabel;
+
+                // Cari apakah ada case default
+                for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
+                    if (stmt->switch_stmt.cases[i].is_default) {
+                        targetDefault = caseLabels[i];
+                        break;
+                    }
+                }
+
+                // 2. Emit perbandingan untuk setiap case (pencocokan nilai)
+                for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
+                    const auto& c = stmt->switch_stmt.cases[i];
+                    if (c.is_default) continue;
+
+                    for (const auto& valLit : c.values) {
+                        std::string cmpRes = freshTemp();
+                        std::string litVal = valLit->value; // Nilai literal pembanding
+                        
+                        // Lakukan perbandingan kesamaan (eq)
+                        out_ << "    " << cmpRes << " = eq.i32 " << condVal << ", " << litVal << "\n";
+                        
+                        // Tentukan target lompatan berikutnya (jika cocok ke case[i], jika tidak lanjut ke cek berikutnya/default)
+                        std::string nextCheck = (i + 1 < stmt->switch_stmt.cases.size()) ? caseLabels[i + 1] : targetDefault;
+                        out_ << "    br_if " << cmpRes << ", " << caseLabels[i] << ", " << nextCheck << "\n";
+                    }
+                }
+
+                // Jika tidak ada yang cocok sama sekali, langsung lompat ke default/end
+                out_ << "    jmp " << targetDefault << "\n";
+
+                // 3. Emit blok tubuh (*body*) untuk masing-masing case
+                for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
+                    const auto& c = stmt->switch_stmt.cases[i];
+                    out_ << caseLabels[i] << ":\n";
+                    if (c.body) {
+                        emitStmt(c.body.get());
+                    }
+                    out_ << "    jmp " << switchEndLabel << "\n";
+                }
+
+                // Emit blok default jika didefinisikan secara terpisah
+                out_ << defaultLabel << ":\n";
+                // (Badan default bisa ditaruh di sini jika ditangani khusus)
+                out_ << "    jmp " << switchEndLabel << "\n";
+
+                // Label akhir switch
+                out_ << switchEndLabel << ":\n";
+                break;
+            }
+
+
             case Stmt::Kind::While: {
                 std::string condLabel = freshTemp() + "_while_cond";
                 std::string bodyLabel = freshTemp() + "_while_body";
