@@ -333,6 +333,12 @@ private:
             case Expr::Kind::StructInit: {
                 // 1. Alokasikan memori struct di stack (menggunakan nama struct atau generic ptr)
                 std::string structName = "AnonymousStruct";
+                if (expr->new_expr.type && !expr->new_expr.type->parts.empty()) {
+                    structName = expr->new_expr.type->parts.back();
+                } else if (expr->ident && !expr->ident->parts.empty()) {
+                    structName = expr->ident->parts.back();
+                }
+
                 std::string allocRes = freshTemp();
                 out_ << "    " << allocRes << " = alloca.ptr\n"; // Alokasi pointer penampung struct
 
@@ -488,8 +494,13 @@ private:
                         // Catatan: Indeks field diasumsikan berbasis posisi atau dicari dari metadata struct. 
                         // Untuk contoh dasar, kita gunakan indeks 0 atau parse nama field.
                         int fieldIndex = 0; 
+                        std::string structTypeName = "AnonymousStruct";
+                        if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
+                            structTypeName = symbolTypes_[baseName];
+                        }
 
-                        out_ << "    " << fieldAddrRes << " = field.addr AnonymousStruct, " << currentReg << ", " << fieldIndex << "\n";
+
+                        out_ << "    " << fieldAddrRes << " = field.addr " << structTypeName << ", " << currentReg << ", " << fieldIndex << "\n";
                         
                         std::string loadRes = freshTemp();
                         out_ << "    " << loadRes << " = load.i32 " << fieldAddrRes << "\n";
