@@ -385,11 +385,11 @@ private:
                             expr->unary.expr->ident && 
                             !expr->unary.expr->ident->parts.empty()) {
                             return "%" + expr->unary.expr->ident->parts.back();
-                     }
-                     return operandVal;
-                }
+                        }
+                        return operandVal;
+                    }
 
-            case UnaryOp::Deref: {
+                    case UnaryOp::Deref: {
                         // Operator dereferensi (*): Melakukan load dari alamat pointer
                         std::string varType = "i32"; // Default fallback tipe data
                         if (expr->unary.expr->kind == Expr::Kind::Ident && 
