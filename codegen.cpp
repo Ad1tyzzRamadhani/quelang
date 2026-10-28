@@ -400,6 +400,24 @@ private:
                 }
                 return rhsVal;
             }
+            case Expr::Kind::Cast: {
+                // 1. Evaluasi ekspresi basis yang akan di-cast
+                std::string operandVal = emitExpr(expr->cast.base.get());
+                std::string res = freshTemp();
+
+                // 2. Tentukan tipe target konversi (misal: i32, i64, ptr, dll.)
+                std::string targetType = "i32"; // Fallback default
+                if (expr->cast.target) {
+                    targetType = emitType(expr->cast.target.get());
+                }
+
+                // 3. Emit instruksi cast sesuai format IR CRU
+                // Format CRU cast: %result = cast operand to TargetType (atau instruksi cast khusus)
+                out_ << "    " << res << " = cast " << operandVal << " to " << targetType << "\n";
+                
+                return res;
+            }
+
             case Expr::Kind::Unary: {
                 std::string operandVal = emitExpr(expr->unary.expr.get());
                 std::string res = freshTemp();
