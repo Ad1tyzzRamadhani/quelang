@@ -333,10 +333,8 @@ private:
             case Expr::Kind::StructInit: {
                 // 1. Alokasikan memori struct di stack (menggunakan nama struct atau generic ptr)
                 std::string structName = "AnonymousStruct";
-                if (expr->new_expr.type && !expr->new_expr.type->parts.empty()) {
-                    structName = expr->new_expr.type->parts.back();
-                } else if (expr->ident && !expr->ident->parts.empty()) {
-                    structName = expr->ident->parts.back();
+                if (symbolTypes_.find(varName) != symbolTypes_.end()) {
+                    structName = symbolTypes_[varName];
                 }
 
                 std::string allocRes = freshTemp();
