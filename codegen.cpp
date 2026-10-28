@@ -329,6 +329,28 @@ private:
                 }
                 break;
 
+
+            case Expr::Kind::StructInit: {
+                // 1. Alokasikan memori struct di stack (menggunakan nama struct atau generic ptr)
+                std::string structName = "AnonymousStruct";
+                std::string allocRes = freshTemp();
+                out_ << "    " << allocRes << " = alloca.ptr\n"; // Alokasi pointer penampung struct
+
+                // 2. Iterasi dan isi setiap field menggunakan store atau field.addr
+                int fieldIdx = 0;
+                for (const auto& fieldPair : expr->struct_init.fields) {
+                    std::string valRes = emitExpr(fieldPair.second.get());
+                    std::string fieldAddrRes = freshTemp();
+                    
+                    // Mendapatkan alamat field menggunakan field.addr CRU
+                    out_ << "    " << fieldAddrRes << " = field.addr " << structName << ", " << allocRes << ", " << fieldIdx << "\n";
+                    out_ << "    store.i32 " << valRes << ", " << fieldAddrRes << "\n"; // Sesuaikan tipe jika ada penelusuran tipe field
+                    
+                    fieldIdx++;
+                }
+                return allocRes;
+            }
+
             case Expr::Kind::Binary: {
                 std::string lhs = emitExpr(expr->binary.lhs.get());
                 std::string rhs = emitExpr(expr->binary.rhs.get());
@@ -430,6 +452,8 @@ private:
                     }
                 }
 
+                std::string currentReg = "%" + baseName;
+
                 for (const auto& op : expr->postfix.ops) {
                     if (op.kind == Expr::PostfixOp::Kind::Call) {
                         std::vector<std::string> argVals;
@@ -458,6 +482,18 @@ private:
                         std::string loadRes = freshTemp();
                         out_ << "    " << loadRes << " = load." + varType + " " << elemAddrRes << "\n";
                         return loadRes;
+                    } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess) {
+                        // Dukungan akses field struct menggunakan field.addr CRU
+                        std::string fieldAddrRes = freshTemp();
+                        // Catatan: Indeks field diasumsikan berbasis posisi atau dicari dari metadata struct. 
+                        // Untuk contoh dasar, kita gunakan indeks 0 atau parse nama field.
+                        int fieldIndex = 0; 
+
+                        out_ << "    " << fieldAddrRes << " = field.addr AnonymousStruct, " << currentReg << ", " << fieldIndex << "\n";
+                        
+                        std::string loadRes = freshTemp();
+                        out_ << "    " << loadRes << " = load.i32 " << fieldAddrRes << "\n";
+                        currentReg = loadRes;
                     }
                 }
                 break;
