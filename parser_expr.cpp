@@ -97,10 +97,10 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // ------------------------
     // STRUCT INIT { ... }
     // ------------------------
-    if (isStructInit()) {
-        std::cout << " Parse StructInit" << "\n";
+    if (match(TokenType::LBRACE)) {
+        //std::cout << " Parse StructInit" << "\n";
         auto expr = std::make_unique<Expr>();
-        expr->struct_init.name = parseType();
+        //expr->struct_init.name = parseType();
         expr->kind = Expr::Kind::StructInit;
 
         if (!check(TokenType::RBRACE)) {
