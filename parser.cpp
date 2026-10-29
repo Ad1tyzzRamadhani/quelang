@@ -58,9 +58,9 @@ struct ParseState {
         return false;
     }
 
-    void consume(TokenType t, const std::string& msg="") {
+    void consume(TokenType t, const std::string& msg="no message") {
         if (!match(t)) {
-            throw std::runtime_error(msg);
+            error(msg) ;
         }
     }
 
