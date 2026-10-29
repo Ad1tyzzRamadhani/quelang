@@ -110,7 +110,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
                     peek(1).type == TokenType::EQ) 
                 {
                     std::string name = advance().value;
-                    consume(TokenType::EQ);
+                    consume(TokenType::EQ, "Expected EQ in Struct Init");
 
                     expr->struct_init.fields.push_back({
                         name,
