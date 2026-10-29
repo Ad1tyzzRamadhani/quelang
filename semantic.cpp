@@ -1797,7 +1797,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeNew(Expr* expr) {
 
 SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeStructInit(
     Expr* expr,
-    const TypeView* expected
+    TypeView* expected
 ) {
     TypeView out;
 
