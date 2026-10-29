@@ -19,11 +19,6 @@ std::unique_ptr<Type> ParseState::parseType() {
             );
             continue;
         }
-        if (match(TokenType::KW_UNALIGNED)) {
-            type->qualifiers.push_back(
-                TypeQualifier::Unaligned
-            );
-        }
         break;
     }
     
@@ -109,10 +104,6 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
                     TokenType::RPAREN,
                     "expected ')' in function pointer"
                 );
-                if (check(TokenType::KW_CO)) {
-                    consume(TokenType::KW_CO, "CO FUNCPTR");
-                    mod.is_coroutine = true;
-                }
                 if (check(TokenType::KW_THROWS)) {
                     consume(TokenType::KW_THROWS, " THROWS FUNCPTR");
                     mod.throws_type = parseType();
