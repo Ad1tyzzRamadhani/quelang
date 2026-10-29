@@ -2,7 +2,7 @@ bool ParseState::isStructInit() {
     size_t save = pos;
     try {
         // Coba parse sebagai QualifiedName (misal: Point, pkg.Point, dll)
-        parseQualifiedName();
+        parseType();
         std::cout << "Checking Struct Init" << "\n";
         
         // Cek apakah setelah QualifiedName terdapat token LBRACE '{'
@@ -100,7 +100,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     if (isStructInit()) {
         std::cout << " Parse StructInit" << "\n";
         auto expr = std::make_unique<Expr>();
-        expr->struct_init.name = parseQualifiedName();
+        expr->struct_init.name = parseType();
         expr->kind = Expr::Kind::StructInit;
 
         if (!check(TokenType::RBRACE)) {
