@@ -51,9 +51,9 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::While;
 
-        consume(TokenType::LPAREN);
+        consume(TokenType::LPAREN, "Exception LParen in While Statements");
         stmt->while_stmt.cond = parseExpr();
-        consume(TokenType::RPAREN);
+        consume(TokenType::RPAREN, " Exception RParen after while Condition");
 
         stmt->while_stmt.body = parseStmt();
 
