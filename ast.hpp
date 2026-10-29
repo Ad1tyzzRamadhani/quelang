@@ -153,7 +153,7 @@ struct Expr : Node {
     } new_expr;
 
     struct {
-        std::unique_ptr<QualifiedName> name;
+        std::unique_ptr<Type> name;
         std::vector<std::pair<std::optional<std::string>, std::unique_ptr<Expr>>> fields;
     } struct_init;
 
