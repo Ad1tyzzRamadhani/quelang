@@ -85,7 +85,7 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
                 mod.func_return = parseType();
             }
 
-            consume(TokenType::RPAREN);
+            consume(TokenType::RPAREN, "RPAREN FUNCPTR");
 
             size_t backup = pos;
 
