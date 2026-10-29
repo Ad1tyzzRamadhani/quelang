@@ -288,8 +288,10 @@ private:
                     if (!endsWithReturn(stmt->if_stmt.else_block.get())) {
                         out_ << "    jmp " << mergeLabel << "\n";
                     }
+                } else {
+                    // Jika tidak ada else block, tetap butuh jalan keluar ke merge
+                    out_ << "    jmp " << mergeLabel << "\n";
                 }
-                out_ << "    jmp " << mergeLabel << "\n";
                 out_ << mergeLabel << ":\n";
                 break;
             }
