@@ -91,7 +91,7 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
 
             try {
 
-                consume(TokenType::LPAREN);
+                consume(TokenType::LPAREN,"LPAREN FUNCPTR");
 
                 std::vector<std::unique_ptr<Type>> params;
 
@@ -110,11 +110,11 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
                     "expected ')' in function pointer"
                 );
                 if (check(TokenType::KW_CO)) {
-                    consume(TokenType::KW_CO);
+                    consume(TokenType::KW_CO, "CO FUNCPTR");
                     mod.is_coroutine = true;
                 }
                 if (check(TokenType::KW_THROWS)) {
-                    consume(TokenType::KW_THROWS);
+                    consume(TokenType::KW_THROWS, " THROWS FUNCPTR");
                     mod.throws_type = parseType();
                 }
                 if (
@@ -127,7 +127,7 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
                     mod.func_params =
                         std::move(params);
 
-                    consume(TokenType::STAR);
+                    consume(TokenType::STAR, "STAR FUNCPTR");
 
                     type->modifiers.push_back(
                         std::move(mod)
