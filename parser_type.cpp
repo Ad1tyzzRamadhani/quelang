@@ -80,7 +80,7 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
     type->base = MakeEmptyQualifiedName();
         if (peek().type == TokenType::LPAREN) {
             TypeModifier mod;
-            consume(TokenType::LPAREN);
+            consume(TokenType::LPAREN, "Excepted LParen in FunctionPointer");
             if (!check(TokenType::RPAREN)) {
                 mod.func_return = parseType();
             }
