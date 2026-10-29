@@ -142,7 +142,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
             if(check(TokenType::NUMBER) || check(TokenType::HEXNUMBER) || check(TokenType::BINARYNUMBER)) {
                 expr->new_expr.alloc_size = parseLiteral(advance());
             }
-            consume(TokenType::RPAREN);
+            consume(TokenType::RPAREN, "RPAREN NEW STMT");
             return expr;
         }
 
@@ -153,13 +153,13 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
                     expr->new_expr.args.push_back(parseExpr());
                 } while (match(TokenType::COMMA));
             }
-            consume(TokenType::RPAREN);
+            consume(TokenType::RPAREN, "RPAREN NEW STMT");
         }
         while (match(TokenType::LBRACKET)) {
             if (!check(TokenType::RBRACKET)) {
                 expr->new_expr.array_dims.push_back(parseExpr());
             } else error("Array Dims in '[ ... ]' Can't Empty!");
-            consume(TokenType::RBRACKET);
+            consume(TokenType::RBRACKET,"RBRACKET NEW STMT");
         }
 
         return expr;
@@ -272,7 +272,7 @@ std::unique_ptr<Expr> ParseState::parsePostfix() {
             op.kind = Expr::PostfixOp::Kind::Call;
             op.args = parseArgList();
 
-            consume(TokenType::RPAREN);
+            consume(TokenType::RPAREN, "RPAREN IN CALL EXPR");
 
             /*auto expr = std::make_unique<Expr>();
             expr->kind = Expr::Kind::Postfix;
@@ -289,7 +289,7 @@ std::unique_ptr<Expr> ParseState::parsePostfix() {
             op.kind = Expr::PostfixOp::Kind::Index;
             op.index = parseExpr();
 
-            consume(TokenType::RBRACKET);
+            consume(TokenType::RBRACKET, "INDEX RBRACKET");
 
             /*auto expr = std::make_unique<Expr>();
             expr->kind = Expr::Kind::Postfix;
