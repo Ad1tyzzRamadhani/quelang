@@ -97,6 +97,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // STRUCT INIT { ... }
     // ------------------------
     if (isStructInit()) {
+        std::cout << " Parse StructInit" << "\n";
         auto expr = std::make_unique<Expr>();
         expr->struct_init.name = parseQualifiedName();
         expr->kind = Expr::Kind::StructInit;
