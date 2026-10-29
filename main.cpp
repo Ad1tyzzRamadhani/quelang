@@ -34,7 +34,7 @@ int main() {
   std::ofstream outFile("a.cro");
   outFile << outputcru;
   } catch (const std::exception& e) {
-        std::cerr << "FATAL: " << e.what() << "\n";
+        std::cerr << "CRITICAL EXCEPTION: " << e.what() << "\n";
         return 1;
   }catch (...) {
     std::cerr << "UNKNOWN CRASH / EXCEPTION (Possible Null Pointer or Segfault)\n";
