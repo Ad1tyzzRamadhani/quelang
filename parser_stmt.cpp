@@ -62,13 +62,6 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 
     if (match(TokenType::KW_SWITCH))
         return parseSwitchStmt();
-
-    if (match(TokenType::KW_USE)) {
-        auto stmt = std::make_unique<Stmt>();
-        stmt->kind = Stmt::Kind::UseStmt;
-        stmt->use_stmt = parseUseDecl();
-        return stmt;
-    }
     // -------------------------
     // DO WHILE
     // -------------------------
@@ -96,27 +89,6 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
             return stmt;
         }
         error("expected 'while' or 'catch' after do body");
-    }
-
-    // -------------------------
-    // FOR
-    // -------------------------
-    if (match(TokenType::KW_FOR)) {
-        auto stmt = std::make_unique<Stmt>();
-        stmt->kind = Stmt::Kind::For;
-
-        consume(TokenType::LPAREN);
-        if(!check(TokenType::KW_IN))
-        stmt->for_stmt.init = parseVarDecl();
-
-        consume(TokenType::KW_IN);
-        stmt->for_stmt.source = parseExpr();
-
-        consume(TokenType::RPAREN);
-
-        stmt->for_stmt.body = parseStmt();
-
-        return stmt;
     }
 
     // -------------------------
@@ -191,30 +163,6 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         stmt->kind = Stmt::Kind::Wipe;
 
         stmt->wipe_stmt.expr = parseExpr();
-        consume(TokenType::SEMICOLON);
-
-        return stmt;
-    }
-
-    // -------------------------
-    // YIELD
-    // -------------------------
-    if (match(TokenType::KW_YIELD)) {
-        auto stmt = std::make_unique<Stmt>();
-        stmt->kind = Stmt::Kind::Yield;
-
-        consume(TokenType::SEMICOLON);
-        return stmt;
-    }
-
-    // -------------------------
-    // RESUME
-    // -------------------------
-    if (match(TokenType::KW_RESUME)) {
-        auto stmt = std::make_unique<Stmt>();
-        stmt->kind = Stmt::Kind::Resume;
-
-        stmt->resume_stmt.target = parseExpr();
         consume(TokenType::SEMICOLON);
 
         return stmt;
@@ -398,7 +346,7 @@ std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
 
             scase.is_default = false;
 
-            scase.values.push_back(parseLiteral(advance()));
+            scase.values.push_back(parseExpr(advance()));
 
             consume(TokenType::COLON,
                 "expected ':' after case");
@@ -436,18 +384,4 @@ std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
         "expected '}' after switch");
 
     return stmt;
-}
-
-std::unique_ptr<UseDecl> ParseState::parseUseDecl() {
-    std::unique_ptr<UseDecl> decl = std::make_unique<UseDecl>();
-    decl->target =
-        parseQualifiedName();
-    consume(TokenType::KW_AS,
-        "expected 'as' after qualified name");
-    if (peek().type != TokenType::IDENT)
-        error("expected alias identifier");
-    decl->alias = advance().value;
-    consume(TokenType::SEMICOLON,
-        "expected ';' after use declaration");
-    return decl;
 }
