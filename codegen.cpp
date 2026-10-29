@@ -25,7 +25,8 @@ private:
     int tempCounter_ = 0;
     std::vector<std::string> currentNamespace_;
 
-    std::string freshTemp() {
+    std::string freshTemp(bool s = false) {
+        if(s) return "t" + std::to_string(tempCounter_++);
         return "%t" + std::to_string(tempCounter_++);
     }
 
@@ -259,9 +260,9 @@ private:
 
             case Stmt::Kind::If: {
                 std::string condVal = emitExpr(stmt->if_stmt.cond.get());
-                std::string thenLabel = freshTemp() + "_then";
-                std::string elseLabel = freshTemp() + "_else";
-                std::string mergeLabel = freshTemp() + "_merge";
+                std::string thenLabel = freshTemp(true) + "_then";
+                std::string elseLabel = freshTemp(true) + "_else";
+                std::string mergeLabel = freshTemp(true) + "_merge";
 
                 out_ << "    br_if " << condVal << ", " << thenLabel << ", " << elseLabel << "\n";
                 out_ << thenLabel << ":\n";
@@ -280,14 +281,14 @@ private:
             case Stmt::Kind::SwitchCase: {
                 // 1. Evaluasi ekspresi utama yang di-switch
                 std::string condVal = emitExpr(stmt->switch_stmt.expr.get());
-                std::string switchEndLabel = freshTemp() + "_switch_end";
+                std::string switchEndLabel = freshTemp(true) + "_switch_end";
 
                 // Simpan label untuk setiap case agar bisa dilompati
                 std::vector<std::string> caseLabels;
                 for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
-                    caseLabels.push_back(freshTemp() + "_case_" + std::to_string(i));
+                    caseLabels.push_back(freshTemp(true) + "_case_" + std::to_string(i));
                 }
-                std::string defaultLabel = freshTemp() + "_default";
+                std::string defaultLabel = freshTemp(true) + "_default";
                 std::string targetDefault = defaultLabel;
 
                 // Cari apakah ada case default
