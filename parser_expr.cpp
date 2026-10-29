@@ -1,3 +1,22 @@
+bool ParseState::isStructInit() {
+    size_t save = pos;
+    try {
+        // Coba parse sebagai QualifiedName (misal: Point, pkg.Point, dll)
+        parseQualifiedName();
+        
+        // Cek apakah setelah QualifiedName terdapat token LBRACE '{'
+        bool hasLBrace = check(TokenType::LBRACE);
+        
+        // Kembalikan posisi semula (rollback)
+        pos = save;
+        return hasLBrace;
+    } catch (...) {
+        pos = save;
+        return false;
+    }
+}
+
+
 std::unique_ptr<Expr> ParseState::parsePrimary() {
     const Token& tok = peek();
 
@@ -77,7 +96,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // ------------------------
     // STRUCT INIT { ... }
     // ------------------------
-    if (match(TokenType::LBRACE)) {
+    if (isStructInit()) {
         auto expr = std::make_unique<Expr>();
         expr->kind = Expr::Kind::StructInit;
 
