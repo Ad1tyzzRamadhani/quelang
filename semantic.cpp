@@ -1805,6 +1805,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeStructInit(
     expected->base = qualifiedName(expr->struct_init.name);
     if(expected->base.empty()) return out;
 
+    std::cout << qualifiedName(expr->struct_init.name) << "\n";
     SemanticSymbol* type_symbol = resolveSymbol(qualifiedName(expr->struct_init.name));
 
     auto* st = type_symbol
