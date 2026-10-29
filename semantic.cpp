@@ -1804,8 +1804,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeStructInit(
     if (!expr || !expected || !expected->valid) return out;
         //expected->base = qualifiedName(expr->struct_init.name)!;
 
-    std::cerr << qualifiedName(expr->struct_init.name) << "\n";
-    SemanticSymbol* type_symbol = resolveSymbol(qualifiedName(expr->struct_init.name));
+    SemanticSymbol* type_symbol = resolveSymbol(expected->base);
 
     auto* st = type_symbol
         ? dynamic_cast<StructDef*>(type_symbol->declaration)
