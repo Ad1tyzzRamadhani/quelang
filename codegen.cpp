@@ -46,6 +46,17 @@ private:
         }
         return result;
     }
+    bool endsWithReturn(Stmt* stmt) {
+        if (!stmt) return false;
+        if (stmt->kind == Stmt::Kind::Return) return true;
+        if (stmt->kind == Stmt::Kind::Block) {
+            if (!stmt->block.stmts.empty()) {
+                return endsWithReturn(stmt->block.stmts.back().get());
+            }
+        }
+        return false;
+    }
+
 
     void emitNamespace(NamespaceDecl* ns) {
         if (!ns) return;
@@ -267,11 +278,16 @@ private:
                 out_ << "    br_if " << condVal << ", " << thenLabel << ", " << elseLabel << "\n";
                 out_ << thenLabel << ":\n";
                 emitStmt(stmt->if_stmt.then_block.get());
-                out_ << "    jmp " << mergeLabel << "\n";
+                if (!endsWithReturn(stmt->if_stmt.then_block.get())) {
+                    out_ << "    jmp " << mergeLabel << "\n";
+                }
 
                 out_ << elseLabel << ":\n";
                 if (stmt->if_stmt.else_block) {
                     emitStmt(stmt->if_stmt.else_block.get());
+                    if (!endsWithReturn(stmt->if_stmt.else_block.get())) {
+                        out_ << "    jmp " << mergeLabel << "\n";
+                    }
                 }
                 out_ << "    jmp " << mergeLabel << "\n";
                 out_ << mergeLabel << ":\n";
@@ -327,7 +343,9 @@ private:
                     if (c.body) {
                         emitStmt(c.body.get());
                     }
-                    out_ << "    jmp " << switchEndLabel << "\n";
+                    if (!endsWithReturn(c.body.get())) {
+                        out_ << "    jmp " << switchEndLabel << "\n";
+                    }
                 }
 
                 // Emit blok default jika didefinisikan secara terpisah
