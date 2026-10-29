@@ -37,7 +37,7 @@ struct Literal : Node {
 
 // Type System
 
-enum class TypeQualifier { Const, Volatile, Atomic, Unaligned};
+enum class TypeQualifier { Const, Volatile, Atomic};
 
 struct TypeModifier {
     enum class Kind { Pointer, Reference, Restrict , FuncPtr } kind;
@@ -68,7 +68,7 @@ enum class BinaryOp {
 };
 
 enum class UnaryOp {
-    Neg, Deref, Ref, Not, BitNot, Move, CoDone
+    Neg, Deref, Ref, Not, BitNot, Move
 };
 
 enum class AssignOp {
@@ -126,7 +126,7 @@ struct Expr : Node {
 
     // PostFix Op
     struct PostfixOp {
-        enum class Kind { MemberAccess, StaticAccess, SafeArrow, Scope, Arrow, Call, Index } kind;
+        enum class Kind { MemberAccess, SafeArrow, Arrow, Call, Index } kind;
 
         std::string name;
         std::vector<std::unique_ptr<Expr>> args;
@@ -153,7 +153,7 @@ struct Expr : Node {
     } new_expr;
 
     struct {
-        std::unique_ptr<Type> name;
+        std::unique_ptr<Type> typename;
         std::vector<std::pair<std::optional<std::string>, std::unique_ptr<Expr>>> fields;
     } struct_init;
 
@@ -188,11 +188,11 @@ struct VarDecl : Node {
 
 struct Stmt : Node {
     enum class Kind {
-        VarDecl, If, While, DoStmt, For, Resume,
+        VarDecl, If, While, DoStmt,
         Return, Break, Continue, SwitchCase,
-        ExprStmt, Block, UseStmt, ThrowStmt,
+        ExprStmt, Block, ThrowStmt,
         Label, Jump, Unsafe,
-        Drop, Wipe, Yield
+        Drop, Wipe,
     } kind;
 
     struct {
@@ -228,12 +228,6 @@ struct Stmt : Node {
         std::unique_ptr<Stmt> catch_body;
     } do_stmt;
 
-    struct {
-        VarDecl init;
-        std::unique_ptr<Expr> source;
-        std::unique_ptr<Stmt> body;
-    } for_stmt;
-
     struct SwitchStmt {
         std::unique_ptr<Expr> expr;
 
@@ -264,10 +258,6 @@ struct Stmt : Node {
     } throw_stmt;
 
     struct {
-        std::unique_ptr<Expr> target;
-    } resume_stmt;
-
-    struct {
         std::unique_ptr<Stmt> stmt;
     } unsafe_stmt;
 
@@ -289,7 +279,6 @@ struct ForwardDecl : Node {
     std::unique_ptr<Type> throws_type;
     bool is_static = false;
     bool is_extern = false;
-    bool is_coroutine = false;
     bool is_const = false; // void foo() const;
     bool is_noreturn = false;
     bool is_throws = false;
@@ -311,7 +300,6 @@ struct Function : Node {
     std::unique_ptr<Stmt> body;
     std::unique_ptr<Type> throws_type;
 
-    bool is_coroutine = false;
     bool is_static = false; // static void foo();
     bool is_const = false; // void foo() const;
     bool is_noreturn = false;
@@ -370,14 +358,7 @@ struct EnumDef : Node {
     };
 
     std::vector<Item> items;
-};
-
-// Module & Program
-
-struct UseDecl : Node {
-    std::unique_ptr<QualifiedName> target;
-    std::optional<std::string> alias;
-};
+}
 
 struct NamespaceDecl : Node {
     std::unique_ptr<QualifiedName> name;
