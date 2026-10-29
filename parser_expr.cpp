@@ -3,6 +3,7 @@ bool ParseState::isStructInit() {
     try {
         // Coba parse sebagai QualifiedName (misal: Point, pkg.Point, dll)
         parseQualifiedName();
+        std::cout << "Checking Struct Init" << "\n";
         
         // Cek apakah setelah QualifiedName terdapat token LBRACE '{'
         bool hasLBrace = check(TokenType::LBRACE);
