@@ -36,6 +36,7 @@ struct ParseState {
     std::unique_ptr<StructDef> parseStructDef(Visibility visibility);
     bool isPrimitiveType(TokenType t);
     bool isForwardDeclAhead();
+    bool isStructInit();
     bool isTypeStart(const Token& tok);
     std::unique_ptr<Expr> parseExpr();
     std::unique_ptr<Stmt> parseStmt();
