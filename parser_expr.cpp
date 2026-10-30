@@ -51,7 +51,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     if (isStructInit()) {
         //std::cout << " Parse StructInit" << "\n";
         auto expr = std::make_unique<Expr>();
-        expr->struct_init.name = parseType();
+        expr->struct_init.type_name = parseType();
         expr->kind = Expr::Kind::StructInit;
 
         if (!check(TokenType::RBRACE)) {
