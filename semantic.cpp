@@ -222,14 +222,12 @@ void SemanticAnalyzer::registerFunction(Function& fn) {
     symbol->is_static = fn.is_static;
     symbol->is_const = fn.is_const;
     symbol->is_noreturn = fn.is_noreturn;
-    symbol->is_coroutine = fn.is_coroutine;
     symbol->is_throws = fn.is_throws;
     symbol->is_defined = fn.body != nullptr;
     symbol->qualified_name = symbol->name;
     symbol->function_signature = std::make_unique<FunctionSignature>();
     symbol->function_signature->return_type = fn.return_types.get();
     symbol->function_signature->throws_type = fn.throws_type.get();
-    symbol->function_signature->is_coroutine = fn.is_coroutine;
     symbol->function_signature->is_const = fn.is_const;
     symbol->function_signature->is_noreturn = fn.is_noreturn;
     symbol->function_signature->is_throws = fn.is_throws;
@@ -252,7 +250,6 @@ void SemanticAnalyzer::registerForward(ForwardDecl& decl) {
     symbol->is_extern = decl.is_extern;
     symbol->is_const = decl.is_const;
     symbol->is_noreturn = decl.is_noreturn;
-    symbol->is_coroutine = decl.is_coroutine;
     symbol->is_throws = decl.is_throws;
     symbol->is_forward = true;
     symbol->is_defined = false;
@@ -261,7 +258,6 @@ void SemanticAnalyzer::registerForward(ForwardDecl& decl) {
         symbol->function_signature = std::make_unique<FunctionSignature>();
         symbol->function_signature->return_type = decl.return_types.get();
         symbol->function_signature->throws_type = decl.throws_type.get();
-        symbol->function_signature->is_coroutine = decl.is_coroutine;
         symbol->function_signature->is_const = decl.is_const;
         symbol->function_signature->is_noreturn = decl.is_noreturn;
         symbol->function_signature->is_throws = decl.is_throws;
@@ -795,7 +791,7 @@ void SemanticAnalyzer::analyzeSwitch(Stmt& stmt) {
     for (auto& c : stmt.switch_stmt.cases) {
         for (auto& lit : c.values) {
             if (!lit) continue;
-            TypeView t = analyzeLiteral(lit.get());
+            TypeView t = analyzeExpr(lit.get());
             if (!isAssignable(value, t))
                 error(lit.get(), "switch case type " + typeString(t) +
                     " does not match switch expression type " + typeString(value));
@@ -839,56 +835,6 @@ void SemanticAnalyzer::analyzeDo(Stmt& stmt) {
     }
 }
 
-void SemanticAnalyzer::analyzeFor(Stmt& stmt) {
-    symbols_.enterScope("for");
-    if (!stmt.for_stmt.init.items.empty()) {
-        VarDecl& init = stmt.for_stmt.init;
-        validateType(init.type.get(), &init, false);
-        for (auto& item : init.items) {
-            auto symbol = std::make_unique<SemanticSymbol>();
-            symbol->name = item.name;
-            symbol->kind = SymbolKind::Variable;
-            symbol->declaration = &init;
-            symbol->type = init.type.get();
-            symbol->is_defined = true;
-            declareSymbol(std::move(symbol), &init);
-            if (item.init) analyzeExpr(item.init.get());
-        }
-    }
-    TypeView source;
-    if (stmt.for_stmt.source) source = analyzeExpr(stmt.for_stmt.source.get());
-    bool is_ptr=false, is_ref=false, is_array=!source.array_size.empty();
-    if (!source.modifiers.empty()) {
-        auto last = source.modifiers.back();
-
-        is_ptr = last == TypeModifier::Kind::Pointer;
-        is_ref = last == TypeModifier::Kind::Reference;
-    }
-    std::string base_name = qualifiedName(stmt.for_stmt.source->ident);
-    auto* symbol = resolveSymbol(base_name);
-    if (symbol->kind == SymbolKind::Variable) {
-        if (auto* decl = dynamic_cast<VarDecl*>(symbol->declaration)) {
-            for(auto& item : decl->items) {
-            if(item.name == base_name)
-            if(item.is_array) is_array = true;
-            }
-        }
-    }
-
-    /*auto target = view(symbol->type);
-    for(auto& kind : target.modifiers) {
-        if(kind == TypeModifier::Kind::Pointer) is_ptr = true;
-        if(kind == TypeModifier::Kind::Reference) is_ref = true;
-        if(!target.array_size.empty()) is_array = true;
-    }*/
-    if(!is_ptr && !is_ref && !is_array)
-    error(&stmt, "Iteration must be Pointer or Reference or Fixed Size Array");
-    function_stack_.back().loop_depth++;
-    if (stmt.for_stmt.body) analyzeStmt(*stmt.for_stmt.body);
-    function_stack_.back().loop_depth--;
-    symbols_.exitScope();
-}
-
 void SemanticAnalyzer::analyzeStmt(Stmt& stmt) {
     switch (stmt.kind) {
         case Stmt::Kind::VarDecl:
@@ -917,12 +863,6 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt) {
         case Stmt::Kind::DoStmt:
             analyzeDo(stmt);
             return;
-        case Stmt::Kind::For:
-            analyzeFor(stmt);
-            return;
-        case Stmt::Kind::Resume:
-            checkResume(stmt);
-            return;
         case Stmt::Kind::Return:
             checkReturn(stmt);
             return;
@@ -942,10 +882,6 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt) {
             return;
         case Stmt::Kind::Block:
             analyzeBlock(stmt);
-            return;
-        case Stmt::Kind::UseStmt:
-            if (stmt.use_stmt && stmt.use_stmt->target && !resolveQualified(stmt.use_stmt->target))
-                error(stmt.use_stmt.get(), "unknown use target '" + qualifiedName(stmt.use_stmt->target) + "'");
             return;
         case Stmt::Kind::ThrowStmt:
             checkThrow(stmt);
@@ -967,9 +903,6 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt) {
         case Stmt::Kind::Wipe:
             checkWipe(stmt);
             return;
-        case Stmt::Kind::Yield:
-            checkYield(stmt);
-            return;
     }
 }
 
@@ -985,8 +918,6 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
         out.modifiers.push_back(mod.kind);
         if (mod.kind == TypeModifier::Kind::FuncPtr) {
             FunctionTypeView fn;
-            out.is_coroutine = mod.is_coroutine;
-            fn.is_coroutine = mod.is_coroutine;
             for (auto& param : mod.func_params)
             fn.parameters.push_back(view(param.get()));
             if (mod.func_return) {
