@@ -358,7 +358,7 @@ struct EnumDef : Node {
     };
 
     std::vector<Item> items;
-}
+};
 
 struct NamespaceDecl : Node {
     std::unique_ptr<QualifiedName> name;
