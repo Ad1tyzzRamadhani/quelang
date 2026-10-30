@@ -1469,38 +1469,6 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeUnary(Expr* expr) {
             symbol->state = SymbolState::Moved;
             return t;
         }
-        case UnaryOp::CoDone: {
-            Expr* operand = expr->unary.expr.get();
-
-            if (!operand) {
-                error(expr, "co_done requires a coroutine handle");
-                return {};
-            }
-
-            TypeView handle = analyzeExpr(operand);
-            if (!handle.valid)
-                return {};
-  
-            const bool is_coroutine_handle =
-                handle.is_coroutine &&
-                std::find(
-                    handle.modifiers.begin(),
-                    handle.modifiers.end(),
-                    TypeModifier::Kind::FuncPtr
-                ) != handle.modifiers.end();
-
-            if (!is_coroutine_handle) {
-                error(expr,
-                    "co_done requires a coroutine handle, got " +
-                    typeString(handle));
-                return {};
-            }
-
-            TypeView result;
-            result.base = "bool";
-            result.valid = true;
-            return result;
-        }
     }
     return t;
 }
