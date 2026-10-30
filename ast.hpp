@@ -233,7 +233,7 @@ struct Stmt : Node {
 
         struct Case {
             bool is_default = false;
-            std::vector<std::unique_ptr<Literal>> values;
+            std::vector<std::unique_ptr<Expr>> values;
             std::unique_ptr<Stmt> body;
         };
 
