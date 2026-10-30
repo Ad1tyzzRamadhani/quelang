@@ -414,8 +414,9 @@ private:
                 std::string structName = "AnonymousStruct";
                 if (symbolTypes_.find(varName) != symbolTypes_.end()) {
                     structName = symbolTypes_[varName];
-                    if(structName.empty()) structName = qualifyName(expr->struct_init.type_name->base.get());
-                }
+                std::cout << structName << " Jadi -> ";
+                if(structName.empty()) structName = qualifyName(expr->struct_init.type_name->base.get());
+                std::cout << structName << "\n";
 
                 std::string allocRes = freshTemp();
                 out_ << "    " << allocRes << " = alloca.ptr\n"; // Alokasi pointer penampung struct
