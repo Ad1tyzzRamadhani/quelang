@@ -42,9 +42,6 @@ std::unique_ptr<Node> ParseState::parseTopLevelDecl() {
         case TokenType::KW_NAMESPACE:
             return parseNamespaceDecl();
 
-        case TokenType::KW_USE:
-            return parseUseDecl();
-
         case TokenType::KW_STRUCT:
             return parseStructDef(visibility);
 
@@ -287,12 +284,7 @@ bool ParseState::isForwardDeclAhead() {
          * ;
          */
 
-        if (match(TokenType::KW_CO)) {
-            match(TokenType::KW_CONST);
-        }
-        else {
-            match(TokenType::KW_CONST);
-        }
+        match(TokenType::KW_CONST);
 
         if (match(TokenType::KW_THROWS)) {
             parseType();
@@ -387,13 +379,6 @@ std::unique_ptr<Function> ParseState::parseFunction(Visibility visibility) {
         TokenType::RPAREN,
         "expected ')' after function parameters"
     );
-
-    /*
-     * CoroutineOpt
-     */
-    if (match(TokenType::KW_CO)) {
-        fn->is_coroutine = true;
-    }
 
     /*
      * ConstOpt
@@ -508,13 +493,6 @@ std::unique_ptr<ForwardDecl> ParseState::parseForwardDecl(Visibility visibility)
         TokenType::RPAREN,
         "expected ')' in function declaration"
     );
-
-    /*
-     * coroutine
-     */
-    if (match(TokenType::KW_CO)) {
-        decl->is_coroutine = true;
-    }
 
     /*
      * const
