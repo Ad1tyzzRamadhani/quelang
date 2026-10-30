@@ -54,6 +54,8 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         expr->struct_init.type_name = parseType();
         expr->kind = Expr::Kind::StructInit;
 
+        consume(TokenType::LBRACE, "expected '{' in struct initialization");
+
         if (!check(TokenType::RBRACE)) {
             do {
                 // field = expr OR expr
