@@ -151,11 +151,6 @@ private:
         std::string retType = emitType(func->return_types.get());
         std::string name = qualifyName(func->name.get(), "AnonymousFunction");
         tempCounter_ = 0;
-
-        if (func->is_coroutine) {
-            out_ << "## [COROUTINE PLACEHOLDER] Function: " << name << "\n";
-        }
-
         out_ << "def " << retType << " " << name << "(";
         
         for (size_t i = 0; i < func->params.size(); ++i) {
@@ -324,7 +319,7 @@ private:
 
                     for (const auto& valLit : c.values) {
                         std::string cmpRes = freshTemp();
-                        std::string litVal = valLit->value; // Nilai literal pembanding
+                        std::string litVal = qualifyName(valLit->ident); // Nilai literal pembanding
                         
                         // Lakukan perbandingan kesamaan (eq)
                         out_ << "    " << cmpRes << " = eq.i32 " << condVal << ", " << litVal << "\n";
