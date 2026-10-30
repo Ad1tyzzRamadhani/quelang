@@ -414,6 +414,7 @@ private:
                 std::string structName = "AnonymousStruct";
                 if (symbolTypes_.find(varName) != symbolTypes_.end()) {
                     structName = symbolTypes_[varName];
+                    if(structName.empty()) structName = qualifyName(expr->struct_init.type_name->base);
                 }
 
                 std::string allocRes = freshTemp();
