@@ -1695,7 +1695,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeStructInit(
 ) {
     TypeView out;
 
-    if (!expr || !expected) return out;
+    if (!expr || !expected)
         *expected = view(expr->struct_init.type_name);
     std::cout << expected->base << std::endl;
 
