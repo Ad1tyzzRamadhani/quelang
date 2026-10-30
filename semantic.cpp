@@ -1732,7 +1732,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeStructInit(
 ) {
     TypeView out;
 
-    if (!expr || !expected || !expected->base) return out;
+    if (!expr || !expected) return out;
         //expected->base = qualifiedName(expr->struct_init.name)!;
 
     SemanticSymbol* type_symbol = resolveSymbol(expected->base);
@@ -2419,41 +2419,7 @@ std::cerr << "pending_function = "
           << (pending_function ? "YES" : "NO")
           << '\n';
 std::cerr << "==================\n";*/
-                if (pending_function && pending_function->is_coroutine) {
-                    SemanticSymbol callable;
-                    callable.name = pending_owner + "::" +
-                        (pending_function->name && !pending_function->name->parts.empty()
-                            ? pending_function->name->parts.back() : "function");
-                    callable.kind = SymbolKind::Function;
-                    callable.function_signature = std::make_unique<FunctionSignature>();
-                    callable.function_signature->return_type = pending_function->return_types.get();
-                    callable.function_signature->throws_type = pending_function->throws_type.get();
-                    callable.function_signature->is_coroutine = pending_function->is_coroutine;
-                    callable.function_signature->is_const = pending_function->is_const;
-                    callable.function_signature->is_noreturn = pending_function->is_noreturn;
-                    callable.function_signature->is_throws = pending_function->is_throws;
-    
-                    for (auto& p : pending_function->params)
-                        if (p.type) callable.function_signature->parameters.push_back(p.type.get());
-                    checkFunctionCall(callable, op.args, expr, ret);
-                    ret.function = new FunctionTypeView();
-                    ret.function->return_type = pending_function->return_types.get();
-                    ret.function->throws_type = pending_function->throws_type.get();
-                    ret.function->is_coroutine = true;
-                    ret.valid = true;
-                    ret.is_coroutine = true;
-                    ret.base = qualifiedName(*pending_function->return_types->base);
-                    ret.modifiers.push_back(TypeModifier::Kind::FuncPtr);
-                    ret.function = new FunctionTypeView();
-                    ret.function->return_type =
-                    pending_function->return_types.get();
-
-                    for (auto& p : pending_function->params) {
-                        if (p.type)
-                        ret.function->parameters.push_back(view(p.type.get()));
-                    }
-                    std::cout << "Found Coroutine Function Init" << "\n";
-                } else if (pending_function) {
+                if (pending_function) {
                     if(pending_function->is_coroutine) std::cout << "Coroutine Call" << "\n";
                     else std::cout << "Not Found Coroutine Call" << "\n";
                     SemanticSymbol callable;
@@ -2464,7 +2430,6 @@ std::cerr << "==================\n";*/
                     callable.function_signature = std::make_unique<FunctionSignature>();
                     callable.function_signature->return_type = pending_function->return_types.get();
                     callable.function_signature->throws_type = pending_function->throws_type.get();
-                    callable.function_signature->is_coroutine = pending_function->is_coroutine;
                     callable.function_signature->is_const = pending_function->is_const;
                     callable.function_signature->is_noreturn = pending_function->is_noreturn;
                     callable.function_signature->is_throws = pending_function->is_throws;
@@ -2645,39 +2610,6 @@ bool SemanticAnalyzer::checkThrow(Stmt& stmt) {
             " does not match throws type " + typeString(ctx.throws_type));
         return false;
     }
-    return true;
-}
-
-bool SemanticAnalyzer::checkResume(Stmt& stmt) {
-    TypeView target =
-        analyzeExpr(stmt.resume_stmt.target.get());
-
-    if (!target.valid)
-        return false;
-
-    const bool is_coroutine_handle =
-        target.is_coroutine &&
-        std::find(
-            target.modifiers.begin(),
-            target.modifiers.end(),
-            TypeModifier::Kind::FuncPtr
-        ) != target.modifiers.end();
-
-    if (!is_coroutine_handle) {
-        error(&stmt,
-            "resume requires a coroutine handle");
-        return false;
-    }
-
-    return true;
-}
-
-bool SemanticAnalyzer::checkYield(Stmt& stmt) {
-    if (function_stack_.empty() || !function_stack_.back().is_coroutine) {
-        error(&stmt, "yield is only valid inside a coroutine");
-        return false;
-    }
-    if (stmt.expr_stmt) analyzeExpr(stmt.expr_stmt.get());
     return true;
 }
 
