@@ -52,7 +52,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         std::cout << " Parse StructInit" << "\n";
         auto expr = std::make_unique<Expr>();
         expr->struct_init.type_name = parseType();
-        std::cout << expr->struct_init.type_name->base.pop_back() << std::endl;
+        std::cout << expr->struct_init.type_name->base->parts.pop_back() << std::endl;
         expr->kind = Expr::Kind::StructInit;
 
         consume(TokenType::LBRACE, "expected '{' in struct initialization");
