@@ -792,7 +792,7 @@ void SemanticAnalyzer::analyzeSwitch(Stmt& stmt) {
             if (!isAssignable(value, t))
                 error(lit.get(), "switch case type " + typeString(t) +
                     " does not match switch expression type " + typeString(value));
-            const std::string key = lit->value;
+            const std::string key = qualifiedName(lit->ident);
             if (!seen.insert(key).second)
                 error(lit.get(), "duplicate switch case '" + key + "'");
         }
