@@ -30,7 +30,7 @@ int main() {
     std::cerr << diagnostic.file + " : " << diagnostic.line << ":" << diagnostic.column << ": " + diagnostic.message + "\n";
   }
   std::string outputcru = codegen(ast.get());
-  std::cerr << outputcru;
+  
   std::ofstream outFile("a.cro");
   outFile << outputcru;
   } catch (const std::exception& e) {
