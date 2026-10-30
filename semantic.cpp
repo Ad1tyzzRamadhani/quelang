@@ -2199,34 +2199,6 @@ std::cout << "CURRENT MODIFIERS: "
                 }
                 break;
             }
-            case Expr::PostfixOp::Kind::StaticAccess:
-            case Expr::PostfixOp::Kind::Scope: {
-                std::string type_name = current.base;
-                MemberInfo m = findStaticMember(type_name, op.name);
-                if (!m.found) {
-                    error(expr, "type '" + type_name + "' has no static member '" + op.name + "'");
-                    return {};
-                }
-                pending_symbol = nullptr;
-                pending_function = m.function;
-                pending_owner = type_name;
-                if (m.is_function) current = {};
-                else if (m.type) {
-                    current = view(m.type);
-                    if (!m.is_function) {
-                        current.array_size = m.array_size;
-                        current.is_array = !current.array_size.empty();
-                    }
-                } else {
-                    current = {};
-                    if (resolveSymbol(type_name) &&
-                        resolveSymbol(type_name)->kind == SymbolKind::Enum) {
-                        current.base = type_name;
-                        current.valid = true;
-                    }
-                }
-                break;
-            }
             case Expr::PostfixOp::Kind::Call: {
                 TypeView ret;
                 SemanticSymbol* call_symbol = pending_symbol;
@@ -2383,8 +2355,6 @@ std::cerr << "pending_function = "
           << '\n';
 std::cerr << "==================\n";*/
                 if (pending_function) {
-                    if(pending_function->is_coroutine) std::cout << "Coroutine Call" << "\n";
-                    else std::cout << "Not Found Coroutine Call" << "\n";
                     SemanticSymbol callable;
                     callable.name = pending_owner + "::" +
                         (pending_function->name && !pending_function->name->parts.empty()
