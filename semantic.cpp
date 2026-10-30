@@ -191,7 +191,6 @@ void SemanticAnalyzer::registerNode(Node& node) {
     if (auto* u = dynamic_cast<UnionDef*>(&node)) return registerUnion(*u);
     if (auto* n = dynamic_cast<NamespaceDecl*>(&node)) return registerNamespace(*n);
     if (auto* fd = dynamic_cast<ForwardDecl*>(&node)) return registerForward(*fd);
-    if (dynamic_cast<UseDecl*>(&node)) return;
 }
 
 void SemanticAnalyzer::registerVar(VarDecl& decl) {
@@ -365,7 +364,6 @@ void SemanticAnalyzer::resolveNode(Node& node) {
     if (auto* u = dynamic_cast<UnionDef*>(&node)) return resolveUnion(*u);
     if (auto* n = dynamic_cast<NamespaceDecl*>(&node)) return resolveNamespace(*n);
     if (auto* fd = dynamic_cast<ForwardDecl*>(&node)) return resolveForward(*fd);
-    if (dynamic_cast<UseDecl*>(&node)) return;
 }
 
 void SemanticAnalyzer::resolveNamespace(NamespaceDecl& ns) {
@@ -565,7 +563,6 @@ void SemanticAnalyzer::analyzeFunctionBody(Function& fn) {
     ctx.function = &fn;
     ctx.return_type = fn.return_types.get();
     ctx.throws_type = fn.throws_type.get();
-    ctx.is_coroutine = fn.is_coroutine;
     ctx.is_noreturn = fn.is_noreturn;
     ctx.is_throws = fn.is_throws;
     ctx.struct_name = current_struct_;
@@ -940,7 +937,6 @@ std::string SemanticAnalyzer::typeString(const TypeView& type) const {
         if (q == TypeQualifier::Const) out += "const ";
         else if (q == TypeQualifier::Volatile) out += "volatile ";
         else if (q == TypeQualifier::Atomic) out += "atomic ";
-        else if (q == TypeQualifier::Unaligned) out += "unaligned ";
     }
     out += type.base;
     for (auto m : type.modifiers) {
@@ -1363,7 +1359,6 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
 
             if (symbol->kind == SymbolKind::Function ||
                 symbol->kind == SymbolKind::ForwardFunction) {
-                if(symbol->is_coroutine) error(expr, "Coroutine function must initialize uses '()'");
                 TypeView t;
                 t.base = "funcptr";
                 t.valid = true;
