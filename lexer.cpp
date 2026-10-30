@@ -387,7 +387,7 @@ const std::unordered_map<std::string,TokenType> Lexer::keyword_map={
     {"noreturn",TokenType::KW_NORETURN},{"extern",TokenType::KW_EXTERN},{"move",TokenType::KW_MOVE},
     {"default",TokenType::KW_DEFAULT},{"atomic",TokenType::KW_ATOMIC},{"restrict",TokenType::KW_RESTRICT},
     {"not", TokenType::KW_NOT},{"switch",TokenType::KW_SWITCH},{"case",TokenType::KW_CASE},{"none",TokenType::KW_NONE},
-    {"jumpto",TokenType::KW_JUMPTO},{"unsafe",TokenType::KW_UNSAFE},{"unaligned",TokenType::KW_UNALIGNED},
+    {"jumpto",TokenType::KW_JUMPTO},{"unsafe",TokenType::KW_UNSAFE},
     {"new",TokenType::KW_NEW},{"throws",TokenType::KW_THROWS},
     {"construct",TokenType::KW_CONSTRUCT},{"throw",TokenType::KW_THROW},{"catch",TokenType::KW_CATCH}
 };
