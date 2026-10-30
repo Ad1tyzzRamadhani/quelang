@@ -127,7 +127,6 @@ bool ParseState::isVarDeclAhead() {
             check(TokenType::KW_CONST) ||
             check(TokenType::KW_VOLATILE) ||
             check(TokenType::KW_ATOMIC) ||
-            check(TokenType::KW_UNALIGNED)
         ) {
             advance();
         }
