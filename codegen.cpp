@@ -319,7 +319,7 @@ private:
 
                     for (const auto& valLit : c.values) {
                         std::string cmpRes = freshTemp();
-                        std::string litVal = qualifyName(valLit->ident); // Nilai literal pembanding
+                        std::string litVal = qualifyName(valLit->ident.get()); // Nilai literal pembanding
                         
                         // Lakukan perbandingan kesamaan (eq)
                         out_ << "    " << cmpRes << " = eq.i32 " << condVal << ", " << litVal << "\n";
