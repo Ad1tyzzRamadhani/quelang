@@ -1696,7 +1696,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeStructInit(
     TypeView out;
 
     if (!expr || !expected) return out;
-        //expected->base = qualifiedName(expr->struct_init.name)!;
+        *expected = qualifiedName(expr->struct_init.type_name);
 
     SemanticSymbol* type_symbol = resolveSymbol(expected->base);
 
