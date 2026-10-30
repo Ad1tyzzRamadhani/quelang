@@ -46,6 +46,43 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     }
 
     // ------------------------
+    // STRUCT INIT { ... }
+    // ------------------------
+    if (isStructInit()) {
+        //std::cout << " Parse StructInit" << "\n";
+        auto expr = std::make_unique<Expr>();
+        expr->struct_init.name = parseType();
+        expr->kind = Expr::Kind::StructInit;
+
+        if (!check(TokenType::RBRACE)) {
+            do {
+                // field = expr OR expr
+                if (peek().type == TokenType::IDENT &&
+                    peek(1).type == TokenType::EQ) 
+                {
+                    std::string name = advance().value;
+                    consume(TokenType::EQ, "Expected EQ in Struct Init");
+
+                    expr->struct_init.fields.push_back({
+                        name,
+                        parseExpr()
+                    });
+                } else {
+                    expr->struct_init.fields.push_back({
+                        std::nullopt,
+                        parseExpr()
+                    });
+                }
+
+            } while (match(TokenType::COMMA));
+        }
+
+        consume(TokenType::RBRACE, "expected '}'");
+
+        return expr;
+    }
+
+    // ------------------------
     // IDENT / QUALIFIED NAME
     // ------------------------
     if (tok.type == TokenType::IDENT) {
@@ -90,43 +127,6 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         }
 
         consume(TokenType::RBRACKET, "expected ']'");
-
-        return expr;
-    }
-
-    // ------------------------
-    // STRUCT INIT { ... }
-    // ------------------------
-    if (match(TokenType::LBRACE)) {
-        //std::cout << " Parse StructInit" << "\n";
-        auto expr = std::make_unique<Expr>();
-        //expr->struct_init.name = parseType();
-        expr->kind = Expr::Kind::StructInit;
-
-        if (!check(TokenType::RBRACE)) {
-            do {
-                // field = expr OR expr
-                if (peek().type == TokenType::IDENT &&
-                    peek(1).type == TokenType::EQ) 
-                {
-                    std::string name = advance().value;
-                    consume(TokenType::EQ, "Expected EQ in Struct Init");
-
-                    expr->struct_init.fields.push_back({
-                        name,
-                        parseExpr()
-                    });
-                } else {
-                    expr->struct_init.fields.push_back({
-                        std::nullopt,
-                        parseExpr()
-                    });
-                }
-
-            } while (match(TokenType::COMMA));
-        }
-
-        consume(TokenType::RBRACE, "expected '}'");
 
         return expr;
     }
