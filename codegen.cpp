@@ -598,26 +598,37 @@ private:
                         std::string loadRes = freshTemp();
                         out_ << "    " << loadRes << " = load." + varType + " " << elemAddrRes << "\n";
                         return loadRes;
-                    } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess) {
-                        // Dukungan akses field struct menggunakan field.addr CRU
-                        std::string fieldAddrRes = freshTemp();
-                        // Catatan: Indeks field diasumsikan berbasis posisi atau dicari dari metadata struct. 
-                        // Untuk contoh dasar, kita gunakan indeks 0 atau parse nama field.
-                        int fieldIndex = 0; 
-                        std::string structTypeName = "AnonymousStruct";
-                        if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
-                            structTypeName = symbolTypes_[baseName];
+                    } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess || 
+                               op.kind == Expr::PostfixOp::Kind::Arrow || 
+                               op.kind == Expr::PostfixOp::Kind::SafeArrow) 
+                        {
+                        // Cari informasi struct berdasarkan tipe basis variabel
+                        int fieldIndex = 0;
+                        std::string fieldType = "i32";
+            
+                        if (structDefinitions_.find(currentType) != structDefinitions_.end()) {
+                            const auto& sInfo = structDefinitions_[currentType];
+                            for (const auto& f : sInfo.fields) {
+                                if (f.name == op.name) {
+                                    fieldIndex = f.index;
+                                    fieldType = f.type;
+                                    break;
+                                }
+                            }  
                         }
 
-
-                        out_ << "    " << fieldAddrRes << " = field.addr " << structTypeName << ", " << currentReg << ", " << fieldIndex << "\n";
-                        
+                        std::string fieldAddrRes = freshTemp();
+                        out_ << "    " << fieldAddrRes << " = field.addr " << currentType << ", " << currentReg << ", " << fieldIndex << "\n";
+            
                         std::string loadRes = freshTemp();
-                        out_ << "    " << loadRes << " = load.i32 " << fieldAddrRes << "\n";
+                        out_ << "    " << loadRes << " = load." << fieldType << " " << fieldAddrRes << "\n";
+             
                         currentReg = loadRes;
+                        currentType = fieldType;
                     }
+
                 }
-                break;
+                return currentReg;
             }
 
             default:
