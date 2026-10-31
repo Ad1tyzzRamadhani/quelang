@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
 
             // Konstruksi perintah gcc/ld otomatis
             // Contoh: gcc a.cro.s file_tambahan.o -o binary_name
-            std::string compile_cmd = "gcc " + temp_asm;
+            std::string compile_cmd = "./cro" + temp_asm;
             for (const auto& link_f : linked_files) {
                 compile_cmd += " " + link_f;
             }
