@@ -25,6 +25,21 @@ private:
     int tempCounter_ = 0;
     std::vector<std::string> currentNamespace_;
 
+    // Tambahkan di dalam kelas QuelangToCruCodegen (bagian private):
+    struct FieldInfo {
+        std::string name;
+        std::string type;
+        int index;
+    };
+
+    struct StructInfo {
+        std::string name;
+        std::vector<FieldInfo> fields;
+    };
+
+    std::unordered_map<std::string, StructInfo> structDefinitions_;
+  
+
     std::string freshTemp(bool s = false) {
         if(s) return "t" + std::to_string(tempCounter_++);
         return "%t" + std::to_string(tempCounter_++);
@@ -174,15 +189,21 @@ private:
     void emitStruct(StructDef* structDef) {
         std::string name = qualifyName(structDef->name.get(), "AnonymousStruct");
         out_ << "struct " << name << ":\n";
+        StructInfo info;
+        info.name = name;
+        int index = 0;
         
         for (const auto& member : structDef->members) {
+            std::string fieldType = emitType(var->type.get());
             if (auto var = dynamic_cast<VarDecl*>(member.get())) {
                 for (const auto& item : var->items) {
-                    out_ << "    " << item.name << ": " << emitType(var->type.get()) << "\n";
+                    out_ << "    " << item.name << ": " << fieldType << "\n";
+                    info.fields.push_back({item.name, fieldType, index++});
                 }
             }
         }
         out_ << "end\n\n";
+        structDefinitions_[name] = info;
     }
 
     void emitUnion(UnionDef* unionDef) {
