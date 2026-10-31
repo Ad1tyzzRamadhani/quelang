@@ -412,11 +412,14 @@ private:
             case Expr::Kind::StructInit: {
                 // 1. Alokasikan memori struct di stack (menggunakan nama struct atau generic ptr)
                 std::string structName = "AnonymousStruct";
-                if (symbolTypes_.find(varName) != symbolTypes_.end()) 
-                    structName = symbolTypes_[varName];
-                std::cout << structName << " Jadi -> ";
-                if(structName.empty()) structName = qualifyName(expr->struct_init.type_name->base.get());
-                std::cout << structName << "\n";
+                if (expr->struct_init.type_name && expr->struct_init.type_name->base) {
+                structName = qualifyName(expr->struct_init.type_name->base.get());
+                } 
+                // Fallback ke symbolTypes jika structName masih default
+                else if (symbolTypes_.find(varName) != symbolTypes_.end()) {
+                structName = symbolTypes_[varName];
+                }
+
 
                 std::string allocRes = freshTemp();
                 out_ << "    " << allocRes << " = alloca.ptr\n"; // Alokasi pointer penampung struct
