@@ -99,36 +99,25 @@ int main(int argc, char* argv[]) {
 
         // --- PROSES LINKING / ASSEMBLING KE BINARY (Jika -o ditentukan) ---
         if (!binary_output_file.empty()) {
-            // Kita ubah file .cro menjadi file assembly/object lalu panggil gcc/ld di bawah hood
-            std::string temp_asm = cro_output_file + ".s";
+            // Sesuai permintaan: jalankan `./cro file.cro -o temp_output` terlebih dahulu
+            std::string cro_exec_cmd = "./cro " + cro_output_file + " -o " + binary_output_file;
             
-            // Simpan outputcru sebagai file assembly (.s) sementara untuk dirakit oleh gcc
-            std::ofstream asmFile(temp_asm);
-            asmFile << outputcru;
-            asmFile.close();
-
-            // Konstruksi perintah gcc/ld otomatis
-            // Contoh: gcc a.cro.s file_tambahan.o -o binary_name
-            std::string compile_cmd = "./cro" + temp_asm;
+            // Jika ada file tambahan dari flag `-l`, kita bisa teruskan atau gabungkan ke proses linking
             for (const auto& link_f : linked_files) {
-                compile_cmd += " " + link_f;
+                cro_exec_cmd += " " + link_f;
             }
-            compile_cmd += " -o " + binary_output_file;
 
-            std::cout << "Running linker/assembler: " << compile_cmd << "\n";
-            int link_result = std::system(compile_cmd.c_str());
+            std::cout << "Running IR processor: " << cro_exec_cmd << "\n";
+            int exec_result = std::system(cro_exec_cmd.c_str());
 
-            // Bersihkan file assembly sementara
-            std::string rm_cmd = "rm " + temp_asm;
-            std::system(rm_cmd.c_str());
-
-            if (link_result != 0) {
-                std::cerr << "CRITICAL EXCEPTION: Linker failed to produce binary executable.\n";
+            if (exec_result != 0) {
+                std::cerr << "CRITICAL EXCEPTION: './cro' execution failed.\n";
                 return 1;
             }
 
             std::cout << "Binary compilation successful! Executable created: " << binary_output_file << "\n";
         }
+
 
         return 0;
 
