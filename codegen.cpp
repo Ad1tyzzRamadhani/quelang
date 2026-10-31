@@ -429,10 +429,20 @@ private:
                 for (const auto& fieldPair : expr->struct_init.fields) {
                     std::string valRes = emitExpr(fieldPair.second.get());
                     std::string fieldAddrRes = freshTemp();
+
+                    std::string fieldType = "i32"; // Fallback default
+                    
+                    // Contoh deteksi dinamis berbasis tipe ekspresi nilai yang diisikan:
+                    if (valRes.rfind('"', 0) == 0 && valRes.back() == '"') {
+                        fieldType = "ptr"; // Jika string literal, asumsikan ptr
+                    } else if (valRes == "true" || valRes == "false") {
+                        fieldType = "bool";
+                    }
+
                     
                     // Mendapatkan alamat field menggunakan field.addr CRU
                     out_ << "    " << fieldAddrRes << " = field.addr " << structName << ", " << allocRes << ", " << fieldIdx << "\n";
-                    out_ << "    store.i32 " << valRes << ", " << fieldAddrRes << "\n"; // Sesuaikan tipe jika ada penelusuran tipe field
+                    out_ << "    store." << fieldType << " " << valRes << ", " << fieldAddrRes << "\n"; // Sesuaikan tipe jika ada penelusuran tipe field
                     
                     fieldIdx++;
                 }
