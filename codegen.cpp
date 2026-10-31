@@ -194,8 +194,8 @@ private:
         int index = 0;
         
         for (const auto& member : structDef->members) {
-            std::string fieldType = emitType(var->type.get());
             if (auto var = dynamic_cast<VarDecl*>(member.get())) {
+                std::string fieldType = emitType(var->type.get());
                 for (const auto& item : var->items) {
                     out_ << "    " << item.name << ": " << fieldType << "\n";
                     info.fields.push_back({item.name, fieldType, index++});
@@ -590,6 +590,10 @@ private:
                 }
 
                 std::string currentReg = "%" + baseName;
+                std::string currentType = "i32";
+                if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
+                    currentType = symbolTypes_[baseName];
+                }
 
                 for (const auto& op : expr->postfix.ops) {
                     if (op.kind == Expr::PostfixOp::Kind::Call) {
