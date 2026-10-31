@@ -643,7 +643,7 @@ private:
                         }
 
                         std::string fieldAddrRes = freshTemp();
-                        out_ << "    " << fieldAddrRes << " = field.addr " << fieldType << ", " << currentReg << ", " << fieldIndex << "\n";
+                        out_ << "    " << fieldAddrRes << " = field.addr " << currentType << ", " << currentReg << ", " << fieldIndex << "\n";
             
                         std::string loadRes = freshTemp();
                         out_ << "    " << loadRes << " = load." << fieldType << " " << fieldAddrRes << "\n";
