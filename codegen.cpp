@@ -488,11 +488,11 @@ private:
                 std::string opStr = "add";
                 bool isFloatOp = false;
                 std::string varType = "i32";
-                if (lhs.rfind('"', 0) == 0 || rhs.rfind('"', 0) == 0 || 
+                /*if (lhs.rfind('"', 0) == 0 || rhs.rfind('"', 0) == 0 || 
                     lhs == "null" || rhs == "null" || 
                     (symbolTypes_.find(lhs) != symbolTypes_.end() && symbolTypes_[lhs] == "ptr")) {
                     varType = "ptr";
-                }
+                }*/
 
                 switch (expr->binary.op) {
                     case BinaryOp::Add: opStr = "add"; break;
