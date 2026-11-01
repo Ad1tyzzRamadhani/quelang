@@ -530,10 +530,11 @@ private:
                 std::string rhsVal = emitExpr(expr->assign.rhs.get());
                 if (expr->assign.lhs->kind == Expr::Kind::Ident && expr->assign.lhs->ident) {
                     std::string varType = "i32";
-                    if (symbolTypes_.find(varName) != symbolTypes_.end()) {
-                        varType = symbolTypes_[varName]; // Ambil tipe asli yang tersimpan
+                    std::string lhsName = expr->assign.lhs->ident->parts.back();
+                    if (symbolTypes_.find(lhsName) != symbolTypes_.end()) {
+                        varType = symbolTypes_[lhsName]; // Ambil tipe asli yang tersimpan
                     }
-                    std::string varName = "%" + expr->assign.lhs->ident->parts.back();
+                    std::string varName = "%" + lhsName;
                     out_ << "    store." + varType + " " << rhsVal << ", " << varName << "\n";
                 }
                 return rhsVal;
@@ -637,16 +638,12 @@ private:
                         // Dukungan akses elemen array menggunakan element.addr CRU
                         std::string indexVal = emitExpr(op.index.get());
                         std::string elemAddrRes = freshTemp();
-                        std::string elemType = currentType;
-                        if (symbolTypes_.find(varName) != symbolTypes_.end()) {
-                        elemType = symbolTypes_[varName]; // Ambil tipe asli yang tersimpan
-                        }
-                        std::string loadedIndex = freshTemp();
-                        out_ << "    " << loadedIndex << " = load.i32 " << indexVal << "\n";
-                        out_ << "    " << elemAddrRes << " = elem.addr." << "i32" << " " << currentReg << ", " << indexVal << "\n";
+                        out_ << "    " << elemAddrRes << " = elem.addr.ptr " << currentReg << ", " << indexVal << "\n";
                         
                         std::string loadRes = freshTemp();
-                        out_ << "    " << loadRes << " = load." + elemType + " " << elemAddrRes << "\n";
+                        out_ << "    " << loadRes << " = load.ptr " << elemAddrRes << "\n";
+                        currentReg = loadRes;
+                        currentType = "ptr";
                         return loadRes;
                     } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess || 
                                op.kind == Expr::PostfixOp::Kind::Arrow || 
