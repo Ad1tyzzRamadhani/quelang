@@ -176,11 +176,23 @@ private:
             if (i + 1 < func->params.size()) out_ << ", ";
         }
         out_ << ")\n";
+        out_ << "entry:\n";
 
         if (func->body) {
             emitStmt(func->body.get());
+            if (!endsWithReturn(func->body.get())) {
+                if (retType == "void") {
+                    out_ << "    ret void\n";
+                } else {
+                    out_ << "    ret 0\n";
+                }
+            }
         } else {
-            out_ << "entry:\n    ret 0\n";
+            if (retType == "void") {
+                out_ << "    ret void\n";
+            } else {
+                out_ << "    ret 0\n";
+            }
         }
 
         out_ << "end\n\n";
@@ -244,7 +256,6 @@ private:
 
         switch (stmt->kind) {
             case Stmt::Kind::Block:
-                out_ << "entry:\n";
                 for (const auto& s : stmt->block.stmts) {
                     emitStmt(s.get());
                 }
