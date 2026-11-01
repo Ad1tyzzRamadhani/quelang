@@ -627,14 +627,14 @@ private:
                         // Dukungan akses elemen array menggunakan element.addr CRU
                         std::string indexVal = emitExpr(op.index.get());
                         std::string elemAddrRes = freshTemp();
-                        std::string varType = currentType;
+                        std::string elemType = currentType;
                         if (symbolTypes_.find(varName) != symbolTypes_.end()) {
-                        varType = symbolTypes_[varName]; // Ambil tipe asli yang tersimpan
+                        elemType = symbolTypes_[varName]; // Ambil tipe asli yang tersimpan
                         }
-                        out_ << "    " << elemAddrRes << " = elem.addr." + varType + " " + currentReg << ", " << indexVal << "\n";
+                        out_ << "    " << elemAddrRes << " = elem.addr." + elemType + " " + currentReg << ", " << indexVal << "\n";
                         
                         std::string loadRes = freshTemp();
-                        out_ << "    " << loadRes << " = load." + varType + " " << elemAddrRes << "\n";
+                        out_ << "    " << loadRes << " = load." + elemType + " " << elemAddrRes << "\n";
                         return loadRes;
                     } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess || 
                                op.kind == Expr::PostfixOp::Kind::Arrow || 
