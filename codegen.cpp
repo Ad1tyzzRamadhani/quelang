@@ -633,7 +633,7 @@ private:
                         }
                         std::string loadedIndex = freshTemp();
                         out_ << "    " << loadedIndex << " = load.i32 " << indexVal << "\n";
-                        out_ << "    " << elemAddrRes << " = elem.addr." << "i32" + " " + currentReg << ", " << indexVal << "\n";
+                        out_ << "    " << elemAddrRes << " = elem.addr." << "i32" << " " << currentReg << ", " << indexVal << "\n";
                         
                         std::string loadRes = freshTemp();
                         out_ << "    " << loadRes << " = load." + elemType + " " << elemAddrRes << "\n";
