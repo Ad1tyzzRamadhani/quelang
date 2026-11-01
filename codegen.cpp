@@ -436,6 +436,12 @@ private:
             case Expr::Kind::Ident:
                 if (expr->ident && !expr->ident->parts.empty()) {
                     std::string varName = expr->ident->parts.back();
+                    if (symbolTypes_.find(varName) != symbolTypes_.end()) {
+                        std::string loadRes = freshTemp();
+                        std::string vType = symbolTypes_[varName];
+                        out_ << "    " << loadRes << " = load." << vType << " %" << varName << "\n";
+                        return loadRes;
+                    }
                     return "%" + varName;
                 }
                 break;
@@ -488,11 +494,11 @@ private:
                 std::string opStr = "add";
                 bool isFloatOp = false;
                 std::string varType = "i32";
-                /*if (lhs.rfind('"', 0) == 0 || rhs.rfind('"', 0) == 0 || 
+                if (lhs.rfind('"', 0) == 0 || rhs.rfind('"', 0) == 0 || 
                     lhs == "null" || rhs == "null" || 
                     (symbolTypes_.find(lhs) != symbolTypes_.end() && symbolTypes_[lhs] == "ptr")) {
                     varType = "ptr";
-                }*/
+                }
 
                 switch (expr->binary.op) {
                     case BinaryOp::Add: opStr = "add"; break;
