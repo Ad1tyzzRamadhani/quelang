@@ -488,8 +488,10 @@ private:
                 std::string opStr = "add";
                 bool isFloatOp = false;
                 std::string varType = "i32";
-                if (symbolTypes_.find(varName) != symbolTypes_.end()) {
-                    varType = symbolTypes_[varName]; // Ambil tipe asli yang tersimpan
+                if (lhs.rfind('"', 0) == 0 || rhs.rfind('"', 0) == 0 || 
+                    lhs == "null" || rhs == "null" || 
+                    (symbolTypes_.find(lhs) != symbolTypes_.end() && symbolTypes_[lhs] == "ptr")) {
+                    varType = "ptr";
                 }
 
                 switch (expr->binary.op) {
