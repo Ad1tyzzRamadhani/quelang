@@ -378,9 +378,9 @@ private:
 
 
             case Stmt::Kind::While: {
-                std::string condLabel = freshTemp() + "_while_cond";
-                std::string bodyLabel = freshTemp() + "_while_body";
-                std::string endLabel = freshTemp() + "_while_end";
+                std::string condLabel = freshTemp(true) + "_while_cond";
+                std::string bodyLabel = freshTemp(true) + "_while_body";
+                std::string endLabel = freshTemp(true) + "_while_end";
 
                 out_ << "    jmp " << condLabel << "\n";
                 out_ << condLabel << ":\n";
