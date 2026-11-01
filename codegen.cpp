@@ -644,7 +644,6 @@ private:
                         out_ << "    " << loadRes << " = load.ptr " << elemAddrRes << "\n";
                         currentReg = loadRes;
                         currentType = "ptr";
-                        return loadRes;
                     } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess || 
                                op.kind == Expr::PostfixOp::Kind::Arrow || 
                                op.kind == Expr::PostfixOp::Kind::SafeArrow) 
