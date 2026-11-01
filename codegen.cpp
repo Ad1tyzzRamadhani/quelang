@@ -437,8 +437,12 @@ private:
                 if (expr->ident && !expr->ident->parts.empty()) {
                     std::string varName = expr->ident->parts.back();
                     if (symbolTypes_.find(varName) != symbolTypes_.end()) {
-                        std::string loadRes = freshTemp();
+                        
                         std::string vType = symbolTypes_[varName];
+                        if (vType == "ptr") {
+                            return "%" + varName;
+                        }
+                        std::string loadRes = freshTemp();
                         out_ << "    " << loadRes << " = load." << vType << " %" << varName << "\n";
                         return loadRes;
                     }
