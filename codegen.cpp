@@ -258,7 +258,7 @@ private:
                     if (item.is_array && !item.array_dims.empty()) {
                         // Alokasi array lokal menggunakan ukuran dimensi pertama
                         std::string sizeStr = item.array_dims[0]->value;
-                        out_ << "    " << reg << " = alloca [" << sizeStr << "]" << t << "\n";
+                        out_ << "    " << reg << " = alloca.[" << sizeStr << "]" << t << "\n";
                     } else {
                         out_ << "    " << reg << " = alloca." << t << "\n";
                         if (item.init) {
@@ -614,11 +614,11 @@ private:
                         // Dukungan akses elemen array menggunakan element.addr CRU
                         std::string indexVal = emitExpr(op.index.get());
                         std::string elemAddrRes = freshTemp();
-                        std::string varType = "i32";
+                        std::string varType = currentType;
                         if (symbolTypes_.find(varName) != symbolTypes_.end()) {
                         varType = symbolTypes_[varName]; // Ambil tipe asli yang tersimpan
                         }
-                        out_ << "    " << elemAddrRes << " = elem.addr." + varType + " %" << baseName << ", " << indexVal << "\n";
+                        out_ << "    " << elemAddrRes << " = elem.addr." + varType + " " + currentReg << ", " << indexVal << "\n";
                         
                         std::string loadRes = freshTemp();
                         out_ << "    " << loadRes << " = load." + varType + " " << elemAddrRes << "\n";
