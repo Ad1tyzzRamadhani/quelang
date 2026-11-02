@@ -395,7 +395,7 @@ void SemanticAnalyzer::resolveVar(VarDecl& decl) {
                     // array shape in the current AST. Keep that representation
                     // instead of inventing an array TypeModifier.
                     std::vector<int> dims;
-                    for(auto& dim : decl.typr->array_dims)
+                    for(auto& dim : decl.type->array_dims)
                     dims.push_back(std::stoi(dim->value));
                     TypeView init = analyzeArrayLiteral(item.init.get(), dims);
                     if (init.valid && !sameType(target, init)) {
@@ -1839,7 +1839,7 @@ SemanticAnalyzer::MemberInfo SemanticAnalyzer::findMemberInStruct(
 
                     result.array_size.clear();
 
-                    for (const auto& dim : var.type->array_dims) {
+                    for (const auto& dim : var->type->array_dims) {
                         if (dim && !dim->value.empty()) {
                             result.array_size.push_back(
                             std::stoi(dim->value)
