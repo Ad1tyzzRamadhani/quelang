@@ -1,12 +1,21 @@
 std::unique_ptr<Type> ParseState::parseType() {
     auto type = std::make_unique<Type>();
+    if (!tokens.empty()) {
+        type->file = peek().file;
+        type->line_start = peek().line;
+        type->column_start = peek().column;
+    }
+    bool has_unsized_array = false;
     while (match(TokenType::LBRACKET)) {
-        if(check(TokenType::NUMBER)) 
-        type->array_dims.push_back(
-            parseLiteral(advance())
-        );
-        type->is_array = true;
-        consume(TokenType::RBRACKET);
+        if (check(TokenType::NUMBER) || check(TokenType::HEXNUMBER)) {
+            type->array_dims.push_back(parseLiteral(advance()));
+            type->is_array = true;
+        } else {
+            // Unsized array [] (slice) dianggap sebagai pointer ke tipe dasar
+            has_unsized_array = true;
+            type->is_array = true;
+        }
+        consume(TokenType::RBRACKET, "expected ']'");
     }
     while (true) {
         if (match(TokenType::KW_CONST)) {
@@ -72,6 +81,11 @@ std::unique_ptr<Type> ParseState::parseType() {
         }
         
         break;
+    }
+    if (type->modifiers.find(TypeModifier::Kind::Pointer)) {
+        TypeModifier mod;
+        mod.kind = TypeModifier::Kind::Pointer;
+        type->modifiers.push_back(std::move(mod));
     }
     return type;
 }
