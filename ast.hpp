@@ -49,6 +49,7 @@ struct TypeModifier {
 };
 
 struct Type : Node {
+    bool is_array = false;
     std::vector<TypeQualifier> qualifiers;
     std::unique_ptr<QualifiedName> base;
     std::vector<TypeModifier> modifiers;
