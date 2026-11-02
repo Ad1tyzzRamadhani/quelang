@@ -190,21 +190,6 @@ bool ParseState::isVarDeclAhead() {
 
             advance();
 
-            while (match(TokenType::LBRACKET)) {
-
-                if (!check(TokenType::NUMBER)) {
-                    pos = save;
-                    return false;
-                }
-
-                advance();
-
-                consume(
-                    TokenType::RBRACKET,
-                    "expected ']'"
-                );
-            }
-
             if (match(TokenType::EQ)) {
                 parseExpr();
             }
