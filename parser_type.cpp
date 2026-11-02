@@ -82,7 +82,7 @@ std::unique_ptr<Type> ParseState::parseType() {
         
         break;
     }
-    if (std::find(type->modifiers.begin(), type->modifiers.end(), TypeModifier::Kind::Pointer)) {
+    if (std::find(type->modifiers.begin(), type->modifiers.end(), TypeModifier::Kind::Pointer) != type->modifiers.end()) {
         TypeModifier mod;
         mod.kind = TypeModifier::Kind::Pointer;
         type->modifiers.push_back(std::move(mod));
