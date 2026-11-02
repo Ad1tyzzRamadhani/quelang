@@ -259,23 +259,6 @@ VarDecl ParseState::parseVarDecl(Visibility visibility) {
             if (peek().type == TokenType::NUMBER)
             decl.type->bit_width = parseLiteral(advance());
         }
-
-        // -------------------------
-        // ArrayDimsOpt
-        // -------------------------
-        while (match(TokenType::LBRACKET)) {
-
-            if (peek().type != TokenType::NUMBER)
-                error("array dimension must be constant number");
-
-            item.array_dims.push_back(
-                parseLiteral(advance())
-            );
-            item.is_array = true;
-
-            consume(TokenType::RBRACKET);
-        }
-
         if (match(TokenType::LBRACE)) {
             if (peek().type != TokenType::RBRACE) {
                 item.args = parseArgList();
