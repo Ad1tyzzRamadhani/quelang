@@ -1,5 +1,14 @@
 std::unique_ptr<Type> ParseState::parseType() {
     auto type = std::make_unique<Type>();
+    while (match(TokenType::LBRACKET)) {
+        if (peek().type != TokenType::NUMBER)
+            error("array dimension must be constant number");
+        type->array_dims.push_back(
+            parseLiteral(advance())
+        );
+        type->is_array = true;
+        consume(TokenType::RBRACKET);
+    }
     while (true) {
         if (match(TokenType::KW_CONST)) {
             type->qualifiers.push_back(
