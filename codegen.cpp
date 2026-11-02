@@ -266,9 +266,9 @@ private:
                     std::string t = emitType(stmt->var_decl.type.get());
                     symbolTypes_[item.name] = t;
                     std::string reg = "%" + item.name;
-                    if (item.is_array && !item.array_dims.empty()) {
+                    if (stmt->var_decl.type->is_array && !stmt->var_decl.type->array_dims.empty()) {
                         // Alokasi array lokal menggunakan ukuran dimensi pertama
-                        std::string sizeStr = item.array_dims[0]->value;
+                        std::string sizeStr = stmt->var_decl.type->array_dims[0]->value;
                         out_ << "    " << reg << " = alloca.[" << sizeStr << "]" << t << "\n";
                     } else {
                         out_ << "    " << reg << " = alloca." << t << "\n";
