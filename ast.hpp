@@ -53,6 +53,7 @@ struct Type : Node {
     std::unique_ptr<QualifiedName> base;
     std::vector<TypeModifier> modifiers;
     std::unique_ptr<Literal> bit_width;
+    std::vector<std::unique_ptr<Literal>> array_dims;
 };
 
 // Expr System
@@ -175,7 +176,6 @@ struct VarDecl : Node {
         std::unique_ptr<Expr> init;
         std::vector<std::unique_ptr<Expr>> args;
         std::unique_ptr<Literal> bit_width;
-        std::vector<std::unique_ptr<Literal>> array_dims;
         bool is_array = false;
     };
 
