@@ -378,7 +378,7 @@ void SemanticAnalyzer::resolveVar(VarDecl& decl) {
     if (!validateType(decl.type.get(), &decl, false)) return;
 
     for (auto& item : decl.items) {
-        for (auto& dim : item.array_dims) {
+        for (auto& dim : decl.type->array_dims) {
             if (dim) {
                 TypeView t = analyzeLiteral(dim.get());
                 requireIntegral(t, dim.get(), "array dimension");
@@ -388,14 +388,14 @@ void SemanticAnalyzer::resolveVar(VarDecl& decl) {
             TypeView target = view(decl.type.get());
 
             if (item.init->kind == Expr::Kind::ArrayLiteral) {
-                if (item.array_dims.empty()) {
+                if (decl.type->array_dims.empty()) {
                     error(item.init.get(), "array literal requires an array declaration type");
                 } else {
                     // Type represents the element type; array_dims represents the
                     // array shape in the current AST. Keep that representation
                     // instead of inventing an array TypeModifier.
                     std::vector<int> dims;
-                    for(auto& dim : item.array_dims)
+                    for(auto& dim : decl.typr->array_dims)
                     dims.push_back(std::stoi(dim->value));
                     TypeView init = analyzeArrayLiteral(item.init.get(), dims);
                     if (init.valid && !sameType(target, init)) {
@@ -717,11 +717,11 @@ void SemanticAnalyzer::analyzeVarDecl(VarDecl& decl) {
         if (item.init) {
             TypeView target = view(decl.type.get());
             if (item.init->kind == Expr::Kind::ArrayLiteral) {
-                if (item.array_dims.empty()) {
+                if (decl.type->array_dims.empty()) {
                     error(item.init.get(), "array literal requires an array declaration type");
                 } else {
                     std::vector<int> dims;
-                    for(auto& dim : item.array_dims)
+                    for(auto& dim : decl.type->array_dims)
                     dims.push_back(std::stoi(dim->value));
                     TypeView init = analyzeArrayLiteral(item.init.get(), dims);
                     if (init.valid && !sameType(target, init)) {
@@ -1839,7 +1839,7 @@ SemanticAnalyzer::MemberInfo SemanticAnalyzer::findMemberInStruct(
 
                     result.array_size.clear();
 
-                    for (const auto& dim : item.array_dims) {
+                    for (const auto& dim : var.type->array_dims) {
                         if (dim && !dim->value.empty()) {
                             result.array_size.push_back(
                             std::stoi(dim->value)
@@ -2056,7 +2056,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzePostfix(Expr* expr) {
                 // Dimensi variabel berasal dari VarDecl::Item.
                         current.array_size.clear();
 
-                        for (const auto& dim : item.array_dims) {
+                        for (const auto& dim : decl->type->array_dims) {
                             if (dim && !dim->value.empty()) {
                                 current.array_size.push_back(
                                     std::stoi(dim->value)
