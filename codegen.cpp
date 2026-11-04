@@ -229,11 +229,17 @@ private:
 
     void emitGlobalVar(VarDecl* varDecl) {
         for (const auto& item : varDecl->items) {
+            bool is_volatile = false, is_const = false;
+            for(auto& kind : varDecl->type->qualifiers) {
+                if(kind == TypeQualifier::Const) is_const = true;
+                if(kind == TypeQualifier::Volatile) is_volatile = true;
             std::string t = emitType(varDecl->type.get());
             if (varDecl->is_atomic) {
-                out_ << "global.mutable " << item.name << ": " << t << "\n";
-            } else {
+                out_ << "global " << item.name << ": " << t << "\n";
+            } else if(is_const) {
                 out_ << "constant " << item.name << ": " << t << "\n";
+            } else {
+                out_ << "global " << item.name << ": " << t << "\n";
             }
         }
     }
@@ -269,12 +275,12 @@ private:
                     if (stmt->var_decl.type->is_array && !stmt->var_decl.type->array_dims.empty()) {
                         // Alokasi array lokal menggunakan ukuran dimensi pertama
                         std::string sizeStr = stmt->var_decl.type->array_dims[0]->value;
-                        out_ << "    " << reg << " = alloca.[" << sizeStr << "]" << t << "\n";
+                        out_ << "    " << reg << " = alloca [" << sizeStr << "]" << t << "\n";
                     } else {
-                        out_ << "    " << reg << " = alloca." << t << "\n";
+                        out_ << "    " << reg << " = alloca " << t << "\n";
                         if (item.init) {
                             std::string valRes = emitExpr(item.init.get());
-                            out_ << "    store." << t << " " << valRes << ", " << reg << "\n";
+                            out_ << "    store " << t << " " << valRes << ", " << reg << "\n";
                         }
                     }
                 }
@@ -354,7 +360,7 @@ private:
                         std::string litVal = qualifyName(valLit->ident.get()); // Nilai literal pembanding
                         
                         // Lakukan perbandingan kesamaan (eq)
-                        out_ << "    " << cmpRes << " = eq.i32 " << condVal << ", " << litVal << "\n";
+                        out_ << "    " << cmpRes << " = eq i32 " << condVal << ", " << litVal << "\n";
                         
                         // Tentukan target lompatan berikutnya (jika cocok ke case[i], jika tidak lanjut ke cek berikutnya/default)
                         std::string nextCheck = (i + 1 < stmt->switch_stmt.cases.size()) ? caseLabels[i + 1] : targetDefault;
@@ -443,7 +449,7 @@ private:
                             return "%" + varName;
                         }
                         std::string loadRes = freshTemp();
-                        out_ << "    " << loadRes << " = load." << vType << " %" << varName << "\n";
+                        out_ << "    " << loadRes << " = load " << vType << " %" << varName << "\n";
                         return loadRes;
                     }
                     return "%" + varName;
@@ -464,7 +470,7 @@ private:
 
 
                 std::string allocRes = freshTemp();
-                out_ << "    " << allocRes << " = alloca.ptr\n"; // Alokasi pointer penampung struct
+                out_ << "    " << allocRes << " = alloca ptr\n"; // Alokasi pointer penampung struct
 
                 // 2. Iterasi dan isi setiap field menggunakan store atau field.addr
                 int fieldIdx = 0;
@@ -483,8 +489,8 @@ private:
 
                     
                     // Mendapatkan alamat field menggunakan field.addr CRU
-                    out_ << "    " << fieldAddrRes << " = field.addr " << structName << ", " << allocRes << ", " << fieldIdx << "\n";
-                    out_ << "    store." << fieldType << " " << valRes << ", " << fieldAddrRes << "\n"; // Sesuaikan tipe jika ada penelusuran tipe field
+                    out_ << "    " << fieldAddrRes << " = field addr " << structName << ", " << allocRes << ", " << fieldIdx << "\n";
+                    out_ << "    store " << fieldType << " " << valRes << ", " << fieldAddrRes << "\n"; // Sesuaikan tipe jika ada penelusuran tipe field
                     
                     fieldIdx++;
                 }
@@ -535,7 +541,7 @@ private:
                         varType = symbolTypes_[lhsName]; // Ambil tipe asli yang tersimpan
                     }
                     std::string varName = "%" + lhsName;
-                    out_ << "    store." + varType + " " << rhsVal << ", " << varName << "\n";
+                    out_ << "    store " + varType + " " << rhsVal << ", " << varName << "\n";
                 }
                 return rhsVal;
             }
@@ -584,17 +590,17 @@ private:
                             }
                         }
 
-                        out_ << "    " << res << " = load." << varType << " " << operandVal << "\n";
+                        out_ << "    " << res << " = load " << varType << " " << operandVal << "\n";
                         return res;
                     }
 
                     case UnaryOp::Neg: {
-                        out_ << "    " << res << " = sub.i32 0, " << operandVal << "\n";
+                        out_ << "    " << res << " = sub i32 0, " << operandVal << "\n";
                         return res;
                     }
 
                     case UnaryOp::Not: {
-                        out_ << "    " << res << " = xor.bool " << operandVal << ", true\n";
+                        out_ << "    " << res << " = xor bool " << operandVal << ", true\n";
                         return res;
                     }
 
@@ -638,10 +644,10 @@ private:
                         // Dukungan akses elemen array menggunakan element.addr CRU
                         std::string indexVal = emitExpr(op.index.get());
                         std::string elemAddrRes = freshTemp();
-                        out_ << "    " << elemAddrRes << " = elem.addr.ptr " << currentReg << ", " << indexVal << "\n";
+                        out_ << "    " << elemAddrRes << " = elem addr ptr " << currentReg << ", " << indexVal << "\n";
                         
                         std::string loadRes = freshTemp();
-                        out_ << "    " << loadRes << " = load.ptr " << elemAddrRes << "\n";
+                        out_ << "    " << loadRes << " = load ptr " << elemAddrRes << "\n";
                         currentReg = loadRes;
                         currentType = "ptr";
                     } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess || 
@@ -664,10 +670,10 @@ private:
                         }
 
                         std::string fieldAddrRes = freshTemp();
-                        out_ << "    " << fieldAddrRes << " = field.addr " << currentType << ", " << currentReg << ", " << fieldIndex << "\n";
+                        out_ << "    " << fieldAddrRes << " = field addr " << currentType << ", " << currentReg << ", " << fieldIndex << "\n";
             
                         std::string loadRes = freshTemp();
-                        out_ << "    " << loadRes << " = load." << fieldType << " " << fieldAddrRes << "\n";
+                        out_ << "    " << loadRes << " = load " << fieldType << " " << fieldAddrRes << "\n";
              
                         currentReg = loadRes;
                         currentType = fieldType;
