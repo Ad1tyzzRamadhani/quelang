@@ -122,6 +122,12 @@ private:
 
     std::string emitType(Type* type) {
         if (!type) return "void";
+        for (const auto& mod : type->modifiers) {
+            if (mod.kind == TypeModifier::Kind::Pointer || 
+                mod.kind == TypeModifier::Kind::Reference) {
+                return "ptr";
+            }
+        }
 
         if (type->base && !type->base->parts.empty() && type->modifiers.empty()) {
             std::string name = type->base->parts.back();
@@ -132,13 +138,6 @@ private:
             if (name == "f64" || name == "double") return "f64";
             if (name == "bool") return "bool";
             return name;
-        }
-
-        for (const auto& mod : type->modifiers) {
-            if (mod.kind == TypeModifier::Kind::Pointer || 
-                mod.kind == TypeModifier::Kind::Reference) {
-                return "ptr";
-            }
         }
 
         return "ptr";
