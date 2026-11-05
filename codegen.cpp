@@ -21,6 +21,7 @@ public:
 
 private:
     std::unordered_map<std::string, std::string> symbolTypes_;
+    std::unordered_map<std::string, std::string> paramTypes_;
     std::ostringstream out_;
     int tempCounter_ = 0;
     std::vector<std::string> currentNamespace_;
@@ -171,7 +172,7 @@ private:
         for (size_t i = 0; i < func->params.size(); ++i) {
             const auto& p = func->params[i];
             std::string pType = emitType(p.type.get());
-            symbolTypes_[p.name] = pType;
+            paramTypes_[p.name] = pType;
             out_ << pType  << " " + p.name;
             if (i + 1 < func->params.size()) out_ << ", ";
         }
@@ -443,6 +444,9 @@ private:
             case Expr::Kind::Ident:
                 if (expr->ident && !expr->ident->parts.empty()) {
                     std::string varName = expr->ident->parts.back();
+                    if (paramTypes_.find(varName) != paramTypes_.end()) {
+                        return "%" + varName;
+                    }
                     if (symbolTypes_.find(varName) != symbolTypes_.end()) {
                         
                         std::string vType = symbolTypes_[varName];
