@@ -2,6 +2,7 @@ struct ParseState {
     const std::vector<Token>& tokens;
     size_t pos = 0;
 
+    std::unique_ptr<Literal> parseLiteral(const Token& tok);
     std::unique_ptr<QualifiedName> MakeEmptyQualifiedName();
     std::unique_ptr<QualifiedName> parseQualifiedName();
     std::unique_ptr<Type> parseFuncPtrType(std::vector<TypeQualifier> tq);
