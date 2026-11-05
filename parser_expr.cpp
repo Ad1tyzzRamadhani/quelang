@@ -1,4 +1,4 @@
-std::unique_ptr<Literal> parseLiteral( const Token& tok) {
+std::unique_ptr<Literal> ParseState::parseLiteral(const Token& tok) {
     auto lit = std::make_unique<Literal>();
     lit->line_start = tok.line;
     lit->column_start = tok.column;
@@ -51,7 +51,7 @@ std::unique_ptr<Literal> parseLiteral( const Token& tok) {
             lit->value = "null";
             break;
         default:
-            throw std::runtime_error("Unexpected token for literal");
+            error("unexpected token type while parsing literal value");
     }
 
     return lit;
@@ -77,7 +77,7 @@ std::unique_ptr<QualifiedName> ParseState::parseQualifiedName() {
     }
 
     if(qn->parts.empty())
-        throw std::runtime_error("Expected identifier for qualified name");
+        error("expected identifier to form a qualified name");
 
     return qn;
 }
@@ -96,7 +96,6 @@ bool ParseState::isStructInit() {
     try {
         // Coba parse sebagai QualifiedName (misal: Point, pkg.Point, dll)
         parseType();
-        std::cout << "Checking Struct Init" << "\n";
         
         // Cek apakah setelah QualifiedName terdapat token LBRACE '{'
         bool hasLBrace = check(TokenType::LBRACE);
@@ -142,13 +141,12 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // STRUCT INIT { ... }
     // ------------------------
     if (isStructInit()) {
-        std::cout << " Parse StructInit" << "\n";
         auto expr = std::make_unique<Expr>();
         expr->struct_init.type_name = parseType();
         std::cout << expr->struct_init.type_name->base->parts.back() << std::endl;
         expr->kind = Expr::Kind::StructInit;
 
-        consume(TokenType::LBRACE, "expected '{' in struct initialization");
+        consume(TokenType::LBRACE, "expected '{' to begin struct initialization block");
 
         if (!check(TokenType::RBRACE)) {
             do {
@@ -157,7 +155,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
                     peek(1).type == TokenType::EQ) 
                 {
                     std::string name = advance().value;
-                    consume(TokenType::EQ, "Expected EQ in Struct Init");
+                    consume(TokenType::EQ, "expected '=' after field name in struct initialization");
 
                     expr->struct_init.fields.push_back({
                         name,
@@ -173,7 +171,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
             } while (match(TokenType::COMMA));
         }
 
-        consume(TokenType::RBRACE, "expected '}'");
+        consume(TokenType::RBRACE, "expected '}' to close struct initialization block");
 
         return expr;
     }
@@ -204,7 +202,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     if (match(TokenType::LPAREN)) {
         auto expr = parseExpr(); // nanti precedence parser
 
-        consume(TokenType::RPAREN, "expected ')'");
+        consume(TokenType::RPAREN, "expected ')' to close grouped expression");
 
         return expr;
     }
@@ -222,7 +220,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
             } while (match(TokenType::COMMA));
         }
 
-        consume(TokenType::RBRACKET, "expected ']'");
+        consume(TokenType::RBRACKET, "expected ']' to close array literal");
 
         return expr;
     }
@@ -238,7 +236,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
             if(check(TokenType::NUMBER) || check(TokenType::HEXNUMBER) || check(TokenType::BINARYNUMBER)) {
                 expr->new_expr.alloc_size = parseLiteral(advance());
             }
-            consume(TokenType::RPAREN, "RPAREN NEW STMT");
+            consume(TokenType::RPAREN, "expected ')' after allocation size in 'new' expression");
             return expr;
         }
 
@@ -249,13 +247,13 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
                     expr->new_expr.args.push_back(parseExpr());
                 } while (match(TokenType::COMMA));
             }
-            consume(TokenType::RPAREN, "RPAREN NEW STMT");
+            consume(TokenType::RPAREN, "expected ')' after constructor arguments in 'new' expression");
         }
         while (match(TokenType::LBRACKET)) {
             if (!check(TokenType::RBRACKET)) {
                 expr->new_expr.array_dims.push_back(parseExpr());
-            } else error("Array Dims in '[ ... ]' Can't Empty!");
-            consume(TokenType::RBRACKET,"RBRACKET NEW STMT");
+            } else error("array dimension inside 'new' expression cannot be empty");
+            consume(TokenType::RBRACKET,"expected ']' to close array dimension in 'new' expression");
         }
 
         return expr;
@@ -278,7 +276,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
 
     if (match(TokenType::ARROW)) {
         if (peek().type != TokenType::IDENT)
-            error("expected identifier after '->'");
+            error("expected identifier after '->' operator");
 
         auto thisExpr = std::make_unique<Expr>();
         thisExpr->kind = Expr::Kind::Ident;
@@ -299,7 +297,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         return expr;
     }
 
-    error("invalid primary expression");
+    error("invalid or unexpected primary expression");
     return nullptr;
 }
 
@@ -310,7 +308,7 @@ std::unique_ptr<Expr> ParseState::parsePostfix() {
 
         if (match(TokenType::DOT)) {
             if (peek().type != TokenType::IDENT)
-                error("expected identifier after '.'");
+                error("expected identifier after '.' member access operator");
 
             Expr::PostfixOp op;
             op.kind = Expr::PostfixOp::Kind::MemberAccess;
@@ -328,7 +326,7 @@ std::unique_ptr<Expr> ParseState::parsePostfix() {
 
         if (match(TokenType::ARROW)) {
             if (peek().type != TokenType::IDENT)
-                error("expected identifier after '->'");
+                error("expected identifier after '->' arrow operator");
 
             Expr::PostfixOp op;
             op.kind = Expr::PostfixOp::Kind::Arrow;
@@ -346,7 +344,7 @@ std::unique_ptr<Expr> ParseState::parsePostfix() {
 
         if (match(TokenType::SAFE_ACCESS)) {
             if (peek().type != TokenType::IDENT)
-                error("expected identifier after '?->'");
+                error("expected identifier after '?->' safe access operator");
 
             Expr::PostfixOp op;
             op.kind = Expr::PostfixOp::Kind::SafeArrow;
@@ -368,7 +366,7 @@ std::unique_ptr<Expr> ParseState::parsePostfix() {
             op.kind = Expr::PostfixOp::Kind::Call;
             op.args = parseArgList();
 
-            consume(TokenType::RPAREN, "RPAREN IN CALL EXPR");
+            consume(TokenType::RPAREN, "expected ')' to close function call argument list");
 
             /*auto expr = std::make_unique<Expr>();
             expr->kind = Expr::Kind::Postfix;
@@ -385,7 +383,7 @@ std::unique_ptr<Expr> ParseState::parsePostfix() {
             op.kind = Expr::PostfixOp::Kind::Index;
             op.index = parseExpr();
 
-            consume(TokenType::RBRACKET, "INDEX RBRACKET");
+            consume(TokenType::RBRACKET, "expected ']' to close array indexing expression");
 
             /*auto expr = std::make_unique<Expr>();
             expr->kind = Expr::Kind::Postfix;
@@ -413,9 +411,12 @@ std::unique_ptr<Expr> ParseState::parseCast() {
 
         castExpr->cast.base = std::move(expr);
         castExpr->cast.target = parseType();
-        if(match(TokenType::COLON))
-        castExpr->cast.target->bit_width = parseLiteral(advance());
-
+        if(match(TokenType::COLON)) {
+            if (!check(TokenType::NUMBER) && !check(TokenType::HEXNUMBER)) {
+                error("expected numeric literal for bit width specification after cast colon");
+            }
+            castExpr->cast.target->bit_width = parseLiteral(advance());
+        }
         expr = std::move(castExpr);
     }
 
@@ -467,7 +468,7 @@ std::unique_ptr<Expr> ParseState::parseUnary() {
                 break;
 
             default:
-                error("invalid unary operator");
+                error("invalid unary operator encountered");
         }
 
         expr->unary.expr = parseUnary(); // recursive right-associative
@@ -512,7 +513,7 @@ std::unique_ptr<Expr> ParseState::parseMul() {
                 break;
 
             default:
-                error("invalid mul operator");
+                error("invalid multiplicative binary operator");
         }
 
         bin->binary.lhs = std::move(expr);
@@ -551,7 +552,7 @@ std::unique_ptr<Expr> ParseState::parseAdd() {
                 break;
 
             default:
-                error("invalid add operator");
+                error("invalid additive binary operator");
         }
 
         bin->binary.lhs = std::move(expr);
@@ -830,7 +831,7 @@ std::unique_ptr<Expr> ParseState::parseTernary() {
 
         auto thenExpr = parseExpr();
 
-        consume(TokenType::COLON, "expected ':' in ternary");
+        consume(TokenType::COLON, "expected ':' separating branches in ternary conditional expression");
 
         auto elseExpr = parseTernary();
 
