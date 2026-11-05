@@ -233,6 +233,7 @@ private:
             for(auto& kind : varDecl->type->qualifiers) {
                 if(kind == TypeQualifier::Const) is_const = true;
                 if(kind == TypeQualifier::Volatile) is_volatile = true;
+            }
             std::string t = emitType(varDecl->type.get());
             if (varDecl->is_atomic) {
                 out_ << "global " << item.name << ": " << t << "\n";
