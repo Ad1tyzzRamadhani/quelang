@@ -529,7 +529,7 @@ private:
                     opStr = "f" + opStr;
                 }
 
-                out_ << "    " << res << " = " << opStr << varType + " " << lhs << ", " << rhs << "\n";
+                out_ << "    " << res << " = " << opStr << " " << varType + " " << lhs << ", " << rhs << "\n";
                 return res;
             }
 
