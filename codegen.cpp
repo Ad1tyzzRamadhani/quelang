@@ -590,7 +590,9 @@ private:
                             !expr->unary.expr->ident->parts.empty()) {
                             std::string idName = expr->unary.expr->ident->parts.back();
                             if (symbolTypes_.find(idName) != symbolTypes_.end()) {
-                                varType = symbolTypes_[idName];
+                                std::string baseType = symbolTypes_[idName];
+                                // Jika tipenya ptr, default load i32 atau sesuaikan
+                                varType = (baseType == "ptr") ? "i32" : baseType;
                             }
                         }
 
