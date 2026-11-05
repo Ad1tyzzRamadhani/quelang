@@ -691,7 +691,6 @@ private:
         return "0";
     }
 };
-}
 
 std::string codegen(FileProgram* program) {
     QuelangToCruCodegen generator;
