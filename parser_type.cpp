@@ -15,7 +15,7 @@ std::unique_ptr<Type> ParseState::parseType() {
             has_unsized_array = true;
             type->is_array = true;
         }
-        consume(TokenType::RBRACKET, "expected ']'");
+        consume(TokenType::RBRACKET, "expected ']' to close array dimension or slice definition");
     }
     while (true) {
         if (match(TokenType::KW_CONST)) {
@@ -99,18 +99,18 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
     type->base = MakeEmptyQualifiedName();
         if (peek().type == TokenType::LPAREN) {
             TypeModifier mod;
-            consume(TokenType::LPAREN, "Excepted LParen in FunctionPointer");
+            consume(TokenType::LPAREN, "expected '(' at the beginning of function pointer return type");
             if (!check(TokenType::RPAREN)) {
                 mod.func_return = parseType();
             }
 
-            consume(TokenType::RPAREN, "RPAREN FUNCPTR");
+            consume(TokenType::RPAREN,"expected ')' after function pointer return type");
 
             size_t backup = pos;
 
             try {
 
-                consume(TokenType::LPAREN,"LPAREN FUNCPTR");
+                consume(TokenType::LPAREN,"expected '(' for function pointer parameters list");
 
                 std::vector<std::unique_ptr<Type>> params;
 
@@ -126,7 +126,7 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
 
                 consume(
                     TokenType::RPAREN,
-                    "expected ')' in function pointer"
+                    "expected ')' to close function pointer parameter list"
                 );
                 if (check(TokenType::KW_THROWS)) {
                     consume(TokenType::KW_THROWS, " THROWS FUNCPTR");
@@ -142,15 +142,18 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
                     mod.func_params =
                         std::move(params);
 
-                    consume(TokenType::STAR, "STAR FUNCPTR");
+                    consume(TokenType::STAR, "expected '*' to complete function pointer signature");
 
                     type->modifiers.push_back(
                         std::move(mod)
                     );
+                } else {
+                    error("expected '*' to finalize function pointer declaration");
                 }
             }
             catch (...) {
                 pos = backup;
+                error("unknown error occurred while parsing function pointer type");
             }
         }
     return type;
