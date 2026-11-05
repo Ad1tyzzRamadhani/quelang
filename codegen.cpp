@@ -122,6 +122,22 @@ private:
 
     std::string emitType(Type* type) {
         if (!type) return "void";
+        if (type->is_array && !type->array_dims.empty()) {
+            std::string sizeStr = type->array_dims[0]->value;
+            std::string elemType = "i32"; // default fallback
+            if (type->base && !type->base->parts.empty()) {
+                std::string name = type->base->parts.back();
+                if (name == "int" || name == "i32") elemType = "i32";
+                else if (name == "i8" || name == "char") elemType = "i8";
+                else if (name == "i64" || name == "long") elemType = "i64";
+                else if (name == "f32" || name == "float") elemType = "f32";
+                else if (name == "f64" || name == "double") elemType = "f64";
+                else if (name == "bool") elemType = "bool";
+                else elemType = name;
+            }
+            return "[" + sizeStr + "]" + elemType;
+        }
+
         for (const auto& mod : type->modifiers) {
             if (mod.kind == TypeModifier::Kind::Pointer || 
                 mod.kind == TypeModifier::Kind::Reference) {
