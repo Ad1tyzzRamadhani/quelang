@@ -182,7 +182,7 @@ private:
         std::string retType = emitType(func->return_types.get());
         std::string name = qualifyName(func->name.get(), "AnonymousFunction");
         tempCounter_ = 0;
-        out_ << "def " << retType << " " << name << "(";
+        out_ << "def " << retType << " @" << name << "(";
         
         for (size_t i = 0; i < func->params.size(); ++i) {
             const auto& p = func->params[i];
@@ -655,7 +655,7 @@ private:
                         }
 
                         std::string callRes = freshTemp();
-                        out_ << "    " << callRes << " = call.i32 " << baseName << "(";
+                        out_ << "    " << callRes << " = call.i32 @" << baseName << "(";
                         for (size_t i = 0; i < argVals.size(); ++i) {
                             out_ << argVals[i];
                             if (i + 1 < argVals.size()) out_ << ", ";
