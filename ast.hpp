@@ -42,8 +42,6 @@ enum class TypeQualifier { Const, Volatile, Atomic};
 struct TypeModifier {
     enum class Kind { Pointer, Reference, Restrict , FuncPtr } kind;
     std::vector<std::unique_ptr<Type>> func_params;
-    bool is_coroutine = false;
-    bool is_unaligned = false;
     std::unique_ptr<Type> func_return;
     std::unique_ptr<Type> throws_type;
 };
