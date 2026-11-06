@@ -72,7 +72,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         stmt->do_stmt.body = parseStmt();
 
         if (match(TokenType::KW_WHILE)) {
-            consume(TokenType::LPAREN, "expected '(' after 'while' in do-while statement);
+            consume(TokenType::LPAREN, "expected '(' after 'while' in do-while statement");
             stmt->do_stmt.cond = parseExpr();
             consume(TokenType::RPAREN,"expected ')' after 'while' condition in do-while statement");
             consume(TokenType::SEMICOLON,"expected ';' after do-while statement");
