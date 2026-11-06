@@ -336,7 +336,7 @@ std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
             scase.values.push_back(parseExpr());
 
             consume(TokenType::COLON,
-                "expected ':' after case");
+                "expected ':' after switch case value expression");
 
             scase.body = parseStmt();
 
@@ -354,7 +354,7 @@ std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
             scase.is_default = true;
 
             consume(TokenType::COLON,
-                "expected ':' after default");
+                "expected ':' after 'default' keyword");
 
             scase.body = parseStmt();
 
@@ -364,11 +364,11 @@ std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
             continue;
         }
 
-        error("expected case/default");
+        error("expected 'case' or 'default' keyword inside switch body");
     }
 
     consume(TokenType::RBRACE,
-        "expected '}' after switch");
+        "expected '}' to close switch body block");
 
     return stmt;
 }
