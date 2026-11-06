@@ -345,7 +345,7 @@ std::unique_ptr<Function> ParseState::parseFunction(Visibility visibility) {
      */
     consume(
         TokenType::LPAREN,
-        "expected '(' after function name"
+        "expected '(' after function name in function definition"
     );
 
     /*
@@ -377,7 +377,7 @@ std::unique_ptr<Function> ParseState::parseFunction(Visibility visibility) {
 
     consume(
         TokenType::RPAREN,
-        "expected ')' after function parameters"
+        "expected ')' to close parameter list in function definition"
     );
 
     /*
@@ -458,7 +458,7 @@ std::unique_ptr<ForwardDecl> ParseState::parseForwardDecl(Visibility visibility)
 
     consume(
         TokenType::LPAREN,
-        "expected '(' in function declaration"
+        "expected '(' after function name in function forward declaration"
     );
 
     if (!check(TokenType::RPAREN)) {
@@ -491,7 +491,7 @@ std::unique_ptr<ForwardDecl> ParseState::parseForwardDecl(Visibility visibility)
 
     consume(
         TokenType::RPAREN,
-        "expected ')' in function declaration"
+        "expected ')' to close parameter list in function forward declaration"
     );
 
     /*
@@ -508,7 +508,7 @@ std::unique_ptr<ForwardDecl> ParseState::parseForwardDecl(Visibility visibility)
 
     consume(
         TokenType::SEMICOLON,
-        "expected ';' after function declaration"
+        "expected ';' after function forward declaration"
     );
 
     return decl;
@@ -524,14 +524,14 @@ std::unique_ptr<NamespaceDecl> ParseState::parseNamespaceDecl() {
 
     consume(
         TokenType::KW_NAMESPACE,
-        "expected 'namespace'"
+        "expected 'namespace' keyword"
     );
 
     ns->name = parseQualifiedName();
 
     consume(
         TokenType::LBRACE,
-        "expected '{' after namespace name"
+        "expected '{' to open namespace block"
     );
 
     while (!check(TokenType::RBRACE) &&
@@ -544,7 +544,7 @@ std::unique_ptr<NamespaceDecl> ParseState::parseNamespaceDecl() {
 
     consume(
         TokenType::RBRACE,
-        "expected '}' after namespace"
+        "expected '}' to close namespace block"
     );
 
     return ns;
@@ -562,14 +562,14 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
 
     consume(
         TokenType::KW_STRUCT,
-        "expected 'struct'"
+        "expected 'struct' keyword"
     );
 
     st->name = parseQualifiedName();
 
     consume(
         TokenType::LBRACE,
-        "expected '{' after struct name"
+        "expected '{' to open struct body block"
     );
 
     while (!check(TokenType::RBRACE) &&
@@ -584,7 +584,7 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
 
             advance();
 
-            consume(TokenType::LPAREN);
+            consume(TokenType::LPAREN,"expected '(' after constructor keyword");
 
             if (!check(TokenType::RPAREN)) {
 
@@ -595,7 +595,7 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
                     param.type = parseType();
 
                     if (!check(TokenType::IDENT))
-                        error("expected constructor parameter name");
+                        error("expected constructor parameter identifier name");
 
                     param.name = advance().value;
 
@@ -611,7 +611,7 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
                 }
             }
 
-            consume(TokenType::RPAREN);
+            consume(TokenType::RPAREN,"expected ')' to close constructor parameter list");
 
             ctor->body = parseBlock();
 
@@ -626,13 +626,13 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
 
             advance();
 
-            consume(TokenType::LPAREN);
+            consume(TokenType::LPAREN,"expected '(' after default constructor keyword");
 
             if (!check(TokenType::RPAREN)) {
-                error("default construct must not have any params");
+                error("default constructor must not accept any parameters");
             }
 
-            consume(TokenType::RPAREN);
+            consume(TokenType::RPAREN,"expected ')' to close default constructor parameter list");
 
             ctor->body = parseBlock();
 
@@ -650,10 +650,10 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
 
             advance();
 
-            consume(TokenType::LPAREN);
+            consume(TokenType::LPAREN,"expected '(' after drop keyword");
             consume(
                 TokenType::RPAREN,
-                "expected ')' after drop"
+                "expected ')' to close drop destructor parameter list"
             );
 
             dtor->body = parseBlock();
@@ -670,11 +670,11 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
 
             consume(
                 TokenType::EQ,
-                "expected '=' after default"
+                "expected '=' after default keyword"
             );
 
             if (!check(TokenType::IDENT))
-                error("expected default field name");
+                error("expected default field identifier name");
 
             st->default_field = advance().value;
 
