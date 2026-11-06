@@ -16,7 +16,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::If;
 
-        consume(TokenType::LPAREN, "expected '(' after if");
+        consume(TokenType::LPAREN, "expected '(' after if keyword");
 
         stmt->if_stmt.cond = parseExpr();
 
@@ -26,9 +26,9 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
 
         // elif chain
         while (match(TokenType::KW_ELIF)) {
-            consume(TokenType::LPAREN);
+            consume(TokenType::LPAREN,"expected '(' after 'elif' keyword");
             auto cond = parseExpr();
-            consume(TokenType::RPAREN);
+            consume(TokenType::RPAREN,"expected ')' after 'elif' condition expression");
             Stmt::IfStmt::Elif e;
             e.cond = std::move(cond);
             e.block = parseStmt();
@@ -51,9 +51,9 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::While;
 
-        consume(TokenType::LPAREN, "Exception LParen in While Statements");
+        consume(TokenType::LPAREN, "expected '(' after 'while' keyword");
         stmt->while_stmt.cond = parseExpr();
-        consume(TokenType::RPAREN, " Exception RParen after while Condition");
+        consume(TokenType::RPAREN, "expected ')' after 'while' condition expression");
 
         stmt->while_stmt.body = parseStmt();
 
@@ -72,23 +72,23 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         stmt->do_stmt.body = parseStmt();
 
         if (match(TokenType::KW_WHILE)) {
-            consume(TokenType::LPAREN);
+            consume(TokenType::LPAREN, "expected '(' after 'while' in do-while statement);
             stmt->do_stmt.cond = parseExpr();
-            consume(TokenType::RPAREN);
-            consume(TokenType::SEMICOLON);
+            consume(TokenType::RPAREN,"expected ')' after 'while' condition in do-while statement");
+            consume(TokenType::SEMICOLON,"expected ';' after do-while statement");
 
             return stmt;
         }
         if (match(TokenType::KW_CATCH)) {
-            consume(TokenType::LPAREN);
+            consume(TokenType::LPAREN,"expected '(' after 'catch' in do-catch statement");
             stmt->do_stmt.error_var = parseVarDecl();
-            consume(TokenType::RPAREN);
+            consume(TokenType::RPAREN,"expected ')' after error variable declaration in do-catch statement");
             stmt->do_stmt.catch_body = parseStmt();
             stmt->do_stmt.iscatch = true;
 
             return stmt;
         }
-        error("expected 'while' or 'catch' after do body");
+        error("expected 'while' or 'catch' keyword after 'do' statement body");
     }
 
     // -------------------------
@@ -101,7 +101,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         if (!check(TokenType::SEMICOLON))
             stmt->return_values = parseExpr();
 
-        consume(TokenType::SEMICOLON);
+        consume(TokenType::SEMICOLON,"expected ';' after return statement");
 
         return stmt;
     }
@@ -113,7 +113,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Break;
 
-        consume(TokenType::SEMICOLON);
+        consume(TokenType::SEMICOLON,"expected ';' after break statement");
         return stmt;
     }
 
@@ -124,7 +124,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Continue;
 
-        consume(TokenType::SEMICOLON);
+        consume(TokenType::SEMICOLON,"expected ';' after continue statement");
         return stmt;
     }
 
@@ -140,7 +140,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::ThrowStmt;
         stmt->throw_stmt.expr = parseExpr();
-        consume(TokenType::SEMICOLON,"expected ';' after throw");
+        consume(TokenType::SEMICOLON,"expected ';' after throw expression");
 
         return stmt;
     }
@@ -153,7 +153,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         stmt->kind = Stmt::Kind::Drop;
 
         stmt->drop_stmt.expr = parseExpr();
-        consume(TokenType::SEMICOLON);
+        consume(TokenType::SEMICOLON,"expected ';' after drop statement");
 
         return stmt;
     }
@@ -163,7 +163,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         stmt->kind = Stmt::Kind::Wipe;
 
         stmt->wipe_stmt.expr = parseExpr();
-        consume(TokenType::SEMICOLON);
+        consume(TokenType::SEMICOLON,"expected ';' after wipe statement");
 
         return stmt;
     }
@@ -176,7 +176,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         stmt->kind = Stmt::Kind::Label;
 
         stmt->label = advance().value;
-        consume(TokenType::COLON);
+        consume(TokenType::COLON,"expected ':' after label identifier");
 
         return stmt;
     }
@@ -188,8 +188,11 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Jump;
 
+        if (!check(TokenType::IDENT)) {
+            error("expected target label identifier after 'jumpto'");
+        }
         stmt->jump_target = advance().value;
-        consume(TokenType::SEMICOLON);
+        consume(TokenType::SEMICOLON,"expected ';' after jumpto target statement");
 
         return stmt;
     }
@@ -202,7 +205,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         stmt->kind = Stmt::Kind::VarDecl;
 
         stmt->var_decl = parseVarDecl();
-        consume(TokenType::SEMICOLON);
+        consume(TokenType::SEMICOLON,"expected ';' after variable declaration");
 
         return stmt;
     }
@@ -215,7 +218,7 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         stmt->kind = Stmt::Kind::ExprStmt;
 
         stmt->expr_stmt = parseExpr();
-        consume(TokenType::SEMICOLON);
+        consume(TokenType::SEMICOLON,"expected ';' after expression statement");
 
         return stmt;
     }
@@ -251,19 +254,20 @@ VarDecl ParseState::parseVarDecl(Visibility visibility) {
         VarDecl::Item item;
 
         if (peek().type != TokenType::IDENT)
-            error("expected variable name");
+            error("expected variable identifier name in declaration list");
 
         item.name = advance().value;
 
         if (match(TokenType::COLON)) {
             if (peek().type == TokenType::NUMBER)
             decl.type->bit_width = parseLiteral(advance());
+            else error("expected numeric literal for bit width specification after colon");
         }
         if (match(TokenType::LBRACE)) {
             if (peek().type != TokenType::RBRACE) {
                 item.args = parseArgList();
             }
-            consume(TokenType::RBRACE);
+            consume(TokenType::RBRACE,"expected '}' to close variable initialization arguments");
         }
 
         // -------------------------
@@ -282,7 +286,7 @@ VarDecl ParseState::parseVarDecl(Visibility visibility) {
 
 std::unique_ptr<Stmt> ParseState::parseBlock() {
 
-    consume(TokenType::LBRACE, "expected '{'");
+    consume(TokenType::LBRACE, "expected '{' to open code block");
 
     auto stmt = std::make_unique<Stmt>();
     stmt->kind = Stmt::Kind::Block;
@@ -295,7 +299,7 @@ std::unique_ptr<Stmt> ParseState::parseBlock() {
         );
     }
 
-    consume(TokenType::RBRACE, "expected '}'");
+    consume(TokenType::RBRACE, "expected '}' to close code block");
 
     return stmt;
 }
@@ -307,15 +311,15 @@ std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
     stmt->kind = Stmt::Kind::SwitchCase;
 
     consume(TokenType::LPAREN,
-        "expected '(' after switch");
+        "expected '(' after 'switch' keyword");
 
     stmt->switch_stmt.expr = parseExpr();
 
     consume(TokenType::RPAREN,
-        "expected ')' after switch condition");
+        "expected ')' after 'switch' condition expression");
 
     consume(TokenType::LBRACE,
-        "expected '{' after switch");
+        "expected '{' to open switch body block");
 
     while (!check(TokenType::RBRACE) &&
            !check(TokenType::EOF_TOKEN))
