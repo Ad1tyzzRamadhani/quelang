@@ -360,7 +360,7 @@ std::unique_ptr<Function> ParseState::parseFunction(Visibility visibility) {
             param.type = parseType();
 
             if (!check(TokenType::IDENT))
-                error("expected parameter name");
+                error("expected parameter identifier name in function definition");
 
             param.name = advance().value;
 
