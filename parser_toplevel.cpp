@@ -880,7 +880,7 @@ std::unique_ptr<EnumDef> ParseState::parseEnumDef(Visibility visibility) {
 
     consume(
         TokenType::RBRACE,
-        "expected '}' after enum"
+        "expected '}' to close enum body block"
     );
 
     return en;
