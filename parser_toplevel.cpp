@@ -680,7 +680,7 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
 
             consume(
                 TokenType::SEMICOLON,
-                "expected ';' after default field"
+                "expected ';' after default field declaration"
             );
 
             continue;
@@ -739,7 +739,7 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
 
         consume(
             TokenType::SEMICOLON,
-            "expected ';' after struct field"
+            "expected ';' after struct field declaration"
         );
 
         st->members.push_back(
@@ -749,7 +749,7 @@ std::unique_ptr<StructDef> ParseState::parseStructDef(Visibility visibility) {
 
     consume(
         TokenType::RBRACE,
-        "expected '}' after struct definition"
+        "expected '}' to close struct body block"
     );
 
     return st;
@@ -763,14 +763,14 @@ std::unique_ptr<UnionDef> ParseState::parseUnionDef(Visibility visibility) {
 
     consume(
         TokenType::KW_UNION,
-        "expected 'union'"
+        "expected 'union' keyword"
     );
 
     un->name = parseQualifiedName();
 
     consume(
         TokenType::LBRACE,
-        "expected '{' after union name"
+        "expected '{' to open union body block"
     );
 
     while (!check(TokenType::RBRACE) &&
@@ -780,17 +780,17 @@ std::unique_ptr<UnionDef> ParseState::parseUnionDef(Visibility visibility) {
 
             consume(
                 TokenType::EQ,
-                "expected '=' after default"
+                "expected '=' after default keyword in union"
             );
 
             if (!check(TokenType::IDENT))
-                error("expected union default field");
+                error("expected union default field identifier name");
 
             un->default_field = advance().value;
 
             consume(
                 TokenType::SEMICOLON,
-                "expected ';' after default field"
+                "expected ';' after union default field declaration"
             );
 
             continue;
@@ -801,13 +801,13 @@ std::unique_ptr<UnionDef> ParseState::parseUnionDef(Visibility visibility) {
         field.type = parseType();
 
         if (!check(TokenType::IDENT))
-            error("expected union field name");
+            error("expected union field identifier name");
 
         field.name = advance().value;
 
         consume(
             TokenType::SEMICOLON,
-            "expected ';' after union field"
+            "expected ';' after union field declaration"
         );
 
         un->fields.push_back(
@@ -817,7 +817,7 @@ std::unique_ptr<UnionDef> ParseState::parseUnionDef(Visibility visibility) {
 
     consume(
         TokenType::RBRACE,
-        "expected '}' after union"
+        "expected '}' to close union body block"
     );
 
     return un;
@@ -831,7 +831,7 @@ std::unique_ptr<EnumDef> ParseState::parseEnumDef(Visibility visibility) {
 
     consume(
         TokenType::KW_ENUM,
-        "expected 'enum'"
+        "expected 'enum' keyword"
     );
 
     en->name = parseQualifiedName();
@@ -845,7 +845,7 @@ std::unique_ptr<EnumDef> ParseState::parseEnumDef(Visibility visibility) {
 
     consume(
         TokenType::LBRACE,
-        "expected '{' after enum name"
+        "expected '{' to open enum body block"
     );
 
     if (!check(TokenType::RBRACE)) {
@@ -853,7 +853,7 @@ std::unique_ptr<EnumDef> ParseState::parseEnumDef(Visibility visibility) {
         while (true) {
 
             if (!check(TokenType::IDENT))
-                error("expected enum item");
+                error("expected enum item identifier name");
 
             EnumDef::Item item;
 
