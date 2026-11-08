@@ -352,7 +352,6 @@ std::unique_ptr<Stmt> ParseState::parseBlock() {
     consume(TokenType::LBRACE, "expected '{' to open code block");
 
     auto stmt = std::make_unique<Stmt>();
-    stmt->kind = Stmt::Kind::Block;
     stmt->file = braceTok.file;
     stmt->line_start = braceTok.line;
     stmt->column_start = braceTok.column;
