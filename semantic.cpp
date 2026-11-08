@@ -201,6 +201,7 @@ void SemanticAnalyzer::registerNode(Node& node) {
 }
 
 void SemanticAnalyzer::registerVar(VarDecl& decl) {
+    bool is_global = currentNamespace().empty();
     for (auto& item : decl.items) {
         auto symbol = std::make_unique<SemanticSymbol>();
         symbol->name = currentNamespace().empty()
@@ -214,6 +215,21 @@ void SemanticAnalyzer::registerVar(VarDecl& decl) {
         symbol->is_extern = decl.is_extern;
         symbol->is_atomic = decl.is_atomic;
         symbol->is_defined = true;
+        if (is_global && !decl.is_static && !decl.is_extern) {
+            // Periksa apakah tipe data mengandung const (opsional, tergantung struktur tipe Anda)
+            bool is_const = false;
+            for (auto q : decl.type->qualifiers) {
+                if (q == TypeQualifier::Const) is_const = true;
+            }
+
+            if (!is_const) {
+                warning(&decl, 
+                    "Mutable global variable '" + item.name + 
+                    "' is discouraged and can cause data races. " +
+                    "Consider using 'const' for compile-time constants or 'thread_local' for isolated state."
+                );
+            }
+        }
         declareSymbol(std::move(symbol), &decl);
     }
 }
