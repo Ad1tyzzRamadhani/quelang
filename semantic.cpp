@@ -52,6 +52,13 @@ void SemanticAnalyzer::error(const Node* node, const std::string& message) {
         d.file = node->file;
         d.line = node->line_start;
         d.column = node->column_start;
+        if (d.line <= 0 || d.column <= 0) {
+            std::cerr << "[DEBUG] Node type " << typeid(*node).name() 
+                      << " has invalid position: line=" << d.line 
+                      << ", col=" << d.column << "\n";
+        } else {
+            std::cerr << "[DEBUG] error() called with nullptr node for message: " << message << "\n";
+        }
     }
     diagnostics_.push_back(std::move(d));
 }
