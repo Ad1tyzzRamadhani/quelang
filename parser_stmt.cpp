@@ -13,8 +13,13 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     // IF
     // -------------------------
     if (match(TokenType::KW_IF)) {
+        const Token& ifTok = tokens[pos - 1];
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::If;
+        stmt->file = ifTok.file;
+        stmt->line_start = ifTok.line;
+        stmt->column_start = ifTok.column;
+
 
         consume(TokenType::LPAREN, "expected '(' after if keyword");
 
@@ -47,9 +52,15 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     // -------------------------
     // WHILE
     // -------------------------
+
     if (match(TokenType::KW_WHILE)) {
+        const Token& whileTok = tokens[pos - 1];
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::While;
+        stmt->file = whileTok.file;
+        stmt->line_start = whileTok.line;
+        stmt->column_start = whileTok.column;
+
 
         consume(TokenType::LPAREN, "expected '(' after 'while' keyword");
         stmt->while_stmt.cond = parseExpr();
@@ -66,8 +77,13 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     // DO WHILE
     // -------------------------
     if (match(TokenType::KW_DO)) {
+        const Token& doTok = tokens[pos - 1];
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::DoStmt;
+        stmt->file = doTok.file;
+        stmt->line_start = doTok.line;
+        stmt->column_start = doTok.column;
+
 
         stmt->do_stmt.body = parseStmt();
 
@@ -95,8 +111,13 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     // RETURN
     // -------------------------
     if (match(TokenType::KW_RETURN)) {
+        const Token& retTok = tokens[pos - 1];
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Return;
+        stmt->file = retTok.file;
+        stmt->line_start = retTok.line;
+        stmt->column_start = retTok.column;
+
 
         if (!check(TokenType::SEMICOLON))
             stmt->return_values = parseExpr();
@@ -110,8 +131,12 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     // BREAK
     // -------------------------
     if (match(TokenType::KW_BREAK)) {
+        const Token& breakTok = tokens[pos - 1];
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Break;
+        stmt->file = breakTok.file;
+        stmt->line_start = breakTok.line;
+        stmt->column_start = breakTok.column;
 
         consume(TokenType::SEMICOLON,"expected ';' after break statement");
         return stmt;
@@ -121,24 +146,38 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     // CONTINUE
     // -------------------------
     if (match(TokenType::KW_CONTINUE)) {
+        const Token& contTok = tokens[pos - 1];
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Continue;
+        stmt->file = contTok.file;
+        stmt->line_start = contTok.line;
+        stmt->column_start = contTok.column;
 
         consume(TokenType::SEMICOLON,"expected ';' after continue statement");
         return stmt;
     }
 
     if (match(TokenType::KW_UNSAFE)) {
+        const Token& unsafeTok = tokens[pos - 1];
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Unsafe;
+        stmt->file = unsafeTok.file;
+        stmt->line_start = unsafeTok.line;
+        stmt->column_start = unsafeTok.column;
+
         stmt->unsafe_stmt.stmt = parseStmt();
 
         return stmt;
     }
 
     if (match(TokenType::KW_THROW)) {
+        const Token& throwTok = tokens[pos - 1];
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::ThrowStmt;
+        stmt->file = throwTok.file;
+        stmt->line_start = throwTok.line;
+        stmt->column_start = throwTok.column;
+
         stmt->throw_stmt.expr = parseExpr();
         consume(TokenType::SEMICOLON,"expected ';' after throw expression");
 
@@ -149,8 +188,12 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     // DROP / WIPE
     // -------------------------
     if (match(TokenType::KW_DROP)) {
+        const Token& dropTok = tokens[pos - 1];
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Drop;
+        stmt->file = dropTok.file;
+        stmt->line_start = dropTok.line;
+        stmt->column_start = dropTok.column;
 
         stmt->drop_stmt.expr = parseExpr();
         consume(TokenType::SEMICOLON,"expected ';' after drop statement");
@@ -159,8 +202,12 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     }
 
     if (match(TokenType::KW_WIPE)) {
+        const Token& wipeTok = tokens[pos - 1];
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Wipe;
+        stmt->file = wipeTok.file;
+        stmt->line_start = wipeTok.line;
+        stmt->column_start = wipeTok.column;
 
         stmt->wipe_stmt.expr = parseExpr();
         consume(TokenType::SEMICOLON,"expected ';' after wipe statement");
@@ -172,8 +219,12 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     // LABEL
     // -------------------------
     if (tok.type == TokenType::IDENT && peek(1).type == TokenType::COLON) {
+        const Token& labelTok = tok;
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Label;
+        stmt->file = labelTok.file;
+        stmt->line_start = labelTok.line;
+        stmt->column_start = labelTok.column;
 
         stmt->label = advance().value;
         consume(TokenType::COLON,"expected ':' after label identifier");
@@ -185,8 +236,12 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     // JUMPTO
     // -------------------------
     if (match(TokenType::KW_JUMPTO)) {
+        const Token& jumpTok = tokens[pos - 1];
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::Jump;
+        stmt->file = jumpTok.file;
+        stmt->line_start = jumpTok.line;
+        stmt->column_start = jumpTok.column;
 
         if (!check(TokenType::IDENT)) {
             error("expected target label identifier after 'jumpto'");
@@ -201,8 +256,12 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     // VARIABLE DECL / EXPRESSIONS
     // -------------------------
     if (isVarDeclAhead()) {
+        const Token& varTok = peek();
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::VarDecl;
+        stmt->file = varTok.file;
+        stmt->line_start = varTok.line;
+        stmt->column_start = varTok.column;
 
         stmt->var_decl = parseVarDecl();
         consume(TokenType::SEMICOLON,"expected ';' after variable declaration");
@@ -214,8 +273,12 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
     // FALLBACK: ExprStmt
     // -------------------------
     {
+        const Token& exprTok = peek();
         auto stmt = std::make_unique<Stmt>();
         stmt->kind = Stmt::Kind::ExprStmt;
+        stmt->file = exprTok.file;
+        stmt->line_start = exprTok.line;
+        stmt->column_start = exprTok.column;
 
         stmt->expr_stmt = parseExpr();
         consume(TokenType::SEMICOLON,"expected ';' after expression statement");
@@ -285,10 +348,14 @@ VarDecl ParseState::parseVarDecl(Visibility visibility) {
 }
 
 std::unique_ptr<Stmt> ParseState::parseBlock() {
-
+    const Token& braceTok = peek();
     consume(TokenType::LBRACE, "expected '{' to open code block");
 
     auto stmt = std::make_unique<Stmt>();
+    stmt->kind = Stmt::Kind::Block;
+    stmt->file = braceTok.file;
+    stmt->line_start = braceTok.line;
+    stmt->column_start = braceTok.column;
     stmt->kind = Stmt::Kind::Block;
 
     while (!check(TokenType::RBRACE) &&
@@ -305,10 +372,12 @@ std::unique_ptr<Stmt> ParseState::parseBlock() {
 }
 
 std::unique_ptr<Stmt> ParseState::parseSwitchStmt() {
-
     const Token& tok = peek();
     auto stmt = std::make_unique<Stmt>();
     stmt->kind = Stmt::Kind::SwitchCase;
+    stmt->file = tok.file;
+    stmt->line_start = tok.line;
+    stmt->column_start = tok.column;
 
     consume(TokenType::LPAREN,
         "expected '(' after 'switch' keyword");
