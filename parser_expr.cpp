@@ -144,12 +144,12 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // STRUCT INIT { ... }
     // ------------------------
     if (isStructInit()) {
+        const Token& structTok = peek(); // Simpan token awal struct init
         auto expr = std::make_unique<Expr>();
-        expr->file = tok.file;
-        expr->line_start = tok.line;
-        expr->column_start = tok.column;
+        expr->file = structTok.file;
+        expr->line_start = structTok.line;
+        expr->column_start = structTok.column;
         expr->struct_init.type_name = parseType();
-        std::cout << expr->struct_init.type_name->base->parts.back() << std::endl;
         expr->kind = Expr::Kind::StructInit;
 
         consume(TokenType::LBRACE, "expected '{' to begin struct initialization block");
@@ -209,10 +209,13 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // GROUPING (expr)
     // ------------------------
     if (match(TokenType::LPAREN)) {
-        auto expr = parseExpr(); // nanti precedence parser
-        expr->file = tok.file;
-        expr->line_start = tok.line;
-        expr->column_start = tok.column;
+        const Token& parenTok = tokens[pos - 1]; // Token '(' yang di-match
+        auto expr = parseExpr(); 
+        if (expr) {
+            expr->file = parenTok.file;
+            expr->line_start = parenTok.line;
+            expr->column_start = parenTok.column;
+        }
 
         consume(TokenType::RPAREN, "expected ')' to close grouped expression");
 
@@ -223,10 +226,11 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // ARRAY LITERAL [ ... ]
     // ------------------------
     if (match(TokenType::LBRACKET)) {
+        const Token& bracketTok = tokens[pos - 1]; // Token '[' yang di-match
         auto expr = std::make_unique<Expr>();
-        expr->file = tok.file;
-        expr->line_start = tok.line;
-        expr->column_start = tok.column;
+        expr->file = bracketTok.file;
+        expr->line_start = bracketTok.line;
+        expr->column_start = bracketTok.column;
         expr->kind = Expr::Kind::ArrayLiteral;
 
         if (!check(TokenType::RBRACKET)) {
@@ -245,10 +249,11 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // new Type(...) & new Type[...]
     // ------------------------
     if (match(TokenType::KW_NEW)) {
+        const Token& newTok = tokens[pos - 1]; // Token 'new' yang di-match
         auto expr = std::make_unique<Expr>();
-        expr->file = tok.file;
-        expr->line_start = tok.line;
-        expr->column_start = tok.column;
+        expr->file = newTok.file;
+        expr->line_start = newTok.line;
+        expr->column_start = newTok.column;
         expr->kind = Expr::Kind::New;
         if (match(TokenType::LPAREN)) {
             if(check(TokenType::NUMBER) || check(TokenType::HEXNUMBER) || check(TokenType::BINARYNUMBER)) {
@@ -282,10 +287,11 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // ------------------------
 
     if (match(TokenType::KW_THIS)) {
+        const Token& thisTok = tokens[pos - 1]; // Token 'this' yang di-match
         auto expr = std::make_unique<Expr>();
-        expr->file = tok.file;
-        expr->line_start = tok.line;
-        expr->column_start = tok.column;
+        expr->file = thisTok.file;
+        expr->line_start = thisTok.line;
+        expr->column_start = thisTok.column;
         expr->kind = Expr::Kind::Ident;
 
         auto qn = std::make_unique<QualifiedName>();
@@ -296,6 +302,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     }
 
     if (match(TokenType::ARROW)) {
+        const Token& arrowTok = tokens[pos - 1];
         if (peek().type != TokenType::IDENT)
             error("expected identifier after '->' operator");
 
@@ -315,9 +322,10 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         
         expr->postfix.base = std::move(thisExpr);
         expr->postfix.ops.push_back(std::move(op));
-        expr->file = tok.file;
-        expr->line_start = tok.line;
-        expr->column_start = tok.column;
+
+        expr->file = arrowTok.file;
+        expr->line_start = arrowTok.line;
+        expr->column_start = arrowTok.column;
 
         return expr;
     }
