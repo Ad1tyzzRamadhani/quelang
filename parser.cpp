@@ -77,6 +77,11 @@ struct ParseState {
 
         auto expr = std::make_unique<Expr>();
         expr->kind = Expr::Kind::Postfix;
+        if (base) {
+            expr->file = base->file;
+            expr->line_start = base->line_start;
+            expr->column_start = base->column_start;
+        }
         expr->postfix.base = std::move(base);
         expr->postfix.ops.push_back(std::move(op));
 
