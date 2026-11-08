@@ -121,7 +121,7 @@ int main(int argc, char* argv[]) {
         return 0;
 
     } catch (const std::exception& e) {
-        std::cerr << "CRITICAL EXCEPTION: " << e.what() << "\n";
+        std::cerr << e.what() << "\n";
         return 1;
     } catch (...) {
         std::cerr << "UNKNOWN CRASH / EXCEPTION (Possible Null Pointer or Segfault)\n";
