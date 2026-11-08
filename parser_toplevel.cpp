@@ -767,6 +767,9 @@ std::unique_ptr<UnionDef> ParseState::parseUnionDef(Visibility visibility) {
     );
 
     un->name = parseQualifiedName();
+    un->line_start = peek().line;
+    un->column_start = peek().column;
+    un->file = peek().file;
 
     consume(
         TokenType::LBRACE,
@@ -828,6 +831,9 @@ std::unique_ptr<EnumDef> ParseState::parseEnumDef(Visibility visibility) {
     auto en = std::make_unique<EnumDef>();
 
     en->visibility = visibility;
+    en->line_start = peek().line;
+    en->column_start = peek().column;
+    en->file = peek().file;
 
     consume(
         TokenType::KW_ENUM,
