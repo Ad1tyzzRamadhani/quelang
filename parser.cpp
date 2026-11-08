@@ -85,7 +85,7 @@ struct ParseState {
  
     [[noreturn]] void error(const std::string& msg) const {
         const auto& tok = peek();
-        throw std::runtime_error("PARSER ERROR" + tok.file + ":" +
+        throw std::runtime_error("parsing error on " + tok.file + ":" +
                                  std::to_string(tok.line) + ":" +
                                  std::to_string(tok.column) + " " + msg);
     }
