@@ -73,10 +73,10 @@ int main(int argc, char* argv[]) {
                 has_error = true;
             }
             if (diagnostic.is_warning) {
-                std::cerr << "[WARNING] "<< diagnostic.file + " : " + diagnostic.message + "\n";
+                std::cerr << "[WARNING] " << diagnostic.file + ": " << diagnostic.line << ": " << diagnostic.column << ": " + diagnostic.message + "\n";
                 continue;
             }
-            std::cerr << diagnostic.file + " : " << diagnostic.line << ":" << diagnostic.column << ": " + diagnostic.message + "\n";
+            std::cerr << diagnostic.file + ": " << diagnostic.line << ": " << diagnostic.column << ": " + diagnostic.message + "\n";
         }
 
         if (!validate || has_error) {
