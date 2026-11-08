@@ -72,6 +72,7 @@ void SemanticAnalyzer::warning(const Node* node, const std::string& message) {
         d.line = node->line_start;
         d.column = node->column_start;
     }
+    d.is_warning = true;
     diagnostics_.push_back(std::move(d));
 }
 
