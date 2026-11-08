@@ -132,6 +132,9 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
 
         auto expr = std::make_unique<Expr>();
         expr->kind = Expr::Kind::Literal;
+        expr->file = tok.file;
+        expr->line_start = tok.line;
+        expr->column_start = tok.column;
         expr->literal = parseLiteral(tok);
 
         return expr;
@@ -142,6 +145,9 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // ------------------------
     if (isStructInit()) {
         auto expr = std::make_unique<Expr>();
+        expr->file = tok.file;
+        expr->line_start = tok.line;
+        expr->column_start = tok.column;
         expr->struct_init.type_name = parseType();
         std::cout << expr->struct_init.type_name->base->parts.back() << std::endl;
         expr->kind = Expr::Kind::StructInit;
@@ -186,6 +192,9 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
             auto qn = parseQualifiedName();
 
             auto expr = std::make_unique<Expr>();
+            expr->file = tok.file;
+            expr->line_start = tok.line;
+            expr->column_start = tok.column;
             expr->kind = Expr::Kind::Ident;
             expr->ident = std::move(qn);
 
@@ -201,6 +210,9 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // ------------------------
     if (match(TokenType::LPAREN)) {
         auto expr = parseExpr(); // nanti precedence parser
+        expr->file = tok.file;
+        expr->line_start = tok.line;
+        expr->column_start = tok.column;
 
         consume(TokenType::RPAREN, "expected ')' to close grouped expression");
 
@@ -212,6 +224,9 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // ------------------------
     if (match(TokenType::LBRACKET)) {
         auto expr = std::make_unique<Expr>();
+        expr->file = tok.file;
+        expr->line_start = tok.line;
+        expr->column_start = tok.column;
         expr->kind = Expr::Kind::ArrayLiteral;
 
         if (!check(TokenType::RBRACKET)) {
@@ -231,6 +246,9 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // ------------------------
     if (match(TokenType::KW_NEW)) {
         auto expr = std::make_unique<Expr>();
+        expr->file = tok.file;
+        expr->line_start = tok.line;
+        expr->column_start = tok.column;
         expr->kind = Expr::Kind::New;
         if (match(TokenType::LPAREN)) {
             if(check(TokenType::NUMBER) || check(TokenType::HEXNUMBER) || check(TokenType::BINARYNUMBER)) {
@@ -265,6 +283,9 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
 
     if (match(TokenType::KW_THIS)) {
         auto expr = std::make_unique<Expr>();
+        expr->file = tok.file;
+        expr->line_start = tok.line;
+        expr->column_start = tok.column;
         expr->kind = Expr::Kind::Ident;
 
         auto qn = std::make_unique<QualifiedName>();
@@ -291,8 +312,12 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
 
         auto expr = std::make_unique<Expr>();
         expr->kind = Expr::Kind::Postfix;
+        
         expr->postfix.base = std::move(thisExpr);
         expr->postfix.ops.push_back(std::move(op));
+        expr->file = tok.file;
+        expr->line_start = tok.line;
+        expr->column_start = tok.column;
 
         return expr;
     }
@@ -411,6 +436,11 @@ std::unique_ptr<Expr> ParseState::parseCast() {
 
         castExpr->cast.base = std::move(expr);
         castExpr->cast.target = parseType();
+        if (castExpr->cast.base) {
+            castExpr->file = castExpr->cast.base->file;
+            castExpr->line_start = castExpr->cast.base->line_start;
+            castExpr->column_start = castExpr->cast.base->column_start;
+        }
         if(match(TokenType::COLON)) {
             if (!check(TokenType::NUMBER) && !check(TokenType::HEXNUMBER)) {
                 error("expected numeric literal for bit width specification after cast colon");
@@ -441,6 +471,9 @@ std::unique_ptr<Expr> ParseState::parseUnary() {
 
         auto expr = std::make_unique<Expr>();
         expr->kind = Expr::Kind::Unary;
+        expr->file = tokens[pos - 1].file;
+        expr->line_start = tokens[pos - 1].line;
+        expr->column_start = tokens[pos - 1].column;
 
         switch (opTok) {
             case TokenType::MINUS:
@@ -518,6 +551,11 @@ std::unique_ptr<Expr> ParseState::parseMul() {
 
         bin->binary.lhs = std::move(expr);
         bin->binary.rhs = std::move(rhs);
+        if (bin->binary.lhs) {
+            bin->file = bin->binary.lhs->file;
+            bin->line_start = bin->binary.lhs->line_start;
+            bin->column_start = bin->binary.lhs->column_start;
+        }
 
         expr = std::move(bin);
     }
@@ -557,6 +595,11 @@ std::unique_ptr<Expr> ParseState::parseAdd() {
 
         bin->binary.lhs = std::move(expr);
         bin->binary.rhs = std::move(rhs);
+        if (bin->binary.lhs) {
+            bin->file = bin->binary.lhs->file;
+            bin->line_start = bin->binary.lhs->line_start;
+            bin->column_start = bin->binary.lhs->column_start;
+        }
 
         expr = std::move(bin);
     }
@@ -581,6 +624,11 @@ std::unique_ptr<Expr> ParseState::parseBitwiseAnd() {
 
         bin->binary.lhs = std::move(expr);
         bin->binary.rhs = std::move(rhs);
+        if (bin->binary.lhs) {
+            bin->file = bin->binary.lhs->file;
+            bin->line_start = bin->binary.lhs->line_start;
+            bin->column_start = bin->binary.lhs->column_start;
+        }
 
         expr = std::move(bin);
     }
@@ -605,6 +653,11 @@ std::unique_ptr<Expr> ParseState::parseBitwiseXor() {
 
         bin->binary.lhs = std::move(expr);
         bin->binary.rhs = std::move(rhs);
+        if (bin->binary.lhs) {
+            bin->file = bin->binary.lhs->file;
+            bin->line_start = bin->binary.lhs->line_start;
+            bin->column_start = bin->binary.lhs->column_start;
+        }
 
         expr = std::move(bin);
     }
@@ -629,6 +682,11 @@ std::unique_ptr<Expr> ParseState::parseBitwiseOr() {
 
         bin->binary.lhs = std::move(expr);
         bin->binary.rhs = std::move(rhs);
+        if (bin->binary.lhs) {
+            bin->file = bin->binary.lhs->file;
+            bin->line_start = bin->binary.lhs->line_start;
+            bin->column_start = bin->binary.lhs->column_start;
+        }
 
         expr = std::move(bin);
     }
@@ -652,6 +710,11 @@ std::unique_ptr<Expr> ParseState::parseShift() {
 
             bin->binary.lhs = std::move(expr);
             bin->binary.rhs = std::move(rhs);
+            if (bin->binary.lhs) {
+                bin->file = bin->binary.lhs->file;
+                bin->line_start = bin->binary.lhs->line_start;
+                bin->column_start = bin->binary.lhs->column_start;
+            }
 
             expr = std::move(bin);
             continue;
@@ -667,6 +730,11 @@ std::unique_ptr<Expr> ParseState::parseShift() {
 
             bin->binary.lhs = std::move(expr);
             bin->binary.rhs = std::move(rhs);
+            if (bin->binary.lhs) {
+            bin->file = bin->binary.lhs->file;
+            bin->line_start = bin->binary.lhs->line_start;
+            bin->column_start = bin->binary.lhs->column_start;
+            }
 
             expr = std::move(bin);
             continue;
@@ -703,6 +771,11 @@ std::unique_ptr<Expr> ParseState::parseRelational() {
 
         bin->binary.lhs = std::move(expr);
         bin->binary.rhs = std::move(rhs);
+        if (bin->binary.lhs) {
+            bin->file = bin->binary.lhs->file;
+            bin->line_start = bin->binary.lhs->line_start;
+            bin->column_start = bin->binary.lhs->column_start;
+        }
 
         expr = std::move(bin);
     }
@@ -733,6 +806,11 @@ std::unique_ptr<Expr> ParseState::parseEquality() {
 
         bin->binary.lhs = std::move(expr);
         bin->binary.rhs = std::move(rhs);
+        if (bin->binary.lhs) {
+            bin->file = bin->binary.lhs->file;
+            bin->line_start = bin->binary.lhs->line_start;
+            bin->column_start = bin->binary.lhs->column_start;
+        }
 
         expr = std::move(bin);
     }
@@ -756,6 +834,11 @@ std::unique_ptr<Expr> ParseState::parseLogic() {
 
             bin->binary.lhs = std::move(expr);
             bin->binary.rhs = std::move(rhs);
+            if (bin->binary.lhs) {
+            bin->file = bin->binary.lhs->file;
+            bin->line_start = bin->binary.lhs->line_start;
+            bin->column_start = bin->binary.lhs->column_start;
+            }
 
             expr = std::move(bin);
             continue;
@@ -771,6 +854,11 @@ std::unique_ptr<Expr> ParseState::parseLogic() {
 
             bin->binary.lhs = std::move(expr);
             bin->binary.rhs = std::move(rhs);
+            if (bin->binary.lhs) {
+            bin->file = bin->binary.lhs->file;
+            bin->line_start = bin->binary.lhs->line_start;
+            bin->column_start = bin->binary.lhs->column_start;
+            }
 
             expr = std::move(bin);
             continue;
@@ -786,6 +874,11 @@ std::unique_ptr<Expr> ParseState::parseLogic() {
 
             bin->binary.lhs = std::move(expr);
             bin->binary.rhs = std::move(rhs);
+            if (bin->binary.lhs) {
+            bin->file = bin->binary.lhs->file;
+            bin->line_start = bin->binary.lhs->line_start;
+            bin->column_start = bin->binary.lhs->column_start;
+            }
 
             expr = std::move(bin);
             continue;
@@ -814,6 +907,11 @@ std::unique_ptr<Expr> ParseState::parseCoalesce() {
 
         bin->binary.lhs = std::move(expr);
         bin->binary.rhs = std::move(rhs);
+        if (bin->binary.lhs) {
+            bin->file = bin->binary.lhs->file;
+            bin->line_start = bin->binary.lhs->line_start;
+            bin->column_start = bin->binary.lhs->column_start;
+        }
 
         expr = std::move(bin);
     }
@@ -842,6 +940,11 @@ std::unique_ptr<Expr> ParseState::parseTernary() {
         node->ternary.cond = std::move(expr);
         node->ternary.then_expr = std::move(thenExpr);
         node->ternary.else_expr = std::move(elseExpr);
+        if (node->ternary.cond) {
+            node->file = node->ternary.cond->file;
+            node->line_start = node->ternary.cond->line_start;
+            node->column_start = node->ternary.cond->column_start;
+        }
 
         return node;
     }
@@ -876,6 +979,11 @@ std::unique_ptr<Expr> ParseState::parseAssign() {
         node->assign.op = op;
         node->assign.lhs = std::move(expr);
         node->assign.rhs = std::move(rhs);
+        if (node->assign.lhs) {
+        node->file = node->assign.lhs->file;
+        node->line_start = node->assign.lhs->line_start;
+        node->column_start = node->assign.lhs->column_start;
+        }
 
         expr = std::move(node);
     }
