@@ -95,6 +95,11 @@ std::unique_ptr<Type> ParseState::parseType() {
 std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq) {
         // function pointer
     auto type = std::make_unique<Type>();
+    if (!tokens.empty()) {
+        type->file = peek().file;
+        type->line_start = peek().line;
+        type->column_start = peek().column;
+    }
     type->qualifiers = tq;
     type->base = MakeEmptyQualifiedName();
         if (peek().type == TokenType::LPAREN) {
