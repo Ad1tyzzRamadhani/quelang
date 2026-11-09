@@ -21,6 +21,7 @@ struct Node {
 
 struct QualifiedName : Node {
     std::vector<std::string> parts;
+    bool is_absolute = false;
 };
 
 // Literal
