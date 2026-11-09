@@ -110,7 +110,20 @@ bool SemanticAnalyzer::declareSymbol(std::unique_ptr<SemanticSymbol> symbol,
 SemanticSymbol* SemanticAnalyzer::resolveQualified(const QualifiedName& name) const {
     if (name.is_absolute) {
         std::string full = joinQualified(name.parts);
-        return symbols_.lookup(full); // Cari langsung dari akar global
+        SemanticSymbol* symbol = symbols_.lookup(full);
+        
+        if (!symbol) {
+            return nullptr; // Biarkan penanganan error "unknown identifier" berjalan
+        }
+
+        // Validasi: Apakah simbol ini benar-benar variabel global / static / thread_local?
+        // (Sesuaikan dengan jenis SymbolKind atau properti deklarasi VarDecl-nya)
+        if (symbol->kind != SymbolKind::Variable) {
+            // Bisa Anda lempar error jika mencoba pakai '::' untuk selain variabel global
+            return symbol; // atau batasi jika hanya untuk variabel
+        }
+
+        return symbol;
     }
     const std::string full = qualifiedName(name);
     if (auto* s = symbols_.lookup(full)) return s;
@@ -1367,6 +1380,14 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
         case Expr::Kind::Literal: return analyzeLiteral(expr->literal.get());
         case Expr::Kind::Ident: {
             if (!expr->ident) return invalid;
+            if (expr->ident->is_absolute) {
+                SemanticSymbol* symbol = resolveQualified(*expr->ident);
+                if (!symbol || symbol->kind != SymbolKind::Variable) {
+                    error(expr, "absolute scope '::' can only be used to access global variables");
+                    return invalid;
+                }  
+                return view(symbol->type);
+            }
             const std::string name = qualifiedName(*expr->ident);
             if (name == "this") {
                 if (current_struct_.empty()) {
