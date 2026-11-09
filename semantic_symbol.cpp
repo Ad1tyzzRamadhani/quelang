@@ -1017,6 +1017,22 @@ public:
         return current_scope;
     }
 
+    SemanticSymbol*
+    lookupGlobal(
+        const std::string& name
+    ) const {
+
+        if (!global_scope)
+            return nullptr;
+
+        auto it = global_scope->symbols.find(name);
+
+        if (it == global_scope->symbols.end())
+            return nullptr;
+
+        return it->second.get();
+    }
+
 
     /*
      * -----------------------------------------------------
