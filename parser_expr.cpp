@@ -191,7 +191,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
     // ------------------------
     // IDENT / QUALIFIED NAME
     // ------------------------
-    if (tok.type == TokenType::IDENT) {
+    if (tok.type == TokenType::IDENT || tok.type == TokenType::SCOPE) {
         size_t save = pos;
 
         try {
