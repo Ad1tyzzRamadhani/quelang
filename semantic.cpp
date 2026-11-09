@@ -108,6 +108,10 @@ bool SemanticAnalyzer::declareSymbol(std::unique_ptr<SemanticSymbol> symbol,
 }
 
 SemanticSymbol* SemanticAnalyzer::resolveQualified(const QualifiedName& name) const {
+    if (name.is_absolute) {
+        std::string full = joinQualified(name.parts);
+        return symbols_.lookup(full); // Cari langsung dari akar global
+    }
     const std::string full = qualifiedName(name);
     if (auto* s = symbols_.lookup(full)) return s;
 
