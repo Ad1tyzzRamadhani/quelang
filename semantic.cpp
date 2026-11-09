@@ -1381,11 +1381,29 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
         case Expr::Kind::Ident: {
             if (!expr->ident) return invalid;
             if (expr->ident->is_absolute) {
-                SemanticSymbol* symbol = resolveQualified(*expr->ident);
-                if (!symbol || symbol->kind != SymbolKind::Variable) {
-                    error(expr, "absolute scope '::' can only be used to access global variables");
+                const std::string name = qualifiedName(*expr->ident);
+                SemanticSymbol* symbol = symbols_.lookupGlobal(name);
+                
+                if (!symbol) {
+                    error(expr, "unknown global identifier '" + name + "'");
                     return invalid;
-                }  
+                }
+
+                if (symbol->kind != SymbolKind::Variable) {
+                    error(expr, "absolute scope '::' expects a global variable");
+                    return invalid;
+                }
+
+                if (symbol->state == SymbolState::Moved) {
+                    error(expr, "use of moved global value '" + name + "'");
+                    return invalid;
+                }
+
+                if (!symbol->type) {
+                    error(expr, "global symbol '" + name + "' has no type");
+                    return invalid;
+                }
+
                 return view(symbol->type);
             }
             const std::string name = qualifiedName(*expr->ident);
