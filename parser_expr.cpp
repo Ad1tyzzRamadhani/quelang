@@ -59,8 +59,14 @@ std::unique_ptr<Literal> ParseState::parseLiteral(const Token& tok) {
 
 std::unique_ptr<QualifiedName> ParseState::parseQualifiedName() {
     auto qn = std::make_unique<QualifiedName>();
-    qn->line_start = tokens[pos].line;
-    qn->column_start = tokens[pos].column;
+    if (match(TokenType::SCOPE)) {
+        qn->is_absolute = true;
+    }
+
+    if (!tokens.empty() && pos < tokens.size()) {
+        qn->line_start = tokens[pos].line;
+        qn->column_start = tokens[pos].column;
+    }
 
     while(pos < tokens.size()) {
         if(tokens[pos].type != TokenType::IDENT)
