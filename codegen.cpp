@@ -2,6 +2,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <unordered_map>
 #include <stdexcept>
 
 class QuelangToCruCodegen {
@@ -10,7 +11,6 @@ public:
         out_.str("");
         out_.clear();
         tempCounter_ = 0;
-        currentNamespace_.clear();
 
         for (const auto& node : program->decls) {
             emitNode(node.get());
@@ -24,9 +24,7 @@ private:
     std::unordered_map<std::string, std::string> paramTypes_;
     std::ostringstream out_;
     int tempCounter_ = 0;
-    std::vector<std::string> currentNamespace_;
 
-    // Tambahkan di dalam kelas QuelangToCruCodegen (bagian private):
     struct FieldInfo {
         std::string name;
         std::string type;
@@ -39,7 +37,6 @@ private:
     };
 
     std::unordered_map<std::string, StructInfo> structDefinitions_;
-  
 
     std::string freshTemp(bool s = false) {
         if(s) return "t" + std::to_string(tempCounter_++);
@@ -47,21 +44,17 @@ private:
     }
 
     std::string qualifyName(QualifiedName* qname, const std::string& fallback = "anonymous") {
-        std::vector<std::string> parts = currentNamespace_;
-        if (qname && !qname->parts.empty()) {
-            parts.insert(parts.end(), qname->parts.begin(), qname->parts.end());
-        }
-
-        if (parts.empty()) {
+        if (!qname || qname->parts.empty()) {
             return fallback;
         }
 
-        std::string result = parts[0];
-        for (std::size_t i = 1; i < parts.size(); ++i) {
-            result += "_" + parts[i];
+        std::string result = qname->parts[0];
+        for (std::size_t i = 1; i < qname->parts.size(); ++i) {
+            result += "_" + qname->parts[i];
         }
         return result;
     }
+
     bool endsWithReturn(Stmt* stmt) {
         if (!stmt) return false;
         if (stmt->kind == Stmt::Kind::Return) return true;
@@ -73,39 +66,12 @@ private:
         return false;
     }
 
-
-    void emitNamespace(NamespaceDecl* ns) {
-        if (!ns) return;
-
-        // 1. Masukkan bagian nama namespace ke dalam stack konteks aktif
-        std::vector<std::string> pushedParts;
-        if (ns->name) {
-            pushedParts = ns->name->parts;
-            currentNamespace_.insert(currentNamespace_.end(), pushedParts.begin(), pushedParts.end());
-        }
-
-        // 2. Iterasi seluruh item di dalam namespace
-        for (const auto& item : ns->items) {
-            emitNode(item.get());
-        }
-
-        // 3. Keluar dari konteks namespace (pop stack)
-        if (!pushedParts.empty()) {
-            currentNamespace_.erase(
-                currentNamespace_.end() - pushedParts.size(), 
-                currentNamespace_.end()
-            );
-        }
-    }
-
-
     void emitNode(Node* node) {
         if (!node) return;
 
         if (auto func = dynamic_cast<Function*>(node)) {
             emitFunction(func);
         } else if (auto forwardDecl = dynamic_cast<ForwardDecl*>(node)) {
-            // Menangani deklarasi extern / forward declaration
             if (forwardDecl->is_extern) {
                 emitExtern(forwardDecl);
             }
@@ -115,23 +81,22 @@ private:
             emitUnion(unionDef);
         } else if (auto varDecl = dynamic_cast<VarDecl*>(node)) {
             emitGlobalVar(varDecl);
-        } else if (auto ns = dynamic_cast<NamespaceDecl*>(node)) {
-            emitNamespace(ns);
         }
+        // Catatan: NamespaceDecl dan Method tidak lagi ditangani di sini (dihapus sesuai instruksi).
     }
 
     std::string emitType(Type* type) {
         if (!type) return "void";
         if (type->is_array && !type->array_dims.empty()) {
             std::string sizeStr = type->array_dims[0]->value;
-            std::string elemType = "i32"; // default fallback
+            std::string elemType = "i32"; 
             if (type->base && !type->base->parts.empty()) {
                 std::string name = type->base->parts.back();
                 if (name == "int" || name == "unint") elemType = "i32";
                 else if (name == "unchar" || name == "char") elemType = "i8";
                 else if (name == "unlong" || name == "long") elemType = "i64";
-                else if (name == "float" || name == "float") elemType = "f32";
-                else if (name == "flong" || name == "double") elemType = "f64";
+                else if (name == "float") elemType = "f32";
+                else if (name == "double" || name == "flong") elemType = "f64";
                 else if (name == "bool") elemType = "bool";
                 else elemType = name;
             }
@@ -159,12 +124,6 @@ private:
         return "ptr";
     }
 
-    bool isFloatType(Type* type) {
-        if (!type || !type->base || type->base->parts.empty()) return false;
-        std::string name = type->base->parts.back();
-        return name == "f32" || name == "float" || name == "f64" || name == "double";
-    }
-
     void emitExtern(ForwardDecl* decl) {
         std::string name = decl->name ? decl->name->parts.back() : "unknown";
         std::string retType = emitType(decl->return_types.get());
@@ -176,7 +135,6 @@ private:
         }
         out_ << ")\n";
     }
-
 
     void emitFunction(Function* func) {
         std::string retType = emitType(func->return_types.get());
@@ -245,10 +203,9 @@ private:
 
     void emitGlobalVar(VarDecl* varDecl) {
         for (const auto& item : varDecl->items) {
-            bool is_volatile = false, is_const = false;
+            bool is_const = false;
             for(auto& kind : varDecl->type->qualifiers) {
                 if(kind == TypeQualifier::Const) is_const = true;
-                if(kind == TypeQualifier::Volatile) is_volatile = true;
             }
             std::string t = emitType(varDecl->type.get());
             if (varDecl->is_atomic) {
@@ -273,7 +230,6 @@ private:
         return result;
     }
 
-
     void emitStmt(Stmt* stmt) {
         if (!stmt) return;
 
@@ -290,7 +246,6 @@ private:
                     symbolTypes_[item.name] = t;
                     std::string reg = "%" + item.name;
                     if (stmt->var_decl.type->is_array && !stmt->var_decl.type->array_dims.empty()) {
-                        // Alokasi array lokal menggunakan ukuran dimensi pertama
                         std::string sizeStr = stmt->var_decl.type->array_dims[0]->value;
                         out_ << "    " << reg << " = alloca [" << sizeStr << "]" << t << "\n";
                     } else {
@@ -339,7 +294,6 @@ private:
                         out_ << "    jmp " << mergeLabel << "\n";
                     }
                 } else {
-                    // Jika tidak ada else block, tetap butuh jalan keluar ke merge
                     out_ << "    jmp " << mergeLabel << "\n";
                 }
                 out_ << mergeLabel << ":\n";
@@ -347,11 +301,9 @@ private:
             }
 
             case Stmt::Kind::SwitchCase: {
-                // 1. Evaluasi ekspresi utama yang di-switch
                 std::string condVal = emitExpr(stmt->switch_stmt.expr.get());
                 std::string switchEndLabel = freshTemp(true) + "_switch_end";
 
-                // Simpan label untuk setiap case agar bisa dilompati
                 std::vector<std::string> caseLabels;
                 for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
                     caseLabels.push_back(freshTemp(true) + "_case_" + std::to_string(i));
@@ -359,7 +311,6 @@ private:
                 std::string defaultLabel = freshTemp(true) + "_default";
                 std::string targetDefault = defaultLabel;
 
-                // Cari apakah ada case default
                 for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
                     if (stmt->switch_stmt.cases[i].is_default) {
                         targetDefault = caseLabels[i];
@@ -367,28 +318,23 @@ private:
                     }
                 }
 
-                // 2. Emit perbandingan untuk setiap case (pencocokan nilai)
                 for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
                     const auto& c = stmt->switch_stmt.cases[i];
                     if (c.is_default) continue;
 
                     for (const auto& valLit : c.values) {
                         std::string cmpRes = freshTemp();
-                        std::string litVal = qualifyName(valLit->ident.get()); // Nilai literal pembanding
+                        std::string litVal = qualifyName(valLit->ident.get());
                         
-                        // Lakukan perbandingan kesamaan (eq)
                         out_ << "    " << cmpRes << " = eq i32 " << condVal << ", " << litVal << "\n";
                         
-                        // Tentukan target lompatan berikutnya (jika cocok ke case[i], jika tidak lanjut ke cek berikutnya/default)
                         std::string nextCheck = (i + 1 < stmt->switch_stmt.cases.size()) ? caseLabels[i + 1] : targetDefault;
                         out_ << "    br_if " << cmpRes << ", " << caseLabels[i] << ", " << nextCheck << "\n";
                     }
                 }
 
-                // Jika tidak ada yang cocok sama sekali, langsung lompat ke default/end
                 out_ << "    jmp " << targetDefault << "\n";
 
-                // 3. Emit blok tubuh (*body*) untuk masing-masing case
                 for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
                     const auto& c = stmt->switch_stmt.cases[i];
                     out_ << caseLabels[i] << ":\n";
@@ -400,16 +346,11 @@ private:
                     }
                 }
 
-                // Emit blok default jika didefinisikan secara terpisah
                 out_ << defaultLabel << ":\n";
-                // (Badan default bisa ditaruh di sini jika ditangani khusus)
                 out_ << "    jmp " << switchEndLabel << "\n";
-
-                // Label akhir switch
                 out_ << switchEndLabel << ":\n";
                 break;
             }
-
 
             case Stmt::Kind::While: {
                 std::string condLabel = freshTemp(true) + "_while_cond";
@@ -437,7 +378,6 @@ private:
 
     std::string emitExpr(Expr* expr) {
         if (!expr) return "0";
-        std::string varName = flattenQualifiedName(expr->ident.get());
 
         switch (expr->kind) {
             case Expr::Kind::Literal:
@@ -457,61 +397,58 @@ private:
                 break;
 
             case Expr::Kind::Ident:
-                if (expr->ident && !expr->ident->parts.empty()) {
-                    std::string varName = expr->ident->parts.back();
-                    if (paramTypes_.find(varName) != paramTypes_.end()) {
-                        return "%" + varName;
+                if (expr->ident) {
+                    // Sinkronisasi is_absolute: Jika diawali '::' (absolute scope/global addr)
+                    if (expr->ident->is_absolute) {
+                        std::string globalName = flattenQualifiedName(expr->ident.get());
+                        std::string addrRes = freshTemp();
+                        // Menggunakan instruksi global addr di CRU
+                        out_ << "    " << addrRes << " = global addr @" << globalName << "\n";
+                        return addrRes;
                     }
-                    if (symbolTypes_.find(varName) != symbolTypes_.end()) {
-                        
-                        std::string vType = symbolTypes_[varName];
-                        if (vType == "ptr") {
+
+                    if (!expr->ident->parts.empty()) {
+                        std::string varName = expr->ident->parts.back();
+                        if (paramTypes_.find(varName) != paramTypes_.end()) {
                             return "%" + varName;
                         }
-                        std::string loadRes = freshTemp();
-                        out_ << "    " << loadRes << " = load " << vType << " %" << varName << "\n";
-                        return loadRes;
+                        if (symbolTypes_.find(varName) != symbolTypes_.end()) {
+                            std::string vType = symbolTypes_[varName];
+                            if (vType == "ptr") {
+                                return "%" + varName;
+                            }
+                            std::string loadRes = freshTemp();
+                            out_ << "    " << loadRes << " = load " << vType << " %" << varName << "\n";
+                            return loadRes;
+                        }
+                        return "%" + varName;
                     }
-                    return "%" + varName;
                 }
                 break;
 
-
             case Expr::Kind::StructInit: {
-                // 1. Alokasikan memori struct di stack (menggunakan nama struct atau generic ptr)
                 std::string structName = "AnonymousStruct";
                 if (expr->struct_init.type_name && expr->struct_init.type_name->base) {
-                structName = qualifyName(expr->struct_init.type_name->base.get());
+                    structName = qualifyName(expr->struct_init.type_name->base.get());
                 } 
-                // Fallback ke symbolTypes jika structName masih default
-                else if (symbolTypes_.find(varName) != symbolTypes_.end()) {
-                structName = symbolTypes_[varName];
-                }
-
 
                 std::string allocRes = freshTemp();
-                out_ << "    " << allocRes << " = alloca ptr\n"; // Alokasi pointer penampung struct
+                out_ << "    " << allocRes << " = alloca ptr\n";
 
-                // 2. Iterasi dan isi setiap field menggunakan store atau field.addr
                 int fieldIdx = 0;
                 for (const auto& fieldPair : expr->struct_init.fields) {
                     std::string valRes = emitExpr(fieldPair.second.get());
                     std::string fieldAddrRes = freshTemp();
-
-                    std::string fieldType = "i32"; // Fallback default
+                    std::string fieldType = "i32";
                     
-                    // Contoh deteksi dinamis berbasis tipe ekspresi nilai yang diisikan:
                     if (valRes.rfind('"', 0) == 0 && valRes.back() == '"') {
-                        fieldType = "ptr"; // Jika string literal, asumsikan ptr
+                        fieldType = "ptr";
                     } else if (valRes == "true" || valRes == "false") {
                         fieldType = "bool";
                     }
 
-                    
-                    // Mendapatkan alamat field menggunakan field.addr CRU
                     out_ << "    " << fieldAddrRes << " = field addr " << structName << ", " << allocRes << ", " << fieldIdx << "\n";
-                    out_ << "    store " << fieldType << " " << valRes << ", " << fieldAddrRes << "\n"; // Sesuaikan tipe jika ada penelusuran tipe field
-                    
+                    out_ << "    store " << fieldType << " " << valRes << ", " << fieldAddrRes << "\n";
                     fieldIdx++;
                 }
                 return allocRes;
@@ -525,8 +462,7 @@ private:
                 bool isFloatOp = false;
                 std::string varType = "i32";
                 if (lhs.rfind('"', 0) == 0 || rhs.rfind('"', 0) == 0 || 
-                    lhs == "null" || rhs == "null" || 
-                    (symbolTypes_.find(lhs) != symbolTypes_.end() && symbolTypes_[lhs] == "ptr")) {
+                    lhs == "null" || rhs == "null") {
                     varType = "ptr";
                 }
 
@@ -555,31 +491,35 @@ private:
             case Expr::Kind::Assign: {
                 std::string rhsVal = emitExpr(expr->assign.rhs.get());
                 if (expr->assign.lhs->kind == Expr::Kind::Ident && expr->assign.lhs->ident) {
+                    // Cek jika assignment ke variabel global absolut (::x = val)
+                    if (expr->assign.lhs->ident->is_absolute) {
+                        std::string globalName = flattenQualifiedName(expr->assign.lhs->ident.get());
+                        std::string addrRes = freshTemp();
+                        out_ << "    " << addrRes << " = global addr @" << globalName << "\n";
+                        out_ << "    store i32 " << rhsVal << ", " << addrRes << "\n";
+                        return rhsVal;
+                    }
+
                     std::string varType = "i32";
                     std::string lhsName = expr->assign.lhs->ident->parts.back();
                     if (symbolTypes_.find(lhsName) != symbolTypes_.end()) {
-                        varType = symbolTypes_[lhsName]; // Ambil tipe asli yang tersimpan
+                        varType = symbolTypes_[lhsName];
                     }
                     std::string varName = "%" + lhsName;
                     out_ << "    store " + varType + " " << rhsVal << ", " << varName << "\n";
                 }
                 return rhsVal;
             }
+
             case Expr::Kind::Cast: {
-                // 1. Evaluasi ekspresi basis yang akan di-cast
                 std::string operandVal = emitExpr(expr->cast.base.get());
                 std::string res = freshTemp();
-
-                // 2. Tentukan tipe target konversi (misal: i32, i64, ptr, dll.)
-                std::string targetType = "i32"; // Fallback default
+                std::string targetType = "i32";
                 if (expr->cast.target) {
                     targetType = emitType(expr->cast.target.get());
                 }
 
-                // 3. Emit instruksi cast sesuai format IR CRU
-                // Format CRU cast: %result = cast operand to TargetType (atau instruksi cast khusus)
                 out_ << "    " << res << " = cast " << operandVal << " to " << targetType << "\n";
-                
                 return res;
             }
 
@@ -589,25 +529,29 @@ private:
                 
                 switch (expr->unary.op) {
                     case UnaryOp::Ref: {
-                        // Operator referensi (&): Mengambil alamat dari identifier
                         if (expr->unary.expr->kind == Expr::Kind::Ident && 
-                            expr->unary.expr->ident && 
-                            !expr->unary.expr->ident->parts.empty()) {
-                            return "%" + expr->unary.expr->ident->parts.back();
+                            expr->unary.expr->ident) {
+                            if (expr->unary.expr->ident->is_absolute) {
+                                std::string globalName = flattenQualifiedName(expr->unary.expr->ident.get());
+                                std::string addrRes = freshTemp();
+                                out_ << "    " << addrRes << " = global addr @" << globalName << "\n";
+                                return addrRes;
+                            }
+                            if (!expr->unary.expr->ident->parts.empty()) {
+                                return "%" + expr->unary.expr->ident->parts.back();
+                            }
                         }
                         return operandVal;
                     }
 
                     case UnaryOp::Deref: {
-                        // Operator dereferensi (*): Melakukan load dari alamat pointer
-                        std::string varType = "i32"; // Default fallback tipe data
+                        std::string varType = "i32";
                         if (expr->unary.expr->kind == Expr::Kind::Ident && 
                             expr->unary.expr->ident && 
                             !expr->unary.expr->ident->parts.empty()) {
                             std::string idName = expr->unary.expr->ident->parts.back();
                             if (symbolTypes_.find(idName) != symbolTypes_.end()) {
                                 std::string baseType = symbolTypes_[idName];
-                                // Jika tipenya ptr, default load i32 atau sesuaikan
                                 varType = (baseType == "ptr") ? "i32" : baseType;
                             }
                         }
@@ -631,7 +575,6 @@ private:
                 }
                 return operandVal;
             }
-
 
             case Expr::Kind::Postfix: {
                 std::string baseName = "";
@@ -663,7 +606,6 @@ private:
                         out_ << ")\n";
                         return callRes;
                     } else if (op.kind == Expr::PostfixOp::Kind::Index) {
-                        // Dukungan akses elemen array menggunakan element.addr CRU
                         std::string indexVal = emitExpr(op.index.get());
                         std::string elemAddrRes = freshTemp();
                         out_ << "    " << elemAddrRes << " = elem addr ptr " << currentReg << ", " << indexVal << "\n";
@@ -675,8 +617,7 @@ private:
                     } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess || 
                                op.kind == Expr::PostfixOp::Kind::Arrow || 
                                op.kind == Expr::PostfixOp::Kind::SafeArrow) 
-                        {
-                        // Cari informasi struct berdasarkan tipe basis variabel
+                    {
                         int fieldIndex = 0;
                         std::string fieldType = "i32";
             
@@ -700,7 +641,6 @@ private:
                         currentReg = loadRes;
                         currentType = fieldType;
                     }
-
                 }
                 return currentReg;
             }
