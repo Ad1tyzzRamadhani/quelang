@@ -87,42 +87,80 @@ private:
 
     std::string emitType(Type* type) {
         if (!type) return "void";
-        if (type->is_array && !type->array_dims.empty()) {
+
+        // 1. Penanganan Array & Unsized Array
+        if (type->is_array) {
+            // Jika unsized array (tidak ada dimensi / kosong), anggap sebagai pointer (ptr)
+            if (type->array_dims.empty()) {
+                return "ptr";
+            }
+            
+            // Sized array: [N]ElementType
             std::string sizeStr = type->array_dims[0]->value;
-            std::string elemType = "i32"; 
+            std::string elemType = "i32"; // default fallback elemen
+            
             if (type->base && !type->base->parts.empty()) {
                 std::string name = type->base->parts.back();
-                if (name == "int" || name == "unint") elemType = "i32";
-                else if (name == "unchar" || name == "char") elemType = "i8";
-                else if (name == "unlong" || name == "long") elemType = "i64";
-                else if (name == "float") elemType = "f32";
-                else if (name == "double" || name == "flong") elemType = "f64";
+                // Rekursif atau petakan tipe dasar elemen array
+                if (name == "int" || name == "i32") elemType = "i32";
+                else if (name == "i8" || name == "char" || name == "unchar") elemType = "i8";
+                else if (name == "i16" || name == "u16") elemType = name;
+                else if (name == "i64" || name == "long" || name == "unlong") elemType = "i64";
+                else if (name == "u8") elemType = "u8";
+                else if (name == "u32" || name == "unint") elemType = "u32";
+                else if (name == "u64") elemType = "u64";
+                else if (name == "isize") elemType = "isize";
+                else if (name == "usize") elemType = "usize";
+                else if (name == "f32" || name == "float") elemType = "f32";
+                else if (name == "f64" || name == "double" || name == "flong") elemType = "f64";
                 else if (name == "bool") elemType = "bool";
                 else elemType = name;
             }
             return "[" + sizeStr + "]" + elemType;
         }
 
+        // 2. Penanganan Pointer / Reference Modifiers
         for (const auto& mod : type->modifiers) {
             if (mod.kind == TypeModifier::Kind::Pointer || 
-                mod.kind == TypeModifier::Kind::Reference) {
+                mod.kind == TypeModifier::Kind::Reference ||
+                mod.kind == TypeModifier::Kind::FuncPtr) {
                 return "ptr";
             }
         }
 
+        // 3. Penanganan Tipe Dasar (Primitif & Kustom)
         if (type->base && !type->base->parts.empty() && type->modifiers.empty()) {
             std::string name = type->base->parts.back();
+            
+            // Signed Integers
             if (name == "int" || name == "i32") return "i32";
-            if (name == "i8" || name == "char") return "i8"; 
+            if (name == "i8" || name == "char") return "i8";
+            if (name == "i16") return "i16";
             if (name == "i64" || name == "long") return "i64";
+            if (name == "isize") return "isize";
+
+            // Unsigned Integers
+            if (name == "u8" || name == "unchar") return "u8";
+            if (name == "u16") return "u16";
+            if (name == "u32" || name == "unint") return "u32";
+            if (name == "u64" || name == "unlong") return "u64";
+            if (name == "usize") return "usize";
+
+            // Floats
             if (name == "f32" || name == "float") return "f32";
-            if (name == "f64" || name == "double") return "f64";
+            if (name == "f64" || name == "double" || name == "flong") return "f64";
+
+            // Lainnya
             if (name == "bool") return "bool";
+            if (name == "ptr") return "ptr";
+            
+            // Struct / Union / Named Type
             return name;
         }
 
         return "ptr";
     }
+
 
     void emitExtern(ForwardDecl* decl) {
         std::string name = decl->name ? decl->name->parts.back() : "unknown";
