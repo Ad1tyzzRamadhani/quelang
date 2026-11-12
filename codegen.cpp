@@ -102,17 +102,17 @@ private:
             if (type->base && !type->base->parts.empty()) {
                 std::string name = type->base->parts.back();
                 // Rekursif atau petakan tipe dasar elemen array
-                if (name == "int" || name == "unint") elemType = "i32";
-                else if (name == "char" || name == "unchar" || name == "unchar") elemType = "i8";
-                else if (name == "short" || name == "unshort") elemType = name;
-                else if (name == "long" || name == "unlong" || name == "unlong") elemType = "i64";
-                else if (name == "u8") elemType = "u8";
-                else if (name == "u32" || name == "unint") elemType = "u32";
-                else if (name == "u64") elemType = "u64";
+                if (name == "int") elemType = "i32";
+                else if (name == "char") elemType = "i8";
+                else if (name == "short") elemType = " i16";
+                else if (name == "long") elemType = "i64";
+                else if (name == "unchar") elemType = "u8";
+                else if (name == "unint") elemType = "u32";
+                else if (name == "unlong") elemType = "u64";
                 else if (name == "isize") elemType = "isize";
                 else if (name == "usize") elemType = "usize";
-                else if (name == "f32" || name == "float") elemType = "f32";
-                else if (name == "f64" || name == "double" || name == "flong") elemType = "f64";
+                else if (name == "float") elemType = "f32";
+                else if (name == "flong") elemType = "f64";
                 else if (name == "bool") elemType = "bool";
                 else elemType = name;
             }
