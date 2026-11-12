@@ -22,6 +22,8 @@ public:
 private:
     std::unordered_map<std::string, std::string> symbolTypes_;
     std::unordered_map<std::string, std::string> paramTypes_;
+    std::vector<std::string> loopCondLabels_;
+    std::vector<std::string> loopEndLabels_;
     std::ostringstream out_;
     int tempCounter_ = 0;
 
@@ -404,6 +406,34 @@ private:
                 out_ << switchEndLabel << ":\n";
                 break;
             }
+            case Stmt::Kind::DoStmt: {
+                std::string bodyLabel = freshTemp(true) + "_do_body";
+                std::string condLabel = freshTemp(true) + "_do_cond";
+                std::string endLabel = freshTemp(true) + "_do_end";
+
+                loopCondLabels_.push_back(condLabel);
+                loopEndLabels_.push_back(endLabel);
+
+                out_ << bodyLabel << ":\n";
+                if (stmt->do_stmt.body) {
+                    emitStmt(stmt->do_stmt.body.get());
+                }
+
+                out_ << condLabel << ":\n";
+                if (stmt->do_stmt.cond) {
+                    std::string condVal = emitExpr(stmt->do_stmt.cond.get());
+                    out_ << "    br_if " << condVal << ", " << bodyLabel << ", " << endLabel << "\n";
+                } else {
+                    out_ << "    jmp " << bodyLabel << "\n";
+                }
+
+                out_ << endLabel << ":\n";
+
+                loopCondLabels_.pop_back();
+                loopEndLabels_.pop_back();
+                break;
+            }
+
 
             case Stmt::Kind::While: {
                 std::string condLabel = freshTemp(true) + "_while_cond";
