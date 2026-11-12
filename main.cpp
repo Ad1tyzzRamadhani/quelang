@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
         // Parsing argumen tambahan
         for (int i = 2; i < argc; ++i) {
             std::string arg = argv[i];
-            if (arg == "-cro") {
+            if (arg == "-cr") {
                 if (i + 1 < argc) {
                     cro_output_file = argv[++i];
                 }
@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
         // --- PROSES LINKING / ASSEMBLING KE BINARY (Jika -o ditentukan) ---
         if (!binary_output_file.empty()) {
             // Sesuai permintaan: jalankan `./cro file.cro -o temp_output` terlebih dahulu
-            std::string cro_exec_cmd = "./cro " + cro_output_file + " -o " + binary_output_file;
+            std::string cro_exec_cmd = "./cru " + cro_output_file + " -o " + binary_output_file;
             
             // Jika ada file tambahan dari flag `-l`, kita bisa teruskan atau gabungkan ke proses linking
             for (const auto& link_f : linked_files) {
