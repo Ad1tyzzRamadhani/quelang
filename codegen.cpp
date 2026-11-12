@@ -133,26 +133,25 @@ private:
             std::string name = type->base->parts.back();
             
             // Signed Integers
-            if (name == "int" || name == "i32") return "i32";
-            if (name == "i8" || name == "char") return "i8";
-            if (name == "i16") return "i16";
-            if (name == "i64" || name == "long") return "i64";
+            if (name == "int") return "i32";
+            if (name == "char") return "i8";
+            if (name == "short") return "i16";
+            if (name == "long") return "i64";
             if (name == "isize") return "isize";
 
             // Unsigned Integers
-            if (name == "u8" || name == "unchar") return "u8";
-            if (name == "u16") return "u16";
-            if (name == "u32" || name == "unint") return "u32";
-            if (name == "u64" || name == "unlong") return "u64";
+            if (name == "unchar") return "u8";
+            if (name == "unshort") return "u16";
+            if (name == "unint") return "u32";
+            if (name == "unlong") return "u64";
             if (name == "usize") return "usize";
 
             // Floats
-            if (name == "f32" || name == "float") return "f32";
-            if (name == "f64" || name == "double" || name == "flong") return "f64";
+            if (name == "float") return "f32";
+            if (name == "flong") return "f64";
 
             // Lainnya
             if (name == "bool") return "bool";
-            if (name == "ptr") return "ptr";
             
             // Struct / Union / Named Type
             return name;
