@@ -102,10 +102,10 @@ private:
             if (type->base && !type->base->parts.empty()) {
                 std::string name = type->base->parts.back();
                 // Rekursif atau petakan tipe dasar elemen array
-                if (name == "int" || name == "i32") elemType = "i32";
-                else if (name == "i8" || name == "char" || name == "unchar") elemType = "i8";
-                else if (name == "i16" || name == "u16") elemType = name;
-                else if (name == "i64" || name == "long" || name == "unlong") elemType = "i64";
+                if (name == "int" || name == "unint") elemType = "i32";
+                else if (name == "char" || name == "unchar" || name == "unchar") elemType = "i8";
+                else if (name == "short" || name == "unshort") elemType = name;
+                else if (name == "long" || name == "unlong" || name == "unlong") elemType = "i64";
                 else if (name == "u8") elemType = "u8";
                 else if (name == "u32" || name == "unint") elemType = "u32";
                 else if (name == "u64") elemType = "u64";
