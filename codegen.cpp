@@ -81,9 +81,25 @@ private:
             emitUnion(unionDef);
         } else if (auto varDecl = dynamic_cast<VarDecl*>(node)) {
             emitGlobalVar(varDecl);
+        } else if (auto enumDef = dynamic_cast<EnumDef*>(node)) {
+            emitEnum(enumDef);
         }
         // Catatan: NamespaceDecl dan Method tidak lagi ditangani di sini (dihapus sesuai instruksi).
     }
+
+    void emitEnum(EnumDef* enumDef) {
+        std::string name = qualifyName(enumDef->name.get(), "AnonymousEnum");
+        int currentValue = 0;
+        for (const auto& item : enumDef->items) {
+            if (item.value && item.value->kind == Expr::Kind::Literal && item.value->literal) {
+                currentValue = std::stoi(item.value->literal->value);
+            }
+            out_ << "constant " << name << "_" << item.name << ": i32 = " << currentValue << "\n";
+            currentValue++;
+        }
+        out_ << "\n";
+    }
+
 
     std::string emitType(Type* type) {
         if (!type) return "void";
