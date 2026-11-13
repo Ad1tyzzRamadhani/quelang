@@ -457,6 +457,9 @@ private:
                 std::string bodyLabel = freshTemp(true) + "_while_body";
                 std::string endLabel = freshTemp(true) + "_while_end";
 
+                loopCondLabels_.push_back(condLabel);
+                loopEndLabels_.push_back(endLabel);
+
                 out_ << "    jmp " << condLabel << "\n";
                 out_ << condLabel << ":\n";
                 std::string condVal = emitExpr(stmt->while_stmt.cond.get());
