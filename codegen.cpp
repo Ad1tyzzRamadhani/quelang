@@ -59,7 +59,12 @@ private:
 
     bool endsWithReturn(Stmt* stmt) {
         if (!stmt) return false;
-        if (stmt->kind == Stmt::Kind::Return) return true;
+        if (stmt->kind == Stmt::Kind::Return ||
+            stmt->kind == Stmt::Kind::Break ||
+            stmt->kind == Stmt::Kind::Continue ||
+            stmt->kind == Stmt::Kind::Jump) {
+            return true;
+        }
         if (stmt->kind == Stmt::Kind::Block) {
             if (!stmt->block.stmts.empty()) {
                 return endsWithReturn(stmt->block.stmts.back().get());
