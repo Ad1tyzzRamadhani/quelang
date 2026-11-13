@@ -371,7 +371,9 @@ private:
                 for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
                     const auto& c = stmt->switch_stmt.cases[i];
                     std::string caseBodyLabel = freshTemp(true) + "_case_" + std::to_string(i);
-                    std::string nextCheckLabel = freshTemp(true) + "_case_next";
+                    std::string nextCheckLabel = (i + 1 < stmt->switch_stmt.cases.size()) 
+                                                 ? freshTemp(true) + "_case_check_" + std::to_string(i + 1) 
+                                                 : switchEndLabel;
 
                     if (c.is_default) {
                         // Jika default, langsung lompat ke body default
@@ -405,7 +407,9 @@ private:
                         out_ << "    jmp " << switchEndLabel << "\n";
                     }
 
-                    out_ << nextCheckLabel << ":\n";
+                    if (i + 1 < stmt->switch_stmt.cases.size()) {
+                        out_ << nextCheckLabel << ":\n";
+                    }
                 }
 
                 out_ << switchEndLabel << ":\n";
