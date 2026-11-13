@@ -899,7 +899,9 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt) {
             return;
         }
         case Stmt::Kind::DoStmt:
+            function_stack_.back().loop_depth++;
             analyzeDo(stmt);
+            function_stack_.back().loop_depth--;
             return;
         case Stmt::Kind::Return:
             checkReturn(stmt);
