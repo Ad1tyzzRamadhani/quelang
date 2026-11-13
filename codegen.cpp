@@ -477,6 +477,13 @@ private:
                 out_ << endLabel << ":\n";
                 break;
             }
+            case Stmt::Kind::Label:
+                out_ << stmt.label << ":\n";
+                break;
+
+            case Stmt::Kind::Jump:
+                out_ << "    jmp " << stmt.jump_target << "\n";
+                break;
 
             default:
                 out_ << "    ## [PLACEHOLDER] Unhandled statement kind\n";
