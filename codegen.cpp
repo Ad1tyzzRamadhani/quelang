@@ -419,6 +419,10 @@ private:
                     emitStmt(stmt->do_stmt.body.get());
                 }
 
+                if (!endsWithReturn(stmt->do_stmt.body.get())) {
+                    out_ << "    jmp " << condLabel << "\n";
+                }
+
                 out_ << condLabel << ":\n";
                 if (stmt->do_stmt.cond) {
                     std::string condVal = emitExpr(stmt->do_stmt.cond.get());
