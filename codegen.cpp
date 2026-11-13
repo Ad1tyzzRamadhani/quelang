@@ -414,6 +414,7 @@ private:
                 loopCondLabels_.push_back(condLabel);
                 loopEndLabels_.push_back(endLabel);
 
+                out_ << "    jmp " << bodyLabel << "\n";
                 out_ << bodyLabel << ":\n";
                 if (stmt->do_stmt.body) {
                     emitStmt(stmt->do_stmt.body.get());
