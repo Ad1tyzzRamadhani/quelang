@@ -361,56 +361,58 @@ private:
             }
 
             case Stmt::Kind::SwitchCase: {
-                std::string condVal = emitExpr(stmt->switch_stmt.expr.get());
+                // Evaluasi ekspresi utama switch
+                std::string switchExprVal = emitExpr(stmt.switch_stmt.expr.get());
+                
                 std::string switchEndLabel = freshTemp(true) + "_switch_end";
+                // Simpan switchEndLabel ke stack break jika ingin mendukung break di switch
+                loopEndLabels_.push_back(switchEndLabel);
 
-                std::vector<std::string> caseLabels;
-                for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
-                    caseLabels.push_back(freshTemp(true) + "_case_" + std::to_string(i));
-                }
-                std::string defaultLabel = freshTemp(true) + "_default";
-                std::string targetDefault = defaultLabel;
+                for (size_t i = 0; i < stmt.switch_stmt.cases.size(); ++i) {
+                    const auto& c = stmt.switch_stmt.cases[i];
+                    std::string caseBodyLabel = freshTemp(true) + "_case_" + std::to_string(i);
+                    std::string nextCheckLabel = freshTemp(true) + "_case_next";
 
-                for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
-                    if (stmt->switch_stmt.cases[i].is_default) {
-                        targetDefault = caseLabels[i];
-                        break;
+                    if (c.is_default) {
+                        // Jika default, langsung lompat ke body default
+                        out_ << "    jmp " << caseBodyLabel << "\n";
+                    } else {
+                        for (size_t v = 0; v < c.values.size(); ++v) {
+                            std::string valStr = "0";
+                            if (c.values[v]->kind == Expr::Kind::Literal && c.values[v]->literal) {
+                                valStr = c.values[v]->literal->value;
+                            }
+                            
+                            std::string cmpRes = freshTemp();
+                            out_ << "    " << cmpRes << " = eq i32 " << switchExprVal << ", " << valStr << "\n";
+                            
+                            // Jika bernilai true masuk ke caseBodyLabel, jika false cek nilai berikutnya/default
+                            std::string evalNext = (v + 1 < c.values.size()) ? freshTemp(true) + "_val_next" : nextCheckLabel;
+                            out_ << "    br_if " << cmpRes << ", " << caseBodyLabel << ", " << evalNext << "\n";
+                            
+                            if (v + 1 < c.values.size()) {
+                                out_ << evalNext << ":\n";
+                            }
+                        }
                     }
-                }
 
-                for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
-                    const auto& c = stmt->switch_stmt.cases[i];
-                    if (c.is_default) continue;
-
-                    for (const auto& valLit : c.values) {
-                        std::string cmpRes = freshTemp();
-                        std::string litVal = qualifyName(valLit->ident.get());
-                        
-                        out_ << "    " << cmpRes << " = eq i32 " << condVal << ", " << litVal << "\n";
-                        
-                        std::string nextCheck = (i + 1 < stmt->switch_stmt.cases.size()) ? caseLabels[i + 1] : targetDefault;
-                        out_ << "    br_if " << cmpRes << ", " << caseLabels[i] << ", " << nextCheck << "\n";
-                    }
-                }
-
-                out_ << "    jmp " << targetDefault << "\n";
-
-                for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
-                    const auto& c = stmt->switch_stmt.cases[i];
-                    out_ << caseLabels[i] << ":\n";
+                    // Emit body case
+                    out_ << caseBodyLabel << ":\n";
                     if (c.body) {
                         emitStmt(c.body.get());
                     }
                     if (!endsWithReturn(c.body.get())) {
                         out_ << "    jmp " << switchEndLabel << "\n";
                     }
+
+                    out_ << nextCheckLabel << ":\n";
                 }
 
-                out_ << defaultLabel << ":\n";
-                out_ << "    jmp " << switchEndLabel << "\n";
                 out_ << switchEndLabel << ":\n";
+                loopEndLabels_.pop_back();
                 break;
             }
+
             case Stmt::Kind::Break:
                 if (!loopEndLabels_.empty()) {
                     out_ << "    jmp " << loopEndLabels_.back() << "\n";
