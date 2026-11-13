@@ -406,6 +406,18 @@ private:
                 out_ << switchEndLabel << ":\n";
                 break;
             }
+            case Stmt::Kind::Break:
+                if (!loopEndLabels_.empty()) {
+                    out_ << "    jmp " << loopEndLabels_.back() << "\n";
+                }
+                break;
+
+            case Stmt::Kind::Continue:
+                if (!loopCondLabels_.empty()) {
+                    out_ << "    jmp " << loopCondLabels_.back() << "\n";
+                }
+                break;
+
             case Stmt::Kind::DoStmt: {
                 std::string bodyLabel = freshTemp(true) + "_do_body";
                 std::string condLabel = freshTemp(true) + "_do_cond";
