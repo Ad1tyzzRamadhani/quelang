@@ -362,14 +362,14 @@ private:
 
             case Stmt::Kind::SwitchCase: {
                 // Evaluasi ekspresi utama switch
-                std::string switchExprVal = emitExpr(stmt.switch_stmt.expr.get());
+                std::string switchExprVal = emitExpr(stmt->switch_stmt.expr.get());
                 
                 std::string switchEndLabel = freshTemp(true) + "_switch_end";
                 // Simpan switchEndLabel ke stack break jika ingin mendukung break di switch
                 loopEndLabels_.push_back(switchEndLabel);
 
-                for (size_t i = 0; i < stmt.switch_stmt.cases.size(); ++i) {
-                    const auto& c = stmt.switch_stmt.cases[i];
+                for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
+                    const auto& c = stmt->switch_stmt.cases[i];
                     std::string caseBodyLabel = freshTemp(true) + "_case_" + std::to_string(i);
                     std::string nextCheckLabel = freshTemp(true) + "_case_next";
 
