@@ -625,6 +625,41 @@ private:
                 }
                 return rhsVal;
             }
+            case Expr::Kind::Ternary: {
+                // Evaluasi kondisi
+                std::string condVal = emitExpr(expr->ternary.cond.get());
+                
+                std::string thenLabel = freshTemp(true) + "_tern_then";
+                std::string elseLabel = freshTemp(true) + "_tern_else";
+                std::string mergeLabel = freshTemp(true) + "_tern_merge";
+                
+                // Tentukan tipe hasil ekspresi (default i32 atau dari then_expr)
+                std::string resType = "i32"; 
+                
+                std::string resultAlloc = freshTemp();
+                out_ << "    " << resultAlloc << " = alloca " << resType << "\n";
+                
+                out_ << "    br_if " << condVal << ", " << thenLabel << ", " << elseLabel << "\n";
+                
+                // Blok THEN
+                out_ << thenLabel << ":\n";
+                std::string thenVal = emitExpr(expr->ternary.then_expr.get());
+                out_ << "    store " << resType << " " << thenVal << ", " << resultAlloc << "\n";
+                out_ << "    jmp " << mergeLabel << "\n";
+                
+                // Blok ELSE
+                out_ << elseLabel << ":\n";
+                std::string elseVal = emitExpr(expr->ternary.else_expr.get());
+                out_ << "    store " << resType << " " << elseVal << ", " << resultAlloc << "\n";
+                out_ << "    jmp " << mergeLabel << "\n";
+                
+                // Blok MERGE (mengambil kembali nilainya untuk dipakai ekspresi luar)
+                out_ << mergeLabel << ":\n";
+                std::string finalVal = freshTemp();
+                out_ << "    " << finalVal << " = load " << resType << " " << resultAlloc << "\n";
+                
+                return finalVal;
+            }
 
             case Expr::Kind::Cast: {
                 std::string operandVal = emitExpr(expr->cast.base.get());
