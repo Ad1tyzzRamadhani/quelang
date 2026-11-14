@@ -973,6 +973,17 @@ private:
                 return operandVal;
             }
 
+            case Expr::Kind::Intrinsic: {
+                std::string callRes = freshTemp();
+                out_ << "    " << callRes << " = " << expr->intrinsic.name;
+                for (size_t i = 0; i < expr->intrinsic.args.size(); ++i) {
+                    out_ << " " << emitExpr(expr->intrinsic.args[i].get());
+                    if (i + 1 < expr->intrinsic.args.size()) out_ << ",";
+                }
+                out_ << "\n";
+                return callRes;
+            }
+
             case Expr::Kind::Postfix: {
                 std::string baseName = "";
                 if (expr->postfix.base && expr->postfix.base->kind == Expr::Kind::Ident) {
