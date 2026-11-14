@@ -366,10 +366,16 @@ private:
                                 if (bName == "char") elemType = "i8";
                                 else if (bName == "int") elemType = "i32";
                             }
+                            if (t.rfind("[", 0) == 0) {
+                                size_t bracketPos = t.find("]");
+                                if (bracketPos != std::string::npos) {
+                                    elemType = t.substr(bracketPos + 1);
+                                }
+                            }
                             for (size_t i = 0; i < strVal.size() && (int)i < totalSize; ++i) {
                                 std::string elemAddr = freshTemp();
-                                out_ << "    " << elemAddr << " = elem addr " << t << " " << reg << ", " << i << "\n";
-                                out_ << "    store i8 '" << strVal[i] << "', " << elemAddr << "\n";
+                                out_ << "    " << elemAddr << " = elem addr " << elemType << " " << reg << ", " << i << "\n";
+                                out_ << "    store " << elemType << " '" << strVal[i] << "', " << elemAddr << "\n";
                             }
                             // Tambahkan null terminator jika masih ada sisa kapasitas array
                             if ((int)strVal.size() < totalSize) {
