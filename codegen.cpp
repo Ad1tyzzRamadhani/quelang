@@ -139,7 +139,7 @@ private:
                 break;
             case Expr::Kind::Intrinsic:
                 if (expr->intrinsic.type) {
-                    return typeString(expr->intrinsic.type.get());
+                    return emitType(expr->intrinsic.type.get());
                 }
                 return "i32";
             case Expr::Kind::Postfix: {
@@ -980,8 +980,9 @@ private:
 
             case Expr::Kind::Intrinsic: {
                 std::string callRes = freshTemp();
+                std::string retType = "i32";
                 if (expr->intrinsic.type) {
-                    retType = typeString(expr->intrinsic.type.get());
+                    retType = emitType(expr->intrinsic.type.get());
                 }
                 out_ << "    " << callRes << " = " << expr->intrinsic.name << retType;
                 for (size_t i = 0; i < expr->intrinsic.args.size(); ++i) {
