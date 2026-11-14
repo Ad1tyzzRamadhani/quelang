@@ -1491,6 +1491,21 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
         case Expr::Kind::New: return analyzeNew(expr);
         case Expr::Kind::Move:
             return analyzeUnary(expr);
+        case Expr::Kind::Intrinsic: {
+            // Validasi argumen atau tipe kembalian untuk intrinsic instruction (misal: syscall)
+            if (expr->intrinsic.name == "syscall") {
+                for (auto& arg : expr->intrinsic.args) {
+                    analyzeExpr(arg.get()); // Validasi ekspresi di dalam argumen syscall
+                }
+                TypeView ret;
+                ret.base = "int"; // syscall umumnya mengembalikan status integer (i32)
+                ret.valid = true;
+                return ret;
+            }
+            error(expr, "unknown intrinsic instruction '" + expr->intrinsic.name + "'");
+            return invalid;
+        }
+
         case Expr::Kind::StructInit: return analyzeStructInit(expr);
         case Expr::Kind::ArrayLiteral: {
             std::vector<int> dims;
