@@ -454,27 +454,66 @@ private:
                 break;
 
             case Stmt::Kind::If: {
+                std::string mergeLabel = freshTemp(true) + "_if_merge";
+                
+                // Tentukan target jika kondisi 'if' utama bernilai salah (false)
+                std::string firstFalseTarget;
+                if (!stmt->if_stmt.elifs.empty()) {
+                    firstFalseTarget = freshTemp(true) + "_elif_cond_0";
+                } else if (stmt->if_stmt.else_block) {
+                    firstFalseTarget = freshTemp(true) + "_else";
+                } else {
+                    firstFalseTarget = mergeLabel;
+                }
+
                 std::string condVal = emitExpr(stmt->if_stmt.cond.get());
                 std::string thenLabel = freshTemp(true) + "_then";
-                std::string elseLabel = freshTemp(true) + "_else";
-                std::string mergeLabel = freshTemp(true) + "_merge";
 
-                out_ << "    br_if " << condVal << ", " << thenLabel << ", " << elseLabel << "\n";
+                out_ << "    br_if " << condVal << ", " << thenLabel << ", " << firstFalseTarget << "\n";
+                
+                // Blok 'Then' Utama
                 out_ << thenLabel << ":\n";
                 emitStmt(stmt->if_stmt.then_block.get());
                 if (!endsWithReturn(stmt->if_stmt.then_block.get())) {
                     out_ << "    jmp " << mergeLabel << "\n";
                 }
 
-                out_ << elseLabel << ":\n";
+                // Penanganan Cabang 'Elif'
+                for (size_t i = 0; i < stmt->if_stmt.elifs.size(); ++i) {
+                    std::string elifCondLabel = freshTemp(true) + "_elif_cond_" + std::to_string(i);
+                    std::string elifThenLabel = freshTemp(true) + "_elif_then_" + std::to_string(i);
+                    
+                    std::string nextFalseTarget;
+                    if (i + 1 < stmt->if_stmt.elifs.size()) {
+                        nextFalseTarget = freshTemp(true) + "_elif_cond_" + std::to_string(i + 1);
+                    } else if (stmt->if_stmt.else_block) {
+                        nextFalseTarget = freshTemp(true) + "_else";
+                    } else {
+                        nextFalseTarget = mergeLabel;
+                    }
+
+                    out_ << elifCondLabel << ":\n";
+                    std::string elifCondVal = emitExpr(stmt->if_stmt.elifs[i].cond.get());
+                    out_ << "    br_if " << elifCondVal << ", " << elifThenLabel << ", " << nextFalseTarget << "\n";
+
+                    // Blok 'Elif'
+                    out_ << elifThenLabel << ":\n";
+                    emitStmt(stmt->if_stmt.elifs[i].block.get());
+                    if (!endsWithReturn(stmt->if_stmt.elifs[i].block.get())) {
+                        out_ << "    jmp " << mergeLabel << "\n";
+                    }
+                }
+
+                // Blok 'Else' Opsional
                 if (stmt->if_stmt.else_block) {
+                    std::string elseLabel = freshTemp(true) + "_else";
+                    out_ << elseLabel << ":\n";
                     emitStmt(stmt->if_stmt.else_block.get());
                     if (!endsWithReturn(stmt->if_stmt.else_block.get())) {
                         out_ << "    jmp " << mergeLabel << "\n";
                     }
-                } else {
-                    out_ << "    jmp " << mergeLabel << "\n";
                 }
+
                 out_ << mergeLabel << ":\n";
                 break;
             }
