@@ -1492,10 +1492,16 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
         case Expr::Kind::Move:
             return analyzeUnary(expr);
         case Expr::Kind::Intrinsic: {
+            if (expr->intrinsic.type) {
+                validateType(expr->intrinsic.return_type.get(), expr, true);
+            }
             // Validasi argumen atau tipe kembalian untuk intrinsic instruction (misal: syscall)
             if (expr->intrinsic.name == "syscall") {
                 for (auto& arg : expr->intrinsic.args) {
                     analyzeExpr(arg.get()); // Validasi ekspresi di dalam argumen syscall
+                }
+                if (expr->intrinsic.type) {
+                    return view(expr->intrinsic.type.get());
                 }
                 TypeView ret;
                 ret.base = "int"; // syscall umumnya mengembalikan status integer (i32)
