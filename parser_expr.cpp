@@ -188,29 +188,6 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         return expr;
     }
 
-    // ------------------------
-    // IDENT / QUALIFIED NAME
-    // ------------------------
-    if (tok.type == TokenType::IDENT || tok.type == TokenType::SCOPE) {
-        size_t save = pos;
-
-        try {
-            auto qn = parseQualifiedName();
-
-            auto expr = std::make_unique<Expr>();
-            expr->file = tok.file;
-            expr->line_start = tok.line;
-            expr->column_start = tok.column;
-            expr->kind = Expr::Kind::Ident;
-            expr->ident = std::move(qn);
-
-            return expr;
-        }
-        catch (...) {
-            pos = save;
-        }
-    }
-
     if (match(TokenType::UNDERSCORE)) {
         const Token& underTok = tokens[pos - 1];
         
@@ -240,6 +217,29 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         consume(TokenType::RPAREN, "expected ')' to close intrinsic instruction arguments");
 
         return expr;
+    }
+
+    // ------------------------
+    // IDENT / QUALIFIED NAME
+    // ------------------------
+    if (tok.type == TokenType::IDENT || tok.type == TokenType::SCOPE) {
+        size_t save = pos;
+
+        try {
+            auto qn = parseQualifiedName();
+
+            auto expr = std::make_unique<Expr>();
+            expr->file = tok.file;
+            expr->line_start = tok.line;
+            expr->column_start = tok.column;
+            expr->kind = Expr::Kind::Ident;
+            expr->ident = std::move(qn);
+
+            return expr;
+        }
+        catch (...) {
+            pos = save;
+        }
     }
 
     // ------------------------
