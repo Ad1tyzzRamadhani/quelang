@@ -91,7 +91,8 @@ struct Expr : Node {
         Move,
 
         StructInit,
-        ArrayLiteral
+        ArrayLiteral, 
+        Intrinsic
     } kind;
 
     // BasicExpr
@@ -124,6 +125,11 @@ struct Expr : Node {
         std::unique_ptr<Expr> then_expr;
         std::unique_ptr<Expr> else_expr;
     } ternary;
+
+    struct {
+        std::string name;
+        std::vector<std::unique_ptr<Expr>> args;
+    } intrinsic;
 
     // PostFix Op
     struct PostfixOp {
