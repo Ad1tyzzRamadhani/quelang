@@ -137,6 +137,8 @@ private:
                     }
                 }
                 break;
+            case Expr::Kind::Intrinsic:
+                return "i32";
             case Expr::Kind::Postfix: {
                 std::string baseName = "";
                 if (expr->postfix.base && expr->postfix.base->kind == Expr::Kind::Ident) {
