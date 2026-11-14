@@ -1493,7 +1493,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
             return analyzeUnary(expr);
         case Expr::Kind::Intrinsic: {
             if (expr->intrinsic.type) {
-                validateType(expr->intrinsic.return_type.get(), expr, true);
+                validateType(expr->intrinsic.type.get(), expr, true);
             }
             // Validasi argumen atau tipe kembalian untuk intrinsic instruction (misal: syscall)
             if (expr->intrinsic.name == "syscall") {
