@@ -453,21 +453,33 @@ private:
                 }
                 break;
 
-            case Stmt::Kind::If: {
-                std::string mergeLabel = freshTemp(true) + "_if_merge";
+                        case Stmt::Kind::If: {
+                // Buat satu basis ID unik di awal untuk seluruh blok if-elif-else ini
+                std::string baseId = freshTemp(true);
+                std::string mergeLabel = baseId + "_if_merge";
+                std::string thenLabel = baseId + "_then";
+                std::string elseLabel = baseId + "_else";
                 
                 // Tentukan target jika kondisi 'if' utama bernilai salah (false)
                 std::string firstFalseTarget;
                 if (!stmt->if_stmt.elifs.empty()) {
-                    firstFalseTarget = freshTemp(true) + "_elif_cond_0";
+                    firstFalseTarget = baseId + "_elif_cond_0";
                 } else if (stmt->if_stmt.else_block) {
-                    firstFalseTarget = freshTemp(true) + "_else";
+                    firstFalseTarget = elseLabel;
                 } else {
                     firstFalseTarget = mergeLabel;
                 }
 
+                // Pra-hitung label untuk setiap cabang elif
+                std::vector<std::string> elifCondLabels;
+                std::vector<std::string> elifThenLabels;
+                for (size_t i = 0; i < stmt->if_stmt.elifs.size(); ++i) {
+                    elifCondLabels.push_back(baseId + "_elif_cond_" + std::to_string(i));
+                    elifThenLabels.push_back(baseId + "_elif_then_" + std::to_string(i));
+                }
+
+                // Evaluasi ekspresi kondisi utama (aman karena label sudah ditentukan di atas)
                 std::string condVal = emitExpr(stmt->if_stmt.cond.get());
-                std::string thenLabel = freshTemp(true) + "_then";
 
                 out_ << "    br_if " << condVal << ", " << thenLabel << ", " << firstFalseTarget << "\n";
                 
@@ -480,24 +492,22 @@ private:
 
                 // Penanganan Cabang 'Elif'
                 for (size_t i = 0; i < stmt->if_stmt.elifs.size(); ++i) {
-                    std::string elifCondLabel = freshTemp(true) + "_elif_cond_" + std::to_string(i);
-                    std::string elifThenLabel = freshTemp(true) + "_elif_then_" + std::to_string(i);
+                    out_ << elifCondLabels[i] << ":\n";
+                    std::string elifCondVal = emitExpr(stmt->if_stmt.elifs[i].cond.get());
                     
                     std::string nextFalseTarget;
                     if (i + 1 < stmt->if_stmt.elifs.size()) {
-                        nextFalseTarget = freshTemp(true) + "_elif_cond_" + std::to_string(i + 1);
+                        nextFalseTarget = elifCondLabels[i + 1];
                     } else if (stmt->if_stmt.else_block) {
-                        nextFalseTarget = freshTemp(true) + "_else";
+                        nextFalseTarget = elseLabel;
                     } else {
                         nextFalseTarget = mergeLabel;
                     }
 
-                    out_ << elifCondLabel << ":\n";
-                    std::string elifCondVal = emitExpr(stmt->if_stmt.elifs[i].cond.get());
-                    out_ << "    br_if " << elifCondVal << ", " << elifThenLabel << ", " << nextFalseTarget << "\n";
+                    out_ << "    br_if " << elifCondVal << ", " << elifThenLabels[i] << ", " << nextFalseTarget << "\n";
 
                     // Blok 'Elif'
-                    out_ << elifThenLabel << ":\n";
+                    out_ << elifThenLabels[i] << ":\n";
                     emitStmt(stmt->if_stmt.elifs[i].block.get());
                     if (!endsWithReturn(stmt->if_stmt.elifs[i].block.get())) {
                         out_ << "    jmp " << mergeLabel << "\n";
@@ -506,7 +516,6 @@ private:
 
                 // Blok 'Else' Opsional
                 if (stmt->if_stmt.else_block) {
-                    std::string elseLabel = freshTemp(true) + "_else";
                     out_ << elseLabel << ":\n";
                     emitStmt(stmt->if_stmt.else_block.get());
                     if (!endsWithReturn(stmt->if_stmt.else_block.get())) {
@@ -517,6 +526,7 @@ private:
                 out_ << mergeLabel << ":\n";
                 break;
             }
+
 
             case Stmt::Kind::SwitchCase: {
                 std::string switchExprVal = emitExpr(stmt->switch_stmt.expr.get());
