@@ -353,7 +353,7 @@ private:
                     if (stmt->var_decl.type->is_array && !stmt->var_decl.type->array_dims.empty()) {
                         std::string sizeStr = stmt->var_decl.type->array_dims[0]->value;
                         int totalSize = std::stoi(sizeStr);
-                        out_ << "    " << reg << " = alloca [" << sizeStr << "]" << t << "\n";
+                        out_ << "    " << reg << " = alloca " << t << "\n";
                         
                         // String-to-Array Memory Compatibility Handling:
                         // Jika array diinisialisasi dengan string literal, salin karakter per karakter ke memori array.
@@ -896,13 +896,20 @@ private:
                         return callRes;
                     } else if (op.kind == Expr::PostfixOp::Kind::Index) {
                         std::string indexVal = emitExpr(op.index.get());
+                        std::string elemType = "i32";
+                        if (currentType.rfind("[", 0) == 0) {
+                            size_t bracketPos = currentType.find("]");
+                            if (bracketPos != std::string::npos) {
+                                elemType = currentType.substr(bracketPos + 1);
+                            }
+                        }
                         std::string elemAddrRes = freshTemp();
-                        out_ << "    " << elemAddrRes << " = elem addr ptr " << currentReg << ", " << indexVal << "\n";
+                        out_ << "    " << elemAddrRes << " = elem addr " << elemType << " " << currentReg << ", " << indexVal << "\n";
                         
                         std::string loadRes = freshTemp();
-                        out_ << "    " << loadRes << " = load ptr " << elemAddrRes << "\n";
+                        out_ << "    " << loadRes << " = load " << elemType << " " << elemAddrRes << "\n";
                         currentReg = loadRes;
-                        currentType = "ptr";
+                        currentType = elemType;
                     } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess || 
                                op.kind == Expr::PostfixOp::Kind::Arrow || 
                                op.kind == Expr::PostfixOp::Kind::SafeArrow) 
