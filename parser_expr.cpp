@@ -211,6 +211,37 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         }
     }
 
+    if (match(TokenType::UNDERSCORE)) {
+        const Token& underTok = tokens[pos - 1];
+        
+        consume(TokenType::LBRACKET, "expected '[' after '_' for intrinsic instruction name");
+        
+        if (peek().type != TokenType::IDENT) {
+            error("expected identifier name inside intrinsic instruction bracket");
+        }
+        std::string intrinsicName = advance().value;
+        
+        consume(TokenType::RBRACKET, "expected ']' to close intrinsic instruction name");
+        consume(TokenType::LPAREN, "expected '(' to begin arguments for intrinsic instruction");
+
+        auto expr = std::make_unique<Expr>();
+        expr->file = underTok.file;
+        expr->line_start = underTok.line;
+        expr->column_start = underTok.column;
+        expr->kind = Expr::Kind::Intrinsic;
+        expr->intrinsic.name = intrinsicName;
+
+        if (!check(TokenType::RPAREN)) {
+            do {
+                expr->intrinsic.args.push_back(parseExpr());
+            } while (match(TokenType::COMMA));
+        }
+
+        consume(TokenType::RPAREN, "expected ')' to close intrinsic instruction arguments");
+
+        return expr;
+    }
+
     // ------------------------
     // GROUPING (expr)
     // ------------------------
