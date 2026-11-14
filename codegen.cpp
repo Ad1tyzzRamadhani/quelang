@@ -26,6 +26,7 @@ public:
 private:
     std::unordered_map<std::string, std::string> symbolTypes_;
     std::unordered_map<std::string, std::string> paramTypes_;
+    std::unordered_map<std::string, std::string> globalTypes_;
     std::unordered_map<std::string, std::string> functionReturnTypes_; // Melacak tipe return fungsi secara dinamis
     std::vector<std::string> loopCondLabels_;
     std::vector<std::string> loopEndLabels_;
@@ -310,6 +311,7 @@ private:
                 if(kind == TypeQualifier::Const) is_const = true;
             }
             std::string t = emitType(varDecl->type.get());
+            globalTypes_[item.name] = t;
             if (varDecl->is_atomic) {
                 out_ << "global " << item.name << ": " << t << "\n";
             } else if(is_const) {
@@ -578,7 +580,15 @@ private:
                         std::string globalName = flattenQualifiedName(expr->ident.get());
                         std::string addrRes = freshTemp();
                         out_ << "    " << addrRes << " = global addr @" << globalName << "\n";
-                        return addrRes;
+                        std::string gType = "i32";
+                        if (globalTypes_.find(globalName) != globalTypes_.end()) {
+                            gType = globalTypes_[globalName];
+                        }
+                        
+                        // Otomatis lakukan load agar yang dikembalikan adalah nilainya, bukan alamatnya
+                        std::string loadRes = freshTemp();
+                        out_ << "    " << loadRes << " = load " << gType << " " << addrRes << "\n";
+                        return loadRes;
                     }
 
                     if (!expr->ident->parts.empty()) {
