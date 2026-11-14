@@ -128,6 +128,7 @@ struct Expr : Node {
 
     struct {
         std::string name;
+        std::unique_ptr<Type> type;
         std::vector<std::unique_ptr<Expr>> args;
     } intrinsic;
 
