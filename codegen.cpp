@@ -984,7 +984,7 @@ private:
                 if (expr->intrinsic.type) {
                     retType = emitType(expr->intrinsic.type.get());
                 }
-                out_ << "    " << callRes << " = " << expr->intrinsic.name << retType;
+                out_ << "    " << callRes << " = " << expr->intrinsic.name << " " << retType;
                 for (size_t i = 0; i < expr->intrinsic.args.size(); ++i) {
                     out_ << " " << emitExpr(expr->intrinsic.args[i].get());
                     if (i + 1 < expr->intrinsic.args.size()) out_ << ",";
