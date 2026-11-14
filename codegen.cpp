@@ -137,6 +137,48 @@ private:
                     }
                 }
                 break;
+            case Expr::Kind::Postfix: {
+                std::string baseName = "";
+                if (expr->postfix.base && expr->postfix.base->kind == Expr::Kind::Ident) {
+                    if (expr->postfix.base->ident && !expr->postfix.base->ident->parts.empty()) {
+                        baseName = expr->postfix.base->ident->parts.back();
+                    }
+                }
+                std::string currentType = "i32";
+                if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
+                    currentType = symbolTypes_[baseName];
+                } else if (paramTypes_.find(baseName) != paramTypes_.end()) {
+                    currentType = paramTypes_[baseName];
+                }
+
+                for (const auto& op : expr->postfix.ops) {
+                    if (op.kind == Expr::PostfixOp::Kind::Index) {
+                        std::string elemType = "i32";
+                        if (currentType.rfind("[", 0) == 0) {
+                            size_t bracketPos = currentType.find("]");
+                            if (bracketPos != std::string::npos) {
+                                elemType = currentType.substr(bracketPos + 1);
+                            }
+                        }
+                        currentType = elemType;
+                    } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess || 
+                               op.kind == Expr::PostfixOp::Kind::Arrow || 
+                               op.kind == Expr::PostfixOp::Kind::SafeArrow) {
+                        std::string fieldType = "i32";
+                        if (structDefinitions_.find(currentType) != structDefinitions_.end()) {
+                            const auto& sInfo = structDefinitions_[currentType];
+                            for (const auto& f : sInfo.fields) {
+                                if (f.name == op.name) {
+                                    fieldType = f.type;
+                                    break;
+                                }
+                            }
+                        }
+                        currentType = fieldType;
+                    }
+                }
+                return currentType;
+            }
             case Expr::Kind::Binary:
                 return getExprType(expr->binary.lhs.get());
             case Expr::Kind::Unary:
@@ -154,6 +196,7 @@ private:
         }
         return "i32";
     }
+
 
     std::string emitType(Type* type) {
         if (!type) return "void";
