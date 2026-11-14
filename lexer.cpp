@@ -39,7 +39,7 @@ enum class TokenType {
     LT, LTE, GT, GTE,
     PLUS_EQ, MINUS_EQ, STAR_EQ, SLASH_EQ, PERCENT_EQ,
     AMP, CARET, TILDE, BAR, ATOMIC_REF,
-    LSHIFT, RSHIFT,
+    LSHIFT, RSHIFT, UNDERSCORE,
     QUESTION, COALESCE,
     BANG, DOLLAR,
     LPAREN, RPAREN,
@@ -340,6 +340,7 @@ private:
             case '?':emit(TokenType::QUESTION,"",l,c);break;
             case '!':emit(TokenType::BANG,"",l,c);break;
             case '$':emit(TokenType::DOLLAR,"",l,c);break;
+            case '_':emit(TokenType::UNDERSCORE,"",l,c);break;
             case '(':emit(TokenType::LPAREN,"",l,c);break;
             case ')':emit(TokenType::RPAREN,"",l,c);break;
             case '{':emit(TokenType::LBRACE,"",l,c);break;
