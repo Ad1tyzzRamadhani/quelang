@@ -707,6 +707,26 @@ private:
 
             case Expr::Kind::Assign: {
                 std::string rhsVal = emitExpr(expr->assign.rhs.get());
+
+                // Tangani Compound Assignment (+=, -=, *=, /=, %=)
+                if (expr->assign.op != AssignOp::Assign) {
+                    std::string lhsVal = emitExpr(expr->assign.lhs.get());
+                    std::string opStr = "add";
+                    switch (expr->assign.op) {
+                        case AssignOp::AddEq: opStr = "add"; break;
+                        case AssignOp::SubEq: opStr = "sub"; break;
+                        case AssignOp::MulEq: opStr = "mul"; break;
+                        case AssignOp::DivEq: opStr = "div"; break;
+                        case AssignOp::ModEq: opStr = "rem"; break;
+                        default: opStr = "add"; break;
+                    }
+                    std::string varType = getExprType(expr->assign.lhs.get());
+                    std::string binRes = freshTemp();
+                    out_ << "    " << binRes << " = " << opStr << " " << varType << " " << lhsVal << ", " << rhsVal << "\n";
+                    rhsVal = binRes; // Nilai RHS yang baru adalah hasil dari operasi biner
+                }
+
+                // Penugasan ke elemen array (Postfix Index, cth: txt[0] += 1)
                 if (expr->assign.lhs->kind == Expr::Kind::Postfix) {
                     auto& postfix = expr->assign.lhs->postfix;
                     if (!postfix.ops.empty() && postfix.ops.back().kind == Expr::PostfixOp::Kind::Index) {
@@ -741,6 +761,8 @@ private:
                         return rhsVal;
                     }
                 }
+
+                // Penugasan standar ke Variabel Global atau Lokal biasa
                 if (expr->assign.lhs->kind == Expr::Kind::Ident && expr->assign.lhs->ident) {
                     if (expr->assign.lhs->ident->is_absolute) {
                         std::string globalName = flattenQualifiedName(expr->assign.lhs->ident.get());
