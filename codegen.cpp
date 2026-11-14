@@ -11,6 +11,10 @@ public:
         out_.str("");
         out_.clear();
         tempCounter_ = 0;
+        symbolTypes_.clear();
+        paramTypes_.clear();
+        functionReturnTypes_.clear();
+        structDefinitions_.clear();
 
         for (const auto& node : program->decls) {
             emitNode(node.get());
@@ -22,6 +26,7 @@ public:
 private:
     std::unordered_map<std::string, std::string> symbolTypes_;
     std::unordered_map<std::string, std::string> paramTypes_;
+    std::unordered_map<std::string, std::string> functionReturnTypes_; // Melacak tipe return fungsi secara dinamis
     std::vector<std::string> loopCondLabels_;
     std::vector<std::string> loopEndLabels_;
     std::ostringstream out_;
@@ -91,7 +96,6 @@ private:
         } else if (auto enumDef = dynamic_cast<EnumDef*>(node)) {
             emitEnum(enumDef);
         }
-        // Catatan: NamespaceDecl dan Method tidak lagi ditangani di sini (dihapus sesuai instruksi).
     }
 
     void emitEnum(EnumDef* enumDef) {
@@ -121,7 +125,6 @@ private:
                     return "i32";
                 }
                 break;
-                
             case Expr::Kind::Ident:
                 if (expr->ident && !expr->ident->parts.empty()) {
                     std::string varName = expr->ident->parts.back();
@@ -133,58 +136,43 @@ private:
                     }
                 }
                 break;
-                
-            case Expr::Kind::Binary: {
-                // Ambil tipe dari sisi kiri sebagai basis tipe operasi biner
+            case Expr::Kind::Binary:
                 return getExprType(expr->binary.lhs.get());
-            }
-            
-            case Expr::Kind::Unary: {
+            case Expr::Kind::Unary:
                 if (expr->unary.op == UnaryOp::Not) return "bool";
                 return getExprType(expr->unary.expr.get());
-            }
-            
-            case Expr::Kind::Ternary: {
-                // Tipe ternary mengikuti tipe cabang 'then'
+            case Expr::Kind::Ternary:
                 return getExprType(expr->ternary.then_expr.get());
-            }
-            
-            case Expr::Kind::Cast: {
+            case Expr::Kind::Cast:
                 if (expr->cast.target) {
                     return emitType(expr->cast.target.get());
                 }
                 break;
-            }
-            
             default:
                 break;
         }
-        return "i32"; // Fallback akhir jika benar-benar tidak dikenali
+        return "i32";
     }
-
 
     std::string emitType(Type* type) {
         if (!type) return "void";
 
-        // 1. Penanganan Array & Unsized Array
         if (type->is_array) {
-            // Jika unsized array (tidak ada dimensi / kosong), anggap sebagai pointer (ptr)
             if (type->array_dims.empty()) {
                 return "ptr";
             }
             
-            // Sized array: [N]ElementType
             std::string sizeStr = type->array_dims[0]->value;
-            std::string elemType = "i32"; // default fallback elemen
+            std::string elemType = "i32";
             
             if (type->base && !type->base->parts.empty()) {
                 std::string name = type->base->parts.back();
-                // Rekursif atau petakan tipe dasar elemen array
                 if (name == "int") elemType = "i32";
                 else if (name == "char") elemType = "i8";
-                else if (name == "short") elemType = " i16";
+                else if (name == "short") elemType = "i16";
                 else if (name == "long") elemType = "i64";
                 else if (name == "unchar") elemType = "u8";
+                else if (name == "unshort") elemType = "u16";
                 else if (name == "unint") elemType = "u32";
                 else if (name == "unlong") elemType = "u64";
                 else if (name == "isize") elemType = "isize";
@@ -197,7 +185,6 @@ private:
             return "[" + sizeStr + "]" + elemType;
         }
 
-        // 2. Penanganan Pointer / Reference Modifiers
         for (const auto& mod : type->modifiers) {
             if (mod.kind == TypeModifier::Kind::Pointer || 
                 mod.kind == TypeModifier::Kind::Reference ||
@@ -206,42 +193,33 @@ private:
             }
         }
 
-        // 3. Penanganan Tipe Dasar (Primitif & Kustom)
         if (type->base && !type->base->parts.empty() && type->modifiers.empty()) {
             std::string name = type->base->parts.back();
             
-            // Signed Integers
             if (name == "int") return "i32";
             if (name == "char") return "i8";
             if (name == "short") return "i16";
             if (name == "long") return "i64";
             if (name == "isize") return "isize";
-
-            // Unsigned Integers
             if (name == "unchar") return "u8";
             if (name == "unshort") return "u16";
             if (name == "unint") return "u32";
             if (name == "unlong") return "u64";
             if (name == "usize") return "usize";
-
-            // Floats
             if (name == "float") return "f32";
             if (name == "flong") return "f64";
-
-            // Lainnya
             if (name == "bool") return "bool";
             
-            // Struct / Union / Named Type
             return name;
         }
 
         return "ptr";
     }
 
-
     void emitExtern(ForwardDecl* decl) {
         std::string name = decl->name ? decl->name->parts.back() : "unknown";
         std::string retType = emitType(decl->return_types.get());
+        functionReturnTypes_[name] = retType; // Daftarkan return type extern
         
         out_ << "extern def " << retType << " " << name << "(";
         for (size_t i = 0; i < decl->params.size(); ++i) {
@@ -254,7 +232,16 @@ private:
     void emitFunction(Function* func) {
         std::string retType = emitType(func->return_types.get());
         std::string name = qualifyName(func->name.get(), "AnonymousFunction");
+        
+        // Simpan return type fungsi untuk keperluan pemanggilan dinamis (call)
+        functionReturnTypes_[name] = retType;
+        if (func->name && !func->name->parts.empty()) {
+            functionReturnTypes_[func->name->parts.back()] = retType;
+        }
+
         tempCounter_ = 0;
+        paramTypes_.clear();
+
         out_ << "def " << retType << " @" << name << "(";
         
         for (size_t i = 0; i < func->params.size(); ++i) {
@@ -360,9 +347,29 @@ private:
                     std::string t = emitType(stmt->var_decl.type.get());
                     symbolTypes_[item.name] = t;
                     std::string reg = "%" + item.name;
+                    
                     if (stmt->var_decl.type->is_array && !stmt->var_decl.type->array_dims.empty()) {
                         std::string sizeStr = stmt->var_decl.type->array_dims[0]->value;
+                        int totalSize = std::stoi(sizeStr);
                         out_ << "    " << reg << " = alloca [" << sizeStr << "]" << t << "\n";
+                        
+                        // String-to-Array Memory Compatibility Handling:
+                        // Jika array diinisialisasi dengan string literal, salin karakter per karakter ke memori array.
+                        if (item.init && item.init->kind == Expr::Kind::Literal && 
+                            item.init->literal->kind == Literal::Kind::String) {
+                            std::string strVal = item.init->literal->value;
+                            for (size_t i = 0; i < strVal.size() && (int)i < totalSize; ++i) {
+                                std::string elemAddr = freshTemp();
+                                out_ << "    " << elemAddr << " = elem addr " << t << " " << reg << ", " << i << "\n";
+                                out_ << "    store i8 '" << strVal[i] << "', " << elemAddr << "\n";
+                            }
+                            // Tambahkan null terminator jika masih ada sisa kapasitas array
+                            if ((int)strVal.size() < totalSize) {
+                                std::string elemAddr = freshTemp();
+                                out_ << "    " << elemAddr << " = elem addr " << t << " " << reg << ", " << strVal.size() << "\n";
+                                out_ << "    store i8 0, " << elemAddr << "\n";
+                            }
+                        }
                     } else {
                         out_ << "    " << reg << " = alloca " << t << "\n";
                         if (item.init) {
@@ -416,11 +423,8 @@ private:
             }
 
             case Stmt::Kind::SwitchCase: {
-                // Evaluasi ekspresi utama switch
                 std::string switchExprVal = emitExpr(stmt->switch_stmt.expr.get());
-                
                 std::string switchEndLabel = freshTemp(true) + "_switch_end";
-                // Simpan switchEndLabel ke stack break jika ingin mendukung break di switch
                 loopEndLabels_.push_back(switchEndLabel);
 
                 for (size_t i = 0; i < stmt->switch_stmt.cases.size(); ++i) {
@@ -431,7 +435,6 @@ private:
                                                  : switchEndLabel;
 
                     if (c.is_default) {
-                        // Jika default, langsung lompat ke body default
                         out_ << "    jmp " << caseBodyLabel << "\n";
                     } else {
                         for (size_t v = 0; v < c.values.size(); ++v) {
@@ -443,7 +446,6 @@ private:
                             std::string cmpRes = freshTemp();
                             out_ << "    " << cmpRes << " = eq i32 " << switchExprVal << ", " << valStr << "\n";
                             
-                            // Jika bernilai true masuk ke caseBodyLabel, jika false cek nilai berikutnya/default
                             std::string evalNext = (v + 1 < c.values.size()) ? freshTemp(true) + "_val_next" : nextCheckLabel;
                             out_ << "    br_if " << cmpRes << ", " << caseBodyLabel << ", " << evalNext << "\n";
                             
@@ -453,7 +455,6 @@ private:
                         }
                     }
 
-                    // Emit body case
                     out_ << caseBodyLabel << ":\n";
                     if (c.body) {
                         emitStmt(c.body.get());
@@ -517,7 +518,6 @@ private:
                 break;
             }
 
-
             case Stmt::Kind::While: {
                 std::string condLabel = freshTemp(true) + "_while_cond";
                 std::string bodyLabel = freshTemp(true) + "_while_body";
@@ -574,11 +574,9 @@ private:
 
             case Expr::Kind::Ident:
                 if (expr->ident) {
-                    // Sinkronisasi is_absolute: Jika diawali '::' (absolute scope/global addr)
                     if (expr->ident->is_absolute) {
                         std::string globalName = flattenQualifiedName(expr->ident.get());
                         std::string addrRes = freshTemp();
-                        // Menggunakan instruksi global addr di CRU
                         out_ << "    " << addrRes << " = global addr @" << globalName << "\n";
                         return addrRes;
                     }
@@ -634,16 +632,13 @@ private:
                 std::string allocRes = freshTemp();
                 size_t size = expr->array_items.size();
                 
-                // Deteksi tipe elemen secara dinamis dari item pertama
                 std::string elemType = "i32";
                 if (!expr->array_items.empty() && expr->array_items[0]) {
                     elemType = getExprType(expr->array_items[0].get());
                 }
 
-                // Alokasikan array dengan ukuran dan tipe elemen dinamis
                 out_ << "    " << allocRes << " = alloca [" << size << "]" << elemType << "\n";
                 
-                // Isi setiap elemen array satu per satu
                 for (size_t i = 0; i < size; ++i) {
                     std::string valRes = emitExpr(expr->array_items[i].get());
                     std::string elemAddrRes = freshTemp();
@@ -654,20 +649,16 @@ private:
                 return allocRes;
             }
 
-
             case Expr::Kind::Binary: {
                 std::string lhs = emitExpr(expr->binary.lhs.get());
                 std::string rhs = emitExpr(expr->binary.rhs.get());
                 std::string res = freshTemp();
                 std::string opStr = "add";
                 bool isFloatOp = false;
+                
                 std::string varType = getExprType(expr->binary.lhs.get());
                 if (varType == "f32" || varType == "f64") {
                     isFloatOp = true;
-                }
-                if (lhs.rfind('"', 0) == 0 || rhs.rfind('"', 0) == 0 || 
-                    lhs == "null" || rhs == "null") {
-                    varType = "ptr";
                 }
 
                 switch (expr->binary.op) {
@@ -695,7 +686,6 @@ private:
             case Expr::Kind::Assign: {
                 std::string rhsVal = emitExpr(expr->assign.rhs.get());
                 if (expr->assign.lhs->kind == Expr::Kind::Ident && expr->assign.lhs->ident) {
-                    // Cek jika assignment ke variabel global absolut (::x = val)
                     if (expr->assign.lhs->ident->is_absolute) {
                         std::string globalName = flattenQualifiedName(expr->assign.lhs->ident.get());
                         std::string addrRes = freshTemp();
@@ -714,15 +704,14 @@ private:
                 }
                 return rhsVal;
             }
+
             case Expr::Kind::Ternary: {
-                // Evaluasi kondisi
                 std::string condVal = emitExpr(expr->ternary.cond.get());
                 
                 std::string thenLabel = freshTemp(true) + "_tern_then";
                 std::string elseLabel = freshTemp(true) + "_tern_else";
                 std::string mergeLabel = freshTemp(true) + "_tern_merge";
                 
-                // Tentukan tipe hasil ekspresi (default i32 atau dari then_expr)
                 std::string resType = getExprType(expr->ternary.then_expr.get());
                 
                 std::string resultAlloc = freshTemp();
@@ -730,19 +719,16 @@ private:
                 
                 out_ << "    br_if " << condVal << ", " << thenLabel << ", " << elseLabel << "\n";
                 
-                // Blok THEN
                 out_ << thenLabel << ":\n";
                 std::string thenVal = emitExpr(expr->ternary.then_expr.get());
                 out_ << "    store " << resType << " " << thenVal << ", " << resultAlloc << "\n";
                 out_ << "    jmp " << mergeLabel << "\n";
                 
-                // Blok ELSE
                 out_ << elseLabel << ":\n";
                 std::string elseVal = emitExpr(expr->ternary.else_expr.get());
                 out_ << "    store " << resType << " " << elseVal << ", " << resultAlloc << "\n";
                 out_ << "    jmp " << mergeLabel << "\n";
                 
-                // Blok MERGE (mengambil kembali nilainya untuk dipakai ekspresi luar)
                 out_ << mergeLabel << ":\n";
                 std::string finalVal = freshTemp();
                 out_ << "    " << finalVal << " = load " << resType << " " << resultAlloc << "\n";
@@ -800,7 +786,9 @@ private:
                     }
 
                     case UnaryOp::Neg: {
-                        out_ << "    " << res << " = sub i32 0, " << operandVal << "\n";
+                        // DINAMIS: Menggunakan tipe operand aktual alih-alih hardcode i32
+                        std::string operandType = getExprType(expr->unary.expr.get());
+                        out_ << "    " << res << " = sub " << operandType << " 0, " << operandVal << "\n";
                         return res;
                     }
 
@@ -836,8 +824,14 @@ private:
                             argVals.push_back(emitExpr(arg.get()));
                         }
 
+                        // DINAMIS: Resolusi return type fungsi dari map functionReturnTypes_
+                        std::string retType = "i32";
+                        if (functionReturnTypes_.find(baseName) != functionReturnTypes_.end()) {
+                            retType = functionReturnTypes_[baseName];
+                        }
+
                         std::string callRes = freshTemp();
-                        out_ << "    " << callRes << " = call.i32 @" << baseName << "(";
+                        out_ << "    " << callRes << " = call." << retType << " @" << baseName << "(";
                         for (size_t i = 0; i < argVals.size(); ++i) {
                             out_ << argVals[i];
                             if (i + 1 < argVals.size()) out_ << ", ";
