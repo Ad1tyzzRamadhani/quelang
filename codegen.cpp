@@ -118,9 +118,10 @@ private:
                     if (expr->literal->kind == Literal::Kind::Float) return "f32";
                     if (expr->literal->kind == Literal::Kind::True || 
                         expr->literal->kind == Literal::Kind::False) return "bool";
-                    return "i32"; // default number
+                    return "i32";
                 }
                 break;
+                
             case Expr::Kind::Ident:
                 if (expr->ident && !expr->ident->parts.empty()) {
                     std::string varName = expr->ident->parts.back();
@@ -132,12 +133,34 @@ private:
                     }
                 }
                 break;
+                
+            case Expr::Kind::Binary: {
+                // Ambil tipe dari sisi kiri sebagai basis tipe operasi biner
+                return getExprType(expr->binary.lhs.get());
+            }
+            
+            case Expr::Kind::Unary: {
+                if (expr->unary.op == UnaryOp::Not) return "bool";
+                return getExprType(expr->unary.expr.get());
+            }
+            
+            case Expr::Kind::Ternary: {
+                // Tipe ternary mengikuti tipe cabang 'then'
+                return getExprType(expr->ternary.then_expr.get());
+            }
+            
+            case Expr::Kind::Cast: {
+                if (expr->cast.target) {
+                    return emitType(expr->cast.target.get());
+                }
+                break;
+            }
+            
             default:
                 break;
         }
-        return "i32"; // Fallback umum
+        return "i32"; // Fallback akhir jika benar-benar tidak dikenali
     }
-
 
 
     std::string emitType(Type* type) {
@@ -638,7 +661,10 @@ private:
                 std::string res = freshTemp();
                 std::string opStr = "add";
                 bool isFloatOp = false;
-                std::string varType = "i32";
+                std::string varType = getExprType(expr->binary.lhs.get());
+                if (varType == "f32" || varType == "f64") {
+                    isFloatOp = true;
+                }
                 if (lhs.rfind('"', 0) == 0 || rhs.rfind('"', 0) == 0 || 
                     lhs == "null" || rhs == "null") {
                     varType = "ptr";
