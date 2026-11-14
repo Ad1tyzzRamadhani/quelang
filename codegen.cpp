@@ -360,6 +360,12 @@ private:
                         if (item.init && item.init->kind == Expr::Kind::Literal && 
                             item.init->literal->kind == Literal::Kind::String) {
                             std::string strVal = item.init->literal->value;
+                            std::string elemType = "i32";
+                            if (stmt->var_decl.type->base && !stmt->var_decl.type->base->parts.empty()) {
+                                std::string bName = stmt->var_decl.type->base->parts.back();
+                                if (bName == "char") elemType = "i8";
+                                else if (bName == "int") elemType = "i32";
+                            }
                             for (size_t i = 0; i < strVal.size() && (int)i < totalSize; ++i) {
                                 std::string elemAddr = freshTemp();
                                 out_ << "    " << elemAddr << " = elem addr " << t << " " << reg << ", " << i << "\n";
@@ -368,8 +374,8 @@ private:
                             // Tambahkan null terminator jika masih ada sisa kapasitas array
                             if ((int)strVal.size() < totalSize) {
                                 std::string elemAddr = freshTemp();
-                                out_ << "    " << elemAddr << " = elem addr " << t << " " << reg << ", " << strVal.size() << "\n";
-                                out_ << "    store i8 0, " << elemAddr << "\n";
+                                out_ << "    " << elemAddr << " = elem addr " << elemType << " " << reg << ", " << strVal.size() << "\n";
+                                out_ << "    store " << elemType << " 0, " << elemAddr << "\n";
                             }
                         }
                     } else {
@@ -598,7 +604,7 @@ private:
                         }
                         if (symbolTypes_.find(varName) != symbolTypes_.end()) {
                             std::string vType = symbolTypes_[varName];
-                            if (vType == "ptr") {
+                            if (vType == "ptr" || vType.rfind("[", 0) == 0) {
                                 return "%" + varName;
                             }
                             std::string loadRes = freshTemp();
@@ -695,6 +701,40 @@ private:
 
             case Expr::Kind::Assign: {
                 std::string rhsVal = emitExpr(expr->assign.rhs.get());
+                if (expr->assign.lhs->kind == Expr::Kind::Postfix) {
+                    auto& postfix = expr->assign.lhs->postfix;
+                    if (!postfix.ops.empty() && postfix.ops.back().kind == Expr::PostfixOp::Kind::Index) {
+                        std::string baseName = "";
+                        if (postfix.base && postfix.base->kind == Expr::Kind::Ident && 
+                            postfix.base->ident && !postfix.base->ident->parts.empty()) {
+                            baseName = postfix.base->ident->parts.back();
+                        }
+                        
+                        std::string currentReg = "%" + baseName;
+                        std::string currentType = "i32";
+                        if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
+                            currentType = symbolTypes_[baseName];
+                        }
+
+                        // Evaluasi ekspresi indeks
+                        auto& lastOp = postfix.ops.back();
+                        std::string indexVal = emitExpr(lastOp.index.get());
+
+                        // Ekstrak tipe elemen dari tipe array (misal "[12]i8" menjadi "i8")
+                        std::string elemType = "i32";
+                        if (currentType.rfind("[", 0) == 0) {
+                            size_t bracketPos = currentType.find("]");
+                            if (bracketPos != std::string::npos) {
+                                elemType = currentType.substr(bracketPos + 1);
+                            }
+                        }
+
+                        std::string elemAddrRes = freshTemp();
+                        out_ << "    " << elemAddrRes << " = elem addr " << elemType << " " << currentReg << ", " << indexVal << "\n";
+                        out_ << "    store " << elemType << " " << rhsVal << ", " << elemAddrRes << "\n";
+                        return rhsVal;
+                    }
+                }
                 if (expr->assign.lhs->kind == Expr::Kind::Ident && expr->assign.lhs->ident) {
                     if (expr->assign.lhs->ident->is_absolute) {
                         std::string globalName = flattenQualifiedName(expr->assign.lhs->ident.get());
