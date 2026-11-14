@@ -107,6 +107,38 @@ private:
         out_ << "\n";
     }
 
+    std::string getExprType(Expr* expr) {
+        if (!expr) return "i32";
+        
+        switch (expr->kind) {
+            case Expr::Kind::Literal:
+                if (expr->literal) {
+                    if (expr->literal->kind == Literal::Kind::Char) return "i8";
+                    if (expr->literal->kind == Literal::Kind::String) return "ptr";
+                    if (expr->literal->kind == Literal::Kind::Float) return "f32";
+                    if (expr->literal->kind == Literal::Kind::True || 
+                        expr->literal->kind == Literal::Kind::False) return "bool";
+                    return "i32"; // default number
+                }
+                break;
+            case Expr::Kind::Ident:
+                if (expr->ident && !expr->ident->parts.empty()) {
+                    std::string varName = expr->ident->parts.back();
+                    if (symbolTypes_.find(varName) != symbolTypes_.end()) {
+                        return symbolTypes_[varName];
+                    }
+                    if (paramTypes_.find(varName) != paramTypes_.end()) {
+                        return paramTypes_[varName];
+                    }
+                }
+                break;
+            default:
+                break;
+        }
+        return "i32"; // Fallback umum
+    }
+
+
 
     std::string emitType(Type* type) {
         if (!type) return "void";
@@ -575,6 +607,31 @@ private:
                 return allocRes;
             }
 
+            case Expr::Kind::ArrayLiteral: {
+                std::string allocRes = freshTemp();
+                size_t size = expr->array_items.size();
+                
+                // Deteksi tipe elemen secara dinamis dari item pertama
+                std::string elemType = "i32";
+                if (!expr->array_items.empty() && expr->array_items[0]) {
+                    elemType = getExprType(expr->array_items[0].get());
+                }
+
+                // Alokasikan array dengan ukuran dan tipe elemen dinamis
+                out_ << "    " << allocRes << " = alloca [" << size << "]" << elemType << "\n";
+                
+                // Isi setiap elemen array satu per satu
+                for (size_t i = 0; i < size; ++i) {
+                    std::string valRes = emitExpr(expr->array_items[i].get());
+                    std::string elemAddrRes = freshTemp();
+                    
+                    out_ << "    " << elemAddrRes << " = elem addr " << elemType << " " << allocRes << ", " << i << "\n";
+                    out_ << "    store " << elemType << " " << valRes << ", " << elemAddrRes << "\n";
+                }
+                return allocRes;
+            }
+
+
             case Expr::Kind::Binary: {
                 std::string lhs = emitExpr(expr->binary.lhs.get());
                 std::string rhs = emitExpr(expr->binary.rhs.get());
@@ -640,7 +697,7 @@ private:
                 std::string mergeLabel = freshTemp(true) + "_tern_merge";
                 
                 // Tentukan tipe hasil ekspresi (default i32 atau dari then_expr)
-                std::string resType = "i32"; 
+                std::string resType = getExprType(expr->ternary.then_expr.get());
                 
                 std::string resultAlloc = freshTemp();
                 out_ << "    " << resultAlloc << " = alloca " << resType << "\n";
