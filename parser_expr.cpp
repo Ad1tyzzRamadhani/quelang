@@ -203,6 +203,11 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
             error("expected identifier name inside intrinsic instruction bracket");
         }
         std::string intrinsicName = advance().value;
+
+        std::unique_ptr<Type> returnType = nullptr;
+        if (match(TokenType::SEMICOLON)) {
+            returnType = parseType();
+        }
         
         consume(TokenType::RBRACKET, "expected ']' to close intrinsic instruction name");
         consume(TokenType::LPAREN, "expected '(' to begin arguments for intrinsic instruction");
@@ -213,6 +218,7 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         expr->column_start = underTok.column;
         expr->kind = Expr::Kind::Intrinsic;
         expr->intrinsic.name = intrinsicName;
+        expr->intrinsic.type = std::move(returnType);
 
         if (!check(TokenType::RPAREN)) {
             do {
