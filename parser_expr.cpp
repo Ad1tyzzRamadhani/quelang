@@ -188,8 +188,14 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         return expr;
     }
 
-    if (peek().type == TokenType::LBRACKET && check(TokenType::UNDERSCORE)) {
-        std::cout << " Parsing Intrinsic" << "\n";
+    if ((peek().type == TokenType::IDENT && peek().value == "_") || 
+        (peek().type == TokenType::UNDERSCORE)) 
+    {
+        if (peek().type == TokenType::IDENT && peek().value == "_") {
+            advance();
+        } else {
+            advance();
+        }
         const Token& underTok = tokens[pos - 1];
 
         consume(TokenType::UNDERSCORE, "expected '_' for intrinsic instruction");
