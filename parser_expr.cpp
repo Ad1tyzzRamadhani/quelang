@@ -188,9 +188,10 @@ std::unique_ptr<Expr> ParseState::parsePrimary() {
         return expr;
     }
 
-    if (match(TokenType::UNDERSCORE)) {
+    if (peek().type == TokenType::LBRACKET && check(TokenType::UNDERSCORE)) {
         const Token& underTok = tokens[pos - 1];
-        
+
+        consume(TokenType::UNDERSCORE, "expected '_' for intrinsic instruction");
         consume(TokenType::LBRACKET, "expected '[' after '_' for intrinsic instruction name");
         
         if (peek().type != TokenType::IDENT) {
