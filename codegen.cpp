@@ -1072,7 +1072,13 @@ private:
                                 return addrRes;
                             }
                             if (!expr->unary.expr->ident->parts.empty()) {
-                                return "%" + expr->unary.expr->ident->parts.back();
+                                std::string varName = expr->unary.expr->ident->parts.back();
+                                std::string varReg, varType;
+                                // Gunakan lookupVar untuk mendapatkan register stack alloca yang valid (misal: %t_13)
+                                if (lookupVar(varName, varReg, varType)) {
+                                    return varReg;
+                                }
+                                return "%" + varName;
                             }
                         }
                         return operandVal;
