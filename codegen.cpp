@@ -1271,7 +1271,7 @@ private:
                         std::string indexVal = emitExpr(op.index.get());
                         std::string elemType = "i32";
                         
-                        else if (currentType.rfind("[", 0) == 0) {
+                        if (currentType.rfind("[", 0) == 0) {
                             size_t bracketPos = currentType.find("]");
                             if (bracketPos != std::string::npos) {
                                 elemType = currentType.substr(bracketPos + 1);
