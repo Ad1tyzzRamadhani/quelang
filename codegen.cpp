@@ -930,14 +930,19 @@ private:
                         return rhsVal;
                     }
 
-                    std::string varType = "i32";
+                    std::string varReg, varType = "i32";
                     std::string lhsName = expr->assign.lhs->ident->parts.back();
                     if (symbolTypes_.find(lhsName) != symbolTypes_.end()) {
                         varType = symbolTypes_[lhsName];
                     }
-                    std::string varName = "%" + lhsName;
-                    out_ << "    store " + varType + " " << rhsVal << ", " << varName << "\n";
+                    if (lookupVar(lhsName, varReg, varType)) {
+                        out_ << "    store " + varType + " " << rhsVal << ", " << varReg << "\n";
+                    } else {
+                        std::string varName = "%" + lhsName;
+                        out_ << "    store " + varType + " " << rhsVal << ", " << varName << "\n";
+                    }
                 }
+
                 return rhsVal;
             }
 
