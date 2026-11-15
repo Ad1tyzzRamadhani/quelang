@@ -32,6 +32,8 @@ private:
     std::vector<std::string> loopEndLabels_;
     std::vector<std::unordered_map<std::string, std::string>> scopes_;
     std::vector<std::unordered_map<std::string, std::string>> scopeTypes_;
+    std::unordered_map<std::string, std::string> paramElementTypes_;
+    std::unordered_map<std::string, std::string> symbolElementTypes_;
 
     std::ostringstream out_;
     int tempCounter_ = 0;
@@ -130,6 +132,54 @@ private:
         }
         out_ << "\n";
     }
+
+    std::string getElementType(Type* type) {
+        if (!type) return "i32";
+        if (type->is_array) {
+            if (type->base && !type->base->parts.empty()) {
+                std::string name = type->base->parts.back();
+                if (name == "char") return "i8";
+                if (name == "int") return "i32";
+                if (name == "short") return "i16";
+                if (name == "long") return "i64";
+                return name;
+            }
+            return "i32";
+        }
+
+        int ptrCount = 0;
+        for (const auto& mod : type->modifiers) {
+            if (mod.kind == TypeModifier::Kind::Pointer || 
+                mod.kind == TypeModifier::Kind::Reference ||
+                mod.kind == TypeModifier::Kind::FuncPtr) {
+                ptrCount++;
+            }
+        }
+
+        if (ptrCount > 0) {
+            // Jika pointer berlapis (misal T** / char**), hasil indexing-nya adalah ptr
+            if (ptrCount > 1) return "ptr";
+            
+            // Jika pointer tunggal (misal char* s), ambil tipe dasarnya
+            if (type->base && !type->base->parts.empty()) {
+                std::string name = type->base->parts.back();
+                if (name == "char") return "i8";
+                if (name == "int") return "i32";
+                if (name == "short") return "i16";
+                if (name == "long") return "i64";
+            }
+            return "i8"; // Default aman untuk char*
+        }
+
+        if (type->base && !type->base->parts.empty()) {
+            std::string name = type->base->parts.back();
+            if (name == "char") return "i8";
+            if (name == "int") return "i32";
+            return name;
+        }
+        return "i32";
+    }
+
 
     std::string getExprType(Expr* expr) {
         if (!expr) return "i32";
@@ -370,6 +420,8 @@ private:
             const auto& p = func->params[i];
             std::string pType = emitType(p.type.get());
             paramTypes_[p.name] = pType;
+            std::string elemT = getElementType(p.type.get());
+            paramElementTypes_[p.name] = elemT;
             scopes_.back()[p.name] = "%" + p.name;
             scopeTypes_.back()[p.name] = pType;
             out_ << pType  << " " + p.name;
@@ -486,6 +538,8 @@ private:
                 for (const auto& item : stmt->var_decl.items) {
                     std::string t = emitType(stmt->var_decl.type.get());
                     symbolTypes_[item.name] = t;
+                    std::string elemT = getElementType(stmt->var_decl.type.get());
+                    symbolElementTypes_[item.name] = elemT;
                     std::string reg = "%" + item.name + "_" + std::to_string(tempCounter_++);
                     if (!scopes_.empty()) {
                         scopes_.back()[item.name] = reg;
@@ -1216,16 +1270,20 @@ private:
                     } else if (op.kind == Expr::PostfixOp::Kind::Index) {
                         std::string indexVal = emitExpr(op.index.get());
                         std::string elemType = "i32";
-                        if (currentType == "ptr" || currentType.find("*") != std::string::npos) {
-                            elemType = "ptr";
-                        } 
+                        
                         else if (currentType.rfind("[", 0) == 0) {
                             size_t bracketPos = currentType.find("]");
                             if (bracketPos != std::string::npos) {
                                 elemType = currentType.substr(bracketPos + 1);
-                                if (elemType == "ptr" || elemType.find("*") != std::string::npos) {
-                                    elemType = "ptr";
-                                }
+                            }
+                        } else if (currentType == "ptr") {
+                            // Ambil elemen tipe asli dari variabel base jika ada (misal: i8 untuk char*)
+                            if (paramElementTypes_.find(baseName) != paramElementTypes_.end()) {
+                                elemType = paramElementTypes_[baseName];
+                            } else if (symbolElementTypes_.find(baseName) != symbolElementTypes_.end()) {
+                                elemType = symbolElementTypes_[baseName];
+                            } else {
+                                elemType = "ptr"; // Fallback ke ptr jika pointer ke pointer
                             }
                         }
                         std::string elemAddrRes = freshTemp();
