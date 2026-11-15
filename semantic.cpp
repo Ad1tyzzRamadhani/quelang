@@ -1271,6 +1271,10 @@ bool SemanticAnalyzer::isAssignable(const TypeView& lhs, const TypeView& rhs) co
     if (!lhs.valid || !rhs.valid) return false;
     if (canConvert(lhs, rhs)) return true;
     if (sameType(lhs, rhs)) return true;
+    if (lhs.modifiers.size() == 1 && lhs.modifiers.back() == TypeModifier::Kind::Pointer &&
+        rhs.modifiers.empty() && lhs.base == rhs.base) {
+        return true;
+    }
     if ((isNone(rhs) || (rhs.valid && rhs.base == "null")) && isPointerLike(lhs)) return true;
     return false;
 }
@@ -1554,6 +1558,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeUnary(Expr* expr) {
             if (!isLValue(expr->unary.expr.get()))
                 error(expr, "reference operator requires an lvalue");
             t.modifiers.push_back(TypeModifier::Kind::Pointer);
+            t.valid = true;
             return t;
         case UnaryOp::Move: {
             SemanticSymbol* symbol = symbolForLValue(expr->unary.expr.get());
@@ -2559,6 +2564,12 @@ std::cerr << "==================\n";*/
                 break;
             }
 
+            if (current.unsized_array || current.is_array) {
+                // Unsized array tetap menghasilkan tipe elemen dasarnya saat di-index
+                current.is_array = false;
+                break;
+            }
+
             // Pointer/reference indexing.
             if (!current.modifiers.empty() &&
                 (current.modifiers.back() == TypeModifier::Kind::Pointer ||
@@ -2566,7 +2577,6 @@ std::cerr << "==================\n";*/
                 current.modifiers.pop_back();
                 break;
             }
-            if(current.is_array) break;
 
             error(expr,
                 "indexing requires an array, pointer, or reference");
