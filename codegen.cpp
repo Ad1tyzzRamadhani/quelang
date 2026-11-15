@@ -897,7 +897,12 @@ private:
                         
                         std::string currentReg = "%" + baseName;
                         std::string currentType = "i32";
-                        if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
+                        std::string varReg, varType;
+                        if (lookupVar(baseName, varReg, varType)) {
+                            currentReg = varReg;
+                            currentType = varType;
+                        }
+                        else if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
                             currentType = symbolTypes_[baseName];
                         }
 
@@ -1070,7 +1075,12 @@ private:
 
                 std::string currentReg = "%" + baseName;
                 std::string currentType = "i32";
-                if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
+                std::string varReg, varType;
+                if (lookupVar(baseName, varReg, varType)) {
+                    currentReg = varReg;
+                    currentType = varType;
+                }
+                else if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
                     currentType = symbolTypes_[baseName];
                 }
 
