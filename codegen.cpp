@@ -133,6 +133,26 @@ private:
         out_ << "\n";
     }
 
+        std::string getIndexElemType(const std::string& baseName, const std::string& currentType) {
+        if (currentType.rfind("[", 0) == 0) {
+            size_t bracketPos = currentType.find("]");
+            if (bracketPos != std::string::npos) {
+                return currentType.substr(bracketPos + 1);
+            }
+        }
+        if (currentType == "ptr") {
+            if (paramElementTypes_.find(baseName) != paramElementTypes_.end()) {
+                return paramElementTypes_[baseName];
+            }
+            if (symbolElementTypes_.find(baseName) != symbolElementTypes_.end()) {
+                return symbolElementTypes_[baseName];
+            }
+            return "i8"; // Default aman untuk char*
+        }
+        return "i32";
+    }
+
+
     std::string getElementType(Type* type) {
         if (!type) return "i32";
         if (type->is_array) {
@@ -227,14 +247,7 @@ private:
 
                 for (const auto& op : expr->postfix.ops) {
                     if (op.kind == Expr::PostfixOp::Kind::Index) {
-                        std::string elemType = "i32";
-                        if (currentType.rfind("[", 0) == 0) {
-                            size_t bracketPos = currentType.find("]");
-                            if (bracketPos != std::string::npos) {
-                                elemType = currentType.substr(bracketPos + 1);
-                            }
-                        }
-                        currentType = elemType;
+                        currentType = getIndexElemType(baseName, currentType);
                     } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess || 
                                op.kind == Expr::PostfixOp::Kind::Arrow || 
                                op.kind == Expr::PostfixOp::Kind::SafeArrow) {
@@ -1271,21 +1284,7 @@ private:
                         std::string indexVal = emitExpr(op.index.get());
                         std::string elemType = "i32";
                         
-                        if (currentType.rfind("[", 0) == 0) {
-                            size_t bracketPos = currentType.find("]");
-                            if (bracketPos != std::string::npos) {
-                                elemType = currentType.substr(bracketPos + 1);
-                            }
-                        } else if (currentType == "ptr") {
-                            // Ambil elemen tipe asli dari variabel base jika ada (misal: i8 untuk char*)
-                            if (paramElementTypes_.find(baseName) != paramElementTypes_.end()) {
-                                elemType = paramElementTypes_[baseName];
-                            } else if (symbolElementTypes_.find(baseName) != symbolElementTypes_.end()) {
-                                elemType = symbolElementTypes_[baseName];
-                            } else {
-                                elemType = "ptr"; // Fallback ke ptr jika pointer ke pointer
-                            }
-                        }
+                        std::string elemType = getIndexElemType(baseName, currentType);
                         std::string elemAddrRes = freshTemp();
                         out_ << "    " << elemAddrRes << " = elem addr " << elemType << " " << currentReg << ", " << indexVal << "\n";
                         
