@@ -192,6 +192,9 @@ private:
                     case BinaryOp::Lte:
                     case BinaryOp::Gt:
                     case BinaryOp::Gte:
+                    case BinaryOp::And:
+                    case BinaryOp::Or:
+                    case BinaryOp::Xor:
                         return "bool";
                     default:
                         return getExprType(expr->binary.lhs.get());
