@@ -962,6 +962,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
     if(type->bit_width && !type->bit_width->value.empty())
     out.bit_width = std::stoi(type->bit_width->value);
     out.is_array = type->is_array;
+    out.unsized_array = type->unsized_array;
     for (auto& mod : type->modifiers) {
         out.modifiers.push_back(mod.kind);
         if (mod.kind == TypeModifier::Kind::FuncPtr) {
