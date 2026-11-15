@@ -30,6 +30,9 @@ private:
     std::unordered_map<std::string, std::string> functionReturnTypes_; // Melacak tipe return fungsi secara dinamis
     std::vector<std::string> loopCondLabels_;
     std::vector<std::string> loopEndLabels_;
+    std::vector<std::unordered_map<std::string, std::string>> scopes_;
+    std::vector<std::unordered_map<std::string, std::string>> scopeTypes_;
+
     std::ostringstream out_;
     int tempCounter_ = 0;
 
@@ -61,6 +64,22 @@ private:
             result += "_" + qname->parts[i];
         }
         return result;
+    }
+
+    bool lookupVar(const std::string& name, std::string& outReg, std::string& outType) {
+        for (auto it = scopes_.rbegin(); it != scopes_.rend(); ++it) {
+            if (it->find(name) != it->end()) {
+                outReg = (*it)[name];
+                for (auto tit = scopeTypes_.rbegin(); tit != scopeTypes_.rend(); ++tit) {
+                    if (tit->find(name) != tit->end()) {
+                        outType = (*tit)[name];
+                        break;
+                    }
+                }
+                return true;
+            }
+        }
+        return false;
     }
 
     bool endsWithReturn(Stmt* stmt) {
@@ -303,6 +322,10 @@ private:
 
         tempCounter_ = 0;
         paramTypes_.clear();
+        scopes_.clear();
+        scopeTypes_.clear();
+        scopes_.push_back({});
+        scopeTypes_.push_back({});
 
         out_ << "def " << retType << " @" << name << "(";
         
@@ -310,6 +333,8 @@ private:
             const auto& p = func->params[i];
             std::string pType = emitType(p.type.get());
             paramTypes_[p.name] = pType;
+            scopes_.back()[p.name] = "%" + p.name;
+            scopeTypes_.back()[p.name] = pType;
             out_ << pType  << " " + p.name;
             if (i + 1 < func->params.size()) out_ << ", ";
         }
@@ -400,16 +425,24 @@ private:
 
         switch (stmt->kind) {
             case Stmt::Kind::Block:
+                scopes_.push_back({});
+                scopeTypes_.push_back({});
                 for (const auto& s : stmt->block.stmts) {
                     emitStmt(s.get());
                 }
+                scopeTypes_.pop_back();
+                scopes_.pop_back();
                 break;
 
             case Stmt::Kind::VarDecl: {
                 for (const auto& item : stmt->var_decl.items) {
                     std::string t = emitType(stmt->var_decl.type.get());
                     symbolTypes_[item.name] = t;
-                    std::string reg = "%" + item.name;
+                    std::string reg = "%" + item.name + "_" + std::to_string(tempCounter_++);
+                    if (!scopes_.empty()) {
+                        scopes_.back()[item.name] = reg;
+                        scopeTypes_.back()[item.name] = t;
+                    }
                     
                     if (stmt->var_decl.type->is_array && !stmt->var_decl.type->array_dims.empty()) {
                         std::string sizeStr = stmt->var_decl.type->array_dims[0]->value;
@@ -717,6 +750,14 @@ private:
                         std::string varName = expr->ident->parts.back();
                         if (paramTypes_.find(varName) != paramTypes_.end()) {
                             return "%" + varName;
+                        }
+                        if (lookupVar(varName, varReg, varType)) {
+                            if (varType == "ptr" || varType.rfind("[", 0) == 0) {
+                                return varReg;
+                            }
+                            std::string loadRes = freshTemp();
+                            out_ << "    " << loadRes << " = load " << varType << " " << varReg << "\n";
+                            return loadRes;
                         }
                         if (symbolTypes_.find(varName) != symbolTypes_.end()) {
                             std::string vType = symbolTypes_[varName];
