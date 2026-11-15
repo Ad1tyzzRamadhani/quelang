@@ -764,7 +764,12 @@ private:
                             return "%" + varName;
                         }
                         if (lookupVar(varName, varReg, varType)) {
-                            if (varType == "ptr" || varType.rfind("[", 0) == 0) {
+                            if (varType == "ptr") {
+                                std::string ptrVal = freshTemp();
+                                out_ << "    " << ptrVal << " = load ptr " << varReg << "\n";
+                                return ptrVal;
+                            }
+                            if (varType.rfind("[", 0) == 0) {
                                 return varReg;
                             }
                             std::string loadRes = freshTemp();
@@ -773,7 +778,12 @@ private:
                         }
                         if (symbolTypes_.find(varName) != symbolTypes_.end()) {
                             std::string vType = symbolTypes_[varName];
-                            if (vType == "ptr" || vType.rfind("[", 0) == 0) {
+                            if (vType == "ptr") {
+                                std::string ptrVal = freshTemp();
+                                out_ << "    " << ptrVal << " = load ptr " << varReg << "\n";
+                                return ptrVal;
+                            }
+                            if (vType.rfind("[", 0) == 0) {
                                 return "%" + varName;
                             }
                             std::string loadRes = freshTemp();
