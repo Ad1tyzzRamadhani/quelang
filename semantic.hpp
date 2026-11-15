@@ -60,6 +60,7 @@ private:
         bool is_unaligned = false;
         int bit_width = 0;
         bool is_array = false;
+        bool unsized_array = false;
         std::vector<int> array_size;
     };
 
