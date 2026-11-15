@@ -748,6 +748,7 @@ private:
 
                     if (!expr->ident->parts.empty()) {
                         std::string varName = expr->ident->parts.back();
+                        std::string varReg, varType;
                         if (paramTypes_.find(varName) != paramTypes_.end()) {
                             return "%" + varName;
                         }
