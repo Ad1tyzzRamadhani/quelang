@@ -806,6 +806,12 @@ private:
                     case BinaryOp::Lte: opStr = "le"; isRelational = true; break;
                     case BinaryOp::Gt:  opStr = "gt"; isRelational = true; break;
                     case BinaryOp::Gte: opStr = "ge"; isRelational = true; break;
+                    case BinaryOp::And:
+                    case BinaryOp::BitAnd: opStr = "and"; isRelational = true; break;
+                    case BinaryOp::Or:
+                    case BinaryOp::BitOr:  opStr = "or";  isRelational = true; break;
+                    case BinaryOp::Xor:
+                    case BinaryOp::BitXor: opStr = "xor"; isRelational = true; break;
                     default: opStr = "add"; break;
                 }
                 if (isFloatOp && !isRelational) {
