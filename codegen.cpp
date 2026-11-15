@@ -185,7 +185,17 @@ private:
                 return currentType;
             }
             case Expr::Kind::Binary:
-                return getExprType(expr->binary.lhs.get());
+                switch (expr->binary.op) {
+                    case BinaryOp::Eq:
+                    case BinaryOp::Ne:
+                    case BinaryOp::Lt:
+                    case BinaryOp::Lte:
+                    case BinaryOp::Gt:
+                    case BinaryOp::Gte:
+                        return "bool";
+                    default:
+                        return getExprType(expr->binary.lhs.get());
+                }
             case Expr::Kind::Unary:
                 if (expr->unary.op == UnaryOp::Not) return "bool";
                 return getExprType(expr->unary.expr.get());
@@ -779,6 +789,7 @@ private:
                 if (varType == "f32" || varType == "f64") {
                     isFloatOp = true;
                 }
+                bool isRelational = false;
 
                 switch (expr->binary.op) {
                     case BinaryOp::Add: opStr = "add"; break;
@@ -786,15 +797,15 @@ private:
                     case BinaryOp::Mul: opStr = "mul"; break;
                     case BinaryOp::Div: opStr = "div"; break;
                     case BinaryOp::Mod: opStr = "rem"; break;
-                    case BinaryOp::Eq:  opStr = "eq"; break;
-                    case BinaryOp::Ne:  opStr = "ne"; break;
-                    case BinaryOp::Lt:  opStr = "lt"; break;
-                    case BinaryOp::Lte: opStr = "le"; break;
-                    case BinaryOp::Gt:  opStr = "gt"; break;
-                    case BinaryOp::Gte: opStr = "ge"; break;
+                    case BinaryOp::Eq:  opStr = "eq"; isRelational = true; break;
+                    case BinaryOp::Ne:  opStr = "ne"; isRelational = true; break;
+                    case BinaryOp::Lt:  opStr = "lt"; isRelational = true; break;
+                    case BinaryOp::Lte: opStr = "le"; isRelational = true; break;
+                    case BinaryOp::Gt:  opStr = "gt"; isRelational = true; break;
+                    case BinaryOp::Gte: opStr = "ge"; isRelational = true; break;
                     default: opStr = "add"; break;
                 }
-                if (isFloatOp) {
+                if (isFloatOp && !isRelational) {
                     opStr = "f" + opStr;
                 }
 
