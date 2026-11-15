@@ -1601,7 +1601,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeBinary(Expr* expr) {
         case BinaryOp::Gte:
             requireNumeric(lhs, expr, "relational operator");
             requireNumeric(rhs, expr, "relational operator");
-            if (!sameType(lhs, rhs))
+            if (!canConvert(lhs, rhs))
                 error(expr, "relational operands must have matching types");
             return TypeView{ "bool", {}, {}, nullptr, true, false };
         case BinaryOp::And:
@@ -1617,7 +1617,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeBinary(Expr* expr) {
         case BinaryOp::Shr:
             requireIntegral(lhs, expr, "bitwise operator");
             requireIntegral(rhs, expr, "bitwise operator");
-            if (!sameType(lhs, rhs))
+            if (!canConvert(lhs, rhs))
                 error(expr, "bitwise operands must have matching types");
             return lhs;
         case BinaryOp::Coalesce:
