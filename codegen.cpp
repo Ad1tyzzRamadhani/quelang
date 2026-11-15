@@ -1021,7 +1021,7 @@ private:
                         }
 
                         std::string callRes = freshTemp();
-                        out_ << "    " << callRes << " = call." << retType << " @" << baseName << "(";
+                        out_ << "    " << callRes << " = call " << retType << " @" << baseName << "(";
                         for (size_t i = 0; i < argVals.size(); ++i) {
                             out_ << argVals[i];
                             if (i + 1 < argVals.size()) out_ << ", ";
