@@ -398,12 +398,23 @@ private:
             }
             std::string t = emitType(varDecl->type.get());
             globalTypes_[item.name] = t;
+            std::string initStr = "";
+            if (item.init && item.init->kind == Expr::Kind::Literal && item.init->literal) {
+                if (item.init->literal->kind == Literal::Kind::String) {
+                    initStr = " = \"" + item.init->literal->value + "\"";
+                } else if (item.init->literal->kind == Literal::Kind::Char) {
+                    initStr = " = '" + item.init->literal->value + "'";
+                } else {
+                    initStr = " = " + item.init->literal->value;
+                }
+            }
+
             if (varDecl->is_atomic) {
-                out_ << "global " << item.name << ": " << t << "\n";
+                out_ << "global " << item.name << ": " << t << initStr << "\n";
             } else if(is_const) {
-                out_ << "constant " << item.name << ": " << t << "\n";
+                out_ << "constant " << item.name << ": " << t << initStr << "\n";
             } else {
-                out_ << "global " << item.name << ": " << t << "\n";
+                out_ << "global " << item.name << ": " << t << initStr << "\n";
             }
         }
     }
@@ -923,6 +934,47 @@ private:
                         out_ << "    " << elemAddrRes << " = elem addr " << elemType << " " << currentReg << ", " << indexVal << "\n";
                         out_ << "    store " << elemType << " " << rhsVal << ", " << elemAddrRes << "\n";
                         return rhsVal;
+                    }
+                    if (!postfix.ops.empty()) {
+                        auto& lastOp = postfix.ops.back();
+                        if (lastOp.kind == Expr::PostfixOp::Kind::MemberAccess || 
+                            lastOp.kind == Expr::PostfixOp::Kind::Arrow) {
+                            
+                            std::string baseName = "";
+                            if (postfix.base && postfix.base->kind == Expr::Kind::Ident && 
+                                postfix.base->ident && !postfix.base->ident->parts.empty()) {
+                                baseName = postfix.base->ident->parts.back();
+                            }
+                            
+                            std::string currentReg = "%" + baseName;
+                            std::string currentType = "i32";
+                            std::string varReg, varType;
+                            if (lookupVar(baseName, varReg, varType)) {
+                                currentReg = varReg;
+                                currentType = varType;
+                            } else if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
+                                currentType = symbolTypes_[baseName];
+                            }
+
+                            // Cari indeks field dan tipe datanya berdasarkan nama struct definition
+                            int fieldIndex = 0;
+                            std::string fieldType = "i32";
+                            if (structDefinitions_.find(currentType) != structDefinitions_.end()) {
+                                const auto& sInfo = structDefinitions_[currentType];
+                                for (const auto& f : sInfo.fields) {
+                                    if (f.name == lastOp.name) {
+                                        fieldIndex = f.index;
+                                        fieldType = f.type;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            std::string fieldAddrRes = freshTemp();
+                            out_ << "    " << fieldAddrRes << " = field addr " << currentType << ", " << currentReg << ", " << fieldIndex << "\n";
+                            out_ << "    store " << fieldType << " " << rhsVal << ", " << fieldAddrRes << "\n";
+                            return rhsVal;
+                        }
                     }
                 }
 
