@@ -1216,10 +1216,16 @@ private:
                     } else if (op.kind == Expr::PostfixOp::Kind::Index) {
                         std::string indexVal = emitExpr(op.index.get());
                         std::string elemType = "i32";
-                        if (currentType.rfind("[", 0) == 0) {
+                        if (currentType == "ptr" || currentType.find("*") != std::string::npos) {
+                            elemType = "ptr";
+                        } 
+                        else if (currentType.rfind("[", 0) == 0) {
                             size_t bracketPos = currentType.find("]");
                             if (bracketPos != std::string::npos) {
                                 elemType = currentType.substr(bracketPos + 1);
+                                if (elemType == "ptr" || elemType.find("*") != std::string::npos) {
+                                    elemType = "ptr";
+                                }
                             }
                         }
                         std::string elemAddrRes = freshTemp();
