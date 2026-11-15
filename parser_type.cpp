@@ -5,14 +5,13 @@ std::unique_ptr<Type> ParseState::parseType() {
         type->line_start = peek().line;
         type->column_start = peek().column;
     }
-    bool has_unsized_array = false;
     while (match(TokenType::LBRACKET)) {
         if (check(TokenType::NUMBER) || check(TokenType::HEXNUMBER)) {
             type->array_dims.push_back(parseLiteral(advance()));
             type->is_array = true;
         } else {
             // Unsized array [] (slice) dianggap sebagai pointer ke tipe dasar
-            has_unsized_array = true;
+            type->unsized_array = true;
             type->is_array = true;
         }
         consume(TokenType::RBRACKET, "expected ']' to close array dimension or slice definition");
