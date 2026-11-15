@@ -961,6 +961,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::view(Type* type) const {
     out.qualifiers = type->qualifiers;
     if(type->bit_width && !type->bit_width->value.empty())
     out.bit_width = std::stoi(type->bit_width->value);
+    out.is_array = type->is_array;
     for (auto& mod : type->modifiers) {
         out.modifiers.push_back(mod.kind);
         if (mod.kind == TypeModifier::Kind::FuncPtr) {
@@ -2564,6 +2565,7 @@ std::cerr << "==================\n";*/
                 current.modifiers.pop_back();
                 break;
             }
+            if(current.is_array) break;
 
             error(expr,
                 "indexing requires an array, pointer, or reference");
