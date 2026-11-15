@@ -1282,7 +1282,6 @@ private:
                         return callRes;
                     } else if (op.kind == Expr::PostfixOp::Kind::Index) {
                         std::string indexVal = emitExpr(op.index.get());
-                        std::string elemType = "i32";
                         
                         std::string elemType = getIndexElemType(baseName, currentType);
                         std::string elemAddrRes = freshTemp();
