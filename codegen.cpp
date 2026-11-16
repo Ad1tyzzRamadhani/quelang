@@ -200,6 +200,21 @@ private:
         return "i32";
     }
 
+    std::string escapeString(const std::string& str) {
+        std::string result = "";
+        for (size_t i = 0; i < str.size(); ++i) {
+            if (str[i] == '\n') {
+                result += "\\n"; // Ubah enter fisik menjadi representasi escape \n
+            } else if (str[i] == '\r') {
+                result += "\\r";
+            } else if (str[i] == '\t') {
+                result += "\\t";
+            } else {
+                result += str[i];
+            }
+        }
+        return result;
+    }
 
     std::string getExprType(Expr* expr) {
         if (!expr) return "i32";
@@ -503,7 +518,7 @@ private:
             std::string initStr = "";
             if (item.init && item.init->kind == Expr::Kind::Literal && item.init->literal) {
                 if (item.init->literal->kind == Literal::Kind::String) {
-                    initStr = " = \"" + item.init->literal->value + "\"";
+                    initStr = " = \"" + escapeString(item.init->literal->value) + "\"";
                 } else if (item.init->literal->kind == Literal::Kind::Char) {
                     initStr = " = '" + item.init->literal->value + "'";
                 } else {
@@ -833,7 +848,7 @@ private:
                     if (expr->literal->kind == Literal::Kind::Char) {
                         return "'" + expr->literal->value + "'";
                     } else if (expr->literal->kind == Literal::Kind::String) {
-                        return "\"" + expr->literal->value + "\"";
+                        return "\"" + escapeString(expr->literal->value) + "\"";
                     } else if (expr->literal->kind == Literal::Kind::True) {
                         return "true";
                     } else if (expr->literal->kind == Literal::Kind::False) {
