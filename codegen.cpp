@@ -1051,13 +1051,13 @@ private:
                         std::string indexVal = emitExpr(lastOp.index.get());
 
                         // Ekstrak tipe elemen dari tipe array (misal "[12]i8" menjadi "i8")
-                        std::string elemType = "i32";
-                        if (currentType.rfind("[", 0) == 0) {
+                        std::string elemType = getIndexElemType(baseName, currentType);
+                        /*if (currentType.rfind("[", 0) == 0) {
                             size_t bracketPos = currentType.find("]");
                             if (bracketPos != std::string::npos) {
                                 elemType = getIndexElemType(baseName, currentType);
                             }
-                        }
+                        }*/
 
                         std::string elemAddrRes = freshTemp();
                         out_ << "    " << elemAddrRes << " = elem addr " << elemType << " " << currentReg << ", " << indexVal << "\n";
