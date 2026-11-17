@@ -460,7 +460,7 @@ private:
 
         for (const auto& p : func->params) {
             bool is_const = false;
-            for (auto& kind : p.qualifiers) {
+            for (auto& kind : p.type->qualifiers) {
                 if (kind == TypeQualifier::Const) is_const = true;
             }
 
