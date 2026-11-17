@@ -458,6 +458,17 @@ private:
         out_ << ")\n";
         out_ << "entry:\n";
 
+        for (const auto& pInfo : paramInfos) {
+            std::string pName = pInfo.first;
+            std::string pType = pInfo.second;
+            std::string stackReg = freshTemp();
+            out_ << "    " << stackReg << " = alloca " << pType << "\n";
+            out_ << "    store " << pType << " %" << pName << ", " << stackReg << "\n";
+            
+            scopes_.back()[pName] = stackReg;
+            scopeTypes_.back()[pName] = pType;
+        }
+
         if (func->body) {
             emitStmt(func->body.get());
             if (!endsWithReturn(func->body.get())) {
