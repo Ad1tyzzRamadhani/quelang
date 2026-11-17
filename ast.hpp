@@ -200,7 +200,7 @@ struct Stmt : Node {
         Return, Break, Continue, SwitchCase,
         ExprStmt, Block, ThrowStmt,
         Label, Jump, Unsafe,
-        Drop, Wipe,
+        Drop, Wipe, ArrayStream
     } kind;
 
     struct {
@@ -226,6 +226,11 @@ struct Stmt : Node {
         std::unique_ptr<Expr> cond;
         std::unique_ptr<Stmt> body;
     } while_stmt;
+
+    struct {
+        std::unique_ptr<Expr> target;                   // Contoh: out_ (sisi kiri panah pertama)
+        std::vector<std::unique_ptr<Expr>> sources;     // Contoh: [src1, src2, "literal"] (rantai sisi kanan)
+    } array_stream;
 
     struct {
         std::unique_ptr<Stmt> body;
