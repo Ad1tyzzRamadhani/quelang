@@ -674,12 +674,12 @@ private:
                             out_ << "    store i32 " << newOffset << ", " << offsetReg << "\n";
                         }
                     } 
-                    else if (srcType == "ptr" && elemType == "i8") {
-                        // --- KASUS B: Pointer String Dinamis (seperti argv[3] atau char*) ---
-                        // Menggunakan loop inline gaya while (src[j] != 0) seperti fungsi concat Anda
-                        std::string ptrReg = freshTemp();
-                        out_ << "    " << ptrReg << " = alloca ptr\n";
-                        out_ << "    store ptr " << srcVal << ", " << ptrReg << "\n";
+                    else if (srcType == "ptr" || srcType.rfind("[", 0) == 0) {
+                        // --- KASUS B: Pointer / String Dinamis (seperti argv[3] atau char*) ---
+                        // Kita gunakan variabel pelacak indeks pointer sumber (j) alih-alih 'add ptr' langsung
+                        std::string srcIndexReg = freshTemp();
+                        out_ << "    " << srcIndexReg << " = alloca i32\n";
+                        out_ << "    store i32 0, " << srcIndexReg << "\n";
 
                         std::string loopCondLabel = freshTemp(true) + "_concat_cond";
                         std::string loopBodyLabel = freshTemp(true) + "_concat_body";
@@ -688,10 +688,15 @@ private:
                         out_ << "    jmp " << loopCondLabel << "\n";
                         out_ << loopCondLabel << ":\n";
                         
-                        std::string currentPtrVal = freshTemp();
-                        out_ << "    " << currentPtrVal << " = load ptr " << ptrReg << "\n";
+                        // Ambil alamat elemen saat ini dari pointer sumber menggunakan elem addr
+                        std::string currentSrcIdx = freshTemp();
+                        std::string srcElemAddr = freshTemp();
+                        out_ << "    " << currentSrcIdx << " = load i32 " << srcIndexReg << "\n";
+                        out_ << "    " << srcElemAddr << " = elem addr " << elemType << " " << srcVal << ", " << currentSrcIdx << "\n";
+                        
+                        // Muat karakter dari alamat tersebut
                         std::string charVal = freshTemp();
-                        out_ << "    " << charVal << " = load " << elemType << " " << currentPtrVal << "\n";
+                        out_ << "    " << charVal << " = load " << elemType << " " << srcElemAddr << "\n";
                         
                         // Cek null terminator (!= 0)
                         std::string isNotZero = freshTemp();
@@ -699,26 +704,27 @@ private:
                         out_ << "    br_if " << isNotZero << ", " << loopBodyLabel << ", " << loopEndLabel << "\n";
 
                         out_ << loopBodyLabel << ":\n";
-                        // dest[i] = src[j]
-                        std::string currentOffset = freshTemp();
+                        // Salin ke buffer target menggunakan offset akumulatif saat ini (i)
+                        std::string currentDestOffset = freshTemp();
                         std::string destAddr = freshTemp();
-                        out_ << "    " << currentOffset << " = load i32 " << offsetReg << "\n";
-                        out_ << "    " << destAddr << " = elem addr " << elemType << " " << targetReg << ", " << currentOffset << "\n";
+                        out_ << "    " << currentDestOffset << " = load i32 " << offsetReg << "\n";
+                        out_ << "    " << destAddr << " = elem addr " << elemType << " " << targetReg << ", " << currentDestOffset << "\n";
                         out_ << "    store " << elemType << " " << charVal << ", " << destAddr << "\n";
 
-                        // i += 1
-                        std::string newOffset = freshTemp();
-                        out_ << "    " << newOffset << " = add i32 " << currentOffset << ", 1\n";
-                        out_ << "    store i32 " << newOffset << ", " << offsetReg << "\n";
+                        // Increment offset target (i += 1)
+                        std::string newDestOffset = freshTemp();
+                        out_ << "    " << newDestOffset << " = add i32 " << currentDestOffset << ", 1\n";
+                        out_ << "    store i32 " << newDestOffset << ", " << offsetReg << "\n";
 
-                        // j += 1 (geser pointer sumber 1 byte)
-                        std::string nextPtrVal = freshTemp();
-                        out_ << "    " << nextPtrVal << " = add ptr " << currentPtrVal << ", 1\n";
-                        out_ << "    store ptr " << nextPtrVal << ", " << ptrReg << "\n";
+                        // Increment indeks pointer sumber (j += 1)
+                        std::string newSrcIndex = freshTemp();
+                        out_ << "    " << newSrcIndex << " = add i32 " << currentSrcIdx << ", 1\n";
+                        out_ << "    store i32 " << newSrcIndex << ", " << srcIndexReg << "\n";
+                        
                         out_ << "    jmp " << loopCondLabel << "\n";
 
                         out_ << loopEndLabel << ":\n";
-                    } 
+                    }
                     else {
                         // --- KASUS C: Nilai Tunggal / Elemen Primitif (int, char tunggal, float, dll) ---
                         std::string currentOffset = freshTemp();
