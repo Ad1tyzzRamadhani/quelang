@@ -269,6 +269,45 @@ std::unique_ptr<Stmt> ParseState::parseStmt() {
         return stmt;
     }
 
+        // -------------------------
+    // ARRAY STREAM STATEMENT
+    // -------------------------
+    // Kita cek apakah token depan bisa menjadi awal ekspresi, 
+    // dan apakah setelah ekspresi tersebut terdapat token `<-` (TokenType::LEFT_ARROW).
+    // Karena kita tidak punya fungsi lookahead kompleks, kita bisa memanfaatkan 
+    // teknik parsing coba-coba (save position) atau mendeteksinya setelah parsing ekspresi pertama.
+    {
+        size_t saved_pos = pos;
+        const Token& streamTok = peek();
+        
+        // Coba parse ekspresi pertama sebagai target
+        auto targetExpr = parseExpr();
+        
+        if (match(TokenType::LEFT_ARROW)) {
+            // Berhasil! Berarti ini adalah Array Stream Statement.
+            auto stmt = std::make_unique<Stmt>();
+            stmt->kind = Stmt::Kind::ArrayStream;
+            stmt->file = streamTok.file;
+            stmt->line_start = streamTok.line;
+            stmt->column_start = streamTok.column;
+
+            stmt->array_stream.target = std::move(targetExpr);
+
+            // Ambil semua sumber di sisi kanan yang dipisahkan oleh `<-`
+            do {
+                stmt->array_stream.sources.push_back(parseExpr());
+            } while (match(TokenType::LEFT_ARROW));
+
+            consume(TokenType::SEMICOLON, "expected ';' after array stream statement");
+            return stmt;
+        } else {
+            // Jika ternyata setelah ekspresi tidak ada `<-`, kembalikan posisi parser (rollback) 
+            // agar bisa diproses normal sebagai ExprStmt atau assignment biasa.
+            pos = saved_pos;
+        }
+    }
+
+
     // -------------------------
     // FALLBACK: ExprStmt
     // -------------------------
