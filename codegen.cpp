@@ -627,6 +627,79 @@ private:
                     out_ << "    ret\n";
                 }
                 break;
+            case Stmt::Kind::ArrayStream: {
+                // 1. Dapatkan register alokasi stack target di sisi kiri (lvalue)
+                std::string targetReg = emitExpr(stmt->array_stream.target.get());
+                
+                // Tentukan tipe elemen dari target (misal: 'i8' untuk char, 'i32' untuk int)
+                std::string targetType = getExprType(stmt->array_stream.target.get());
+                std::string elemType = "i8"; // Default aman untuk buffer char/string
+                if (targetType.rfind("[", 0) == 0) {
+                    size_t bracketPos = targetType.find("]");
+                    if (bracketPos != std::string::npos) {
+                        elemType = targetType.substr(bracketPos + 1);
+                    }
+                }
+
+                // 2. Buat variabel counter offset lokal di stack untuk melacak posisi tulis byte/elemen saat ini
+                std::string offsetReg = freshTemp();
+                out_ << "    " << offsetReg << " = alloca i32\n";
+                out_ << "    store i32 0, " << offsetReg << "\n";
+
+                // 3. Iterasi setiap sumber (sources) di sisi kanan rantai `<-` secara berurutan
+                for (const auto& srcExpr : stmt->array_stream.sources) {
+                    std::string srcVal = emitExpr(srcExpr.get());
+                    
+                    // Cek apakah sumber berupa String Literal ("...")
+                    bool isStringLiteral = (srcExpr->kind == Expr::Kind::Literal && 
+                                            srcExpr->literal && 
+                                            srcExpr->literal->kind == Literal::Kind::String);
+
+                    if (isStringLiteral) {
+                        // Jika string literal, salin karakter demi karakter secara inline
+                        std::string strContent = srcExpr->literal->value;
+                        for (size_t i = 0; i < strContent.size(); ++i) {
+                            std::string currentOffset = freshTemp();
+                            std::string destAddr = freshTemp();
+                            
+                            // Muat nilai offset saat ini
+                            out_ << "    " << currentOffset << " = load i32 " << offsetReg << "\n";
+                            // Hitung alamat tujuan: target + offset
+                            out_ << "    " << destAddr << " = elem addr " << elemType << " " << targetReg << ", " << currentOffset << "\n";
+                            // Simpan karakter dari string literal
+                            out_ << "    store " << elemType << " '" << strContent[i] << "', " << destAddr << "\n";
+                            
+                            // Increment offset += 1
+                            std::string newOffset = freshTemp();
+                            out_ << "    " << newOffset << " = add i32 " << currentOffset << ", 1\n";
+                            out_ << "    store i32 " << newOffset << ", " << offsetReg << "\n";
+                        }
+                    } else {
+                        // Jika berupa variabel/ekspresi lain (asumsi berupa string/array sumber atau karakter)
+                        // Untuk MVP v1, kita dukung penyalinan langsung atau ekspresi bernilai string/char
+                        std::string currentOffset = freshTemp();
+                        std::string destAddr = freshTemp();
+                        
+                        out_ << "    " << currentOffset << " = load i32 " << offsetReg << "\n";
+                        out_ << "    " << destAddr << " = elem addr " << elemType << " " << targetReg << ", " << currentOffset << "\n";
+                        out_ << "    store " << elemType << " " << srcVal << ", " << destAddr << "\n";
+                        
+                        std::string newOffset = freshTemp();
+                        out_ << "    " << newOffset << " = add i32 " << currentOffset << ", 1\n";
+                        out_ << "    store i32 " << newOffset << ", " << offsetReg << "\n";
+                    }
+                }
+
+                // 4. Tambahkan null terminator (0) di ujung akhir buffer (khusus target berbasis char/string)
+                if (elemType == "i8") {
+                    std::string finalOffset = freshTemp();
+                    std::string endAddr = freshTemp();
+                    out_ << "    " << finalOffset << " = load i32 " << offsetReg << "\n";
+                    out_ << "    " << endAddr << " = elem addr " << elemType << " " << targetReg << ", " << finalOffset << "\n";
+                    out_ << "    store " << elemType << " 0, " << endAddr << "\n";
+                }
+                break;
+            }
 
             case Stmt::Kind::ExprStmt:
                 if (stmt->expr_stmt) {
