@@ -821,6 +821,55 @@ void SemanticAnalyzer::analyzeVarDecl(VarDecl& decl) {
     }
 }
 
+void SemanticAnalyzer::analyzeArrayStream(Stmt& stmt) {
+    if (!stmt.array_stream.target) return;
+
+    // 1. Validasi Target harus berupa lvalue (bisa dimodifikasi)
+    if (!isLValue(stmt.array_stream.target.get())) {
+        error(stmt.array_stream.target.get(), "left side of array stream '<-' must be an lvalue");
+        return;
+    }
+
+    // 2. Analisis tipe data target
+    TypeView target_type = analyzeExpr(stmt.array_stream.target.get());
+    if (!target_type.valid) return;
+
+    // Pastikan target tidak bersifat const
+    if (std::find(target_type.qualifiers.begin(), target_type.qualifiers.end(), TypeQualifier::Const) 
+        != target_type.qualifiers.end()) {
+        error(stmt.array_stream.target.get(), "cannot stream into a const target buffer");
+        return;
+    }
+    
+    bool is_array_type = target_type.is_array || !target_type.array_size.empty() || target_type.unsized_array;
+    bool is_pointer_or_ref = isPointerLike(target_type); // Memanfaatkan fungsi helper yang sudah ada di SemanticAnalyzer
+
+    if (!is_array_type && !is_pointer_or_ref) {
+        error(stmt.array_stream.target.get(), 
+            "target of array stream '<-' must be an array, pointer, or reference type, got '" + 
+            typeString(target_type) + "'");
+        return;
+    }
+
+    // 4. Analisis setiap sumber (sources) di sisi kanan rantai `<-`
+    for (auto& src : stmt.array_stream.sources) {
+        if (!src) continue;
+
+        TypeView src_type = analyzeExpr(src.get());
+        if (!src_type.valid) continue;
+
+        // Validasi kompatibilitas tipe data
+        if (!isAssignable(target_type, src_type) && !canConvert(target_type, src_type)) {
+            error(src.get(), "cannot stream value of type " + typeString(src_type) + 
+                             " into target of type " + typeString(target_type));
+        }
+    }
+    if (auto* symbol = symbolForLValue(stmt.array_stream.target.get())) {
+        symbol->state = SymbolState::Valid;
+    }
+}
+
+
 void SemanticAnalyzer::analyzeSwitch(Stmt& stmt) {
     TypeView value = analyzeExpr(stmt.switch_stmt.expr.get());
     if (!value.valid) return;
@@ -916,6 +965,9 @@ void SemanticAnalyzer::analyzeStmt(Stmt& stmt) {
         case Stmt::Kind::Break:
             if (function_stack_.back().loop_depth == 0 && function_stack_.back().switch_depth == 0)
                 error(&stmt, "'break' is not inside a loop or switch");
+            return;
+        case Stmt::Kind::ArrayStream:   // <-- Tambahan di sini
+            analyzeArrayStream(stmt);
             return;
         case Stmt::Kind::Continue:
             if (function_stack_.back().loop_depth == 0)
