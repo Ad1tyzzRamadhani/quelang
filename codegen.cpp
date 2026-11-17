@@ -627,13 +627,13 @@ private:
                     out_ << "    ret\n";
                 }
                 break;
-            case Stmt::Kind::ArrayStream: {
+                        case Stmt::Kind::ArrayStream: {
                 // 1. Dapatkan register alokasi stack target di sisi kiri (lvalue)
                 std::string targetReg = emitExpr(stmt->array_stream.target.get());
                 
-                // Tentukan tipe elemen dari target (misal: 'i8' untuk char, 'i32' untuk int)
+                // Tentukan tipe elemen dari target (misal: 'i8' untuk char)
                 std::string targetType = getExprType(stmt->array_stream.target.get());
-                std::string elemType = "i8"; // Default aman untuk buffer char/string
+                std::string elemType = "i8"; 
                 if (targetType.rfind("[", 0) == 0) {
                     size_t bracketPos = targetType.find("]");
                     if (bracketPos != std::string::npos) {
@@ -641,42 +641,84 @@ private:
                     }
                 }
 
-                // 2. Buat variabel counter offset lokal di stack untuk melacak posisi tulis byte/elemen saat ini
+                // 2. Buat satu variabel counter offset di stack yang nilainya AKUMULATIF (tidak di-reset)
                 std::string offsetReg = freshTemp();
                 out_ << "    " << offsetReg << " = alloca i32\n";
                 out_ << "    store i32 0, " << offsetReg << "\n";
 
-                // 3. Iterasi setiap sumber (sources) di sisi kanan rantai `<-` secara berurutan
+                // 3. Iterasi setiap sumber (sources) di sisi kanan rantai `<-`
                 for (const auto& srcExpr : stmt->array_stream.sources) {
                     std::string srcVal = emitExpr(srcExpr.get());
+                    std::string srcType = getExprType(srcExpr.get());
                     
-                    // Cek apakah sumber berupa String Literal ("...")
                     bool isStringLiteral = (srcExpr->kind == Expr::Kind::Literal && 
                                             srcExpr->literal && 
                                             srcExpr->literal->kind == Literal::Kind::String);
 
                     if (isStringLiteral) {
-                        // Jika string literal, salin karakter demi karakter secara inline
+                        // --- KASUS A: String Literal ("Hello", " ", dll) ---
                         std::string strContent = srcExpr->literal->value;
                         for (size_t i = 0; i < strContent.size(); ++i) {
                             std::string currentOffset = freshTemp();
                             std::string destAddr = freshTemp();
                             
-                            // Muat nilai offset saat ini
                             out_ << "    " << currentOffset << " = load i32 " << offsetReg << "\n";
-                            // Hitung alamat tujuan: target + offset
                             out_ << "    " << destAddr << " = elem addr " << elemType << " " << targetReg << ", " << currentOffset << "\n";
-                            // Simpan karakter dari string literal
                             out_ << "    store " << elemType << " '" << strContent[i] << "', " << destAddr << "\n";
                             
-                            // Increment offset += 1
                             std::string newOffset = freshTemp();
                             out_ << "    " << newOffset << " = add i32 " << currentOffset << ", 1\n";
                             out_ << "    store i32 " << newOffset << ", " << offsetReg << "\n";
                         }
-                    } else {
-                        // Jika berupa variabel/ekspresi lain (asumsi berupa string/array sumber atau karakter)
-                        // Untuk MVP v1, kita dukung penyalinan langsung atau ekspresi bernilai string/char
+                    } 
+                    else if (srcType == "ptr" || srcType.rfind("[", 0) == 0) {
+                        // --- KASUS B: Pointer / String Dinamis (seperti argv[3]) ---
+                        // Kita buat loop inline sederhana di IR CRU untuk menyalin string dari pointer sumber byte demi byte
+                        std::string ptrReg = freshTemp();
+                        out_ << "    " << ptrReg << " = alloca ptr\n";
+                        out_ << "    store ptr " << srcVal << ", " << ptrReg << "\n";
+
+                        std::string loopCondLabel = freshTemp(true) + "_stream_ptr_cond";
+                        std::string loopBodyLabel = freshTemp(true) + "_stream_ptr_body";
+                        std::string loopEndLabel  = freshTemp(true) + "_stream_ptr_end";
+
+                        out_ << "    jmp " << loopCondLabel << "\n";
+                        out_ << loopCondLabel << ":\n";
+                        
+                        // Muat karakter saat ini dari pointer sumber
+                        std::string currentPtrVal = freshTemp();
+                        out_ << "    " << currentPtrVal << " = load ptr " << ptrReg << "\n";
+                        std::string charVal = freshTemp();
+                        out_ << "    " << charVal << " = load " << elemType << " " << currentPtrVal << "\n";
+                        
+                        // Cek apakah karakter == 0 (null terminator penutup string pointer)
+                        std::string isNotZero = freshTemp();
+                        out_ << "    " << isNotZero << " = ne " << elemType << " " << charVal << ", 0\n";
+                        out_ << "    br_if " << isNotZero << ", " << loopBodyLabel << ", " << loopEndLabel << "\n";
+
+                        out_ << loopBodyLabel << ":\n";
+                        // Salin karakter ke buffer target menggunakan offset akumulatif saat ini
+                        std::string currentOffset = freshTemp();
+                        std::string destAddr = freshTemp();
+                        out_ << "    " << currentOffset << " = load i32 " << offsetReg << "\n";
+                        out_ << "    " << destAddr << " = elem addr " << elemType << " " << targetReg << ", " << currentOffset << "\n";
+                        out_ << "    store " << elemType << " " << charVal << ", " << destAddr << "\n";
+
+                        // Increment offset target += 1
+                        std::string newOffset = freshTemp();
+                        out_ << "    " << newOffset << " = add i32 " << currentOffset << ", 1\n";
+                        out_ << "    store i32 " << newOffset << ", " << offsetReg << "\n";
+
+                        // Increment pointer sumber += 1 byte
+                        std::string nextPtrVal = freshTemp();
+                        out_ << "    " << nextPtrVal << " = add ptr " << currentPtrVal << ", 1\n"; // atau penambahan pointer standar
+                        out_ << "    store ptr " << nextPtrVal << ", " << ptrReg << "\n";
+                        out_ << "    jmp " << loopCondLabel << "\n";
+
+                        out_ << loopEndLabel << ":\n";
+                    } 
+                    else {
+                        // --- KASUS C: Karakter Tunggal / Angka (seperti 10 atau '\n') ---
                         std::string currentOffset = freshTemp();
                         std::string destAddr = freshTemp();
                         
@@ -690,7 +732,7 @@ private:
                     }
                 }
 
-                // 4. Tambahkan null terminator (0) di ujung akhir buffer (khusus target berbasis char/string)
+                // 4. Tambahkan null terminator (0) otomatis di ujung akhir buffer target
                 if (elemType == "i8") {
                     std::string finalOffset = freshTemp();
                     std::string endAddr = freshTemp();
@@ -699,7 +741,7 @@ private:
                     out_ << "    store " << elemType << " 0, " << endAddr << "\n";
                 }
                 break;
-            }
+                        }
 
             case Stmt::Kind::ExprStmt:
                 if (stmt->expr_stmt) {
