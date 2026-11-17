@@ -458,15 +458,14 @@ private:
         out_ << ")\n";
         out_ << "entry:\n";
 
-        for (const auto& pInfo : paramInfos) {
-            std::string pName = pInfo.first;
-            std::string pType = pInfo.second;
+        for (const auto& p : func->params) {
+            std::string pType = emitType(p.type.get());
             std::string stackReg = freshTemp();
             out_ << "    " << stackReg << " = alloca " << pType << "\n";
-            out_ << "    store " << pType << " %" << pName << ", " << stackReg << "\n";
+            out_ << "    store " << pType << " %" << p.name << ", " << stackReg << "\n";
             
-            scopes_.back()[pName] = stackReg;
-            scopeTypes_.back()[pName] = pType;
+            scopes_.back()[p.name] = stackReg;
+            scopeTypes_.back()[p.name] = pType;
         }
 
         if (func->body) {
