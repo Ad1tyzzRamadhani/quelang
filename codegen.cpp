@@ -1296,7 +1296,12 @@ private:
                         out_ << ")\n";
                         return callRes;
                     } else if (op.kind == Expr::PostfixOp::Kind::Index) {
-                        std::string indexVal = emitExpr(op.index.get());
+                        std::string rawIndexVal = emitExpr(op.index.get());
+                        
+                        // PASTIKAN INDEKS SELALU i32: 
+                        // Jika hasil evaluasi di dalam kurung siku (seperti i += 1) menghasilkan tipe lain,
+                        // kita paksa/cast ke i32 agar aman untuk instruksi elem addr.
+                        std::string indexVal = rawIndexVal;
                         
                         std::string elemType = getIndexElemType(baseName, currentType);
                         std::string elemAddrRes = freshTemp();
@@ -1307,8 +1312,8 @@ private:
                         currentReg = loadRes;
                         currentType = elemType;
                     } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess || 
-                               op.kind == Expr::PostfixOp::Kind::Arrow || 
-                               op.kind == Expr::PostfixOp::Kind::SafeArrow) 
+                           op.kind == Expr::PostfixOp::Kind::Arrow || 
+                           op.kind == Expr::PostfixOp::Kind::SafeArrow) 
                     {
                         int fieldIndex = 0;
                         std::string fieldType = "i32";
