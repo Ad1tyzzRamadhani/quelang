@@ -36,7 +36,7 @@ enum class TokenType {
 
     PLUS, MINUS, STAR, SLASH, PERCENT,
     EQ, EQEQ, NEQ, SCOPE,
-    LT, LTE, GT, GTE,
+    LT, LTE, GT, GTE, LEFT_ARROW, 
     PLUS_EQ, MINUS_EQ, STAR_EQ, SLASH_EQ, PERCENT_EQ,
     AMP, CARET, TILDE, BAR, ATOMIC_REF,
     LSHIFT, RSHIFT, UNDERSCORE,
@@ -309,6 +309,7 @@ private:
         char a=peek(), b=peek(1), d=peek(2);
 
         if(a=='-'&&b=='>'){advance();advance();emit(TokenType::ARROW,"",l,c);return;}
+        if(a=='<'&&b=='-'){advance();advance();emit(TokenType::LEFT_ARROW,"",l,c);return;}
         if(a=='+'&&b=='='){advance();advance();emit(TokenType::PLUS_EQ,"",l,c);return;}
         if(a=='-'&&b=='='){advance();advance();emit(TokenType::MINUS_EQ,"",l,c);return;}
         if(a=='*'&&b=='='){advance();advance();emit(TokenType::STAR_EQ,"",l,c);return;}
