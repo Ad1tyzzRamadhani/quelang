@@ -125,6 +125,7 @@ private:
     void analyzeSwitch(Stmt& stmt);
     void analyzeDo(Stmt& stmt);
     void analyzeFor(Stmt& stmt);
+    void analyzeArrayStream(Stmt& stmt);
 
     // ---- types ----
     TypeView view(Type* type) const;
