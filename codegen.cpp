@@ -458,7 +458,7 @@ private:
         out_ << ")\n";
         out_ << "entry:\n";
 
-        for (const auto& p : func->params) {
+        /*for (const auto& p : func->params) {
             std::string pType = emitType(p.type.get());
             std::string stackReg = freshTemp();
             out_ << "    " << stackReg << " = alloca " << pType << "\n";
@@ -466,7 +466,7 @@ private:
             
             scopes_.back()[p.name] = stackReg;
             scopeTypes_.back()[p.name] = pType;
-        }
+        }*/
 
         if (func->body) {
             emitStmt(func->body.get());
