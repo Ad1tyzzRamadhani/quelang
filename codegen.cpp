@@ -458,15 +458,23 @@ private:
         out_ << ")\n";
         out_ << "entry:\n";
 
-        /*for (const auto& p : func->params) {
-            std::string pType = emitType(p.type.get());
-            std::string stackReg = freshTemp();
-            out_ << "    " << stackReg << " = alloca " << pType << "\n";
-            out_ << "    store " << pType << " %" << p.name << ", " << stackReg << "\n";
-            
-            scopes_.back()[p.name] = stackReg;
-            scopeTypes_.back()[p.name] = pType;
-        }*/
+        for (const auto& p : func->params) {
+            bool is_const = false;
+            for (auto& kind : p.qualifiers) {
+                if (kind == TypeQualifier::Const) is_const = true;
+            }
+
+            if (!is_const) {
+                std::string pType = emitType(p.type.get());
+                std::string stackReg = freshTemp();
+                out_ << "    " << stackReg << " = alloca " << pType << "\n";
+                out_ << "    store " << pType << " %" << p.name << ", " << stackReg << "\n";
+                
+                // Timpa scope dengan register stack alokasi agar bisa di-assign ulang
+                scopes_.back()[p.name] = stackReg;
+                scopeTypes_.back()[p.name] = pType;
+            }
+        }
 
         if (func->body) {
             emitStmt(func->body.get());
