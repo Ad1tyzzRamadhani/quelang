@@ -1109,7 +1109,7 @@ bool SemanticAnalyzer::canConvert(const TypeView& from, const TypeView& to) cons
         const std::string& t = to.base;
         if (from.bit_width == 4 && t == "nibble") return true;
         if (from.bit_width == to.bit_width) return true;
-        else return false;
+        
         if (isSignedInteger(f) && isSignedInteger(t)) {
             return integerRank(f) <= integerRank(t);
         }
@@ -1660,8 +1660,11 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeBinary(Expr* expr) {
         case BinaryOp::Gte:
             requireNumeric(lhs, expr, "relational operator");
             requireNumeric(rhs, expr, "relational operator");
-            if (!isAssignable(lhs, rhs) && !isAssignable(rhs, lhs))
-                error(expr, "relational operands must have matching types");
+            if (!canConvert(lhs, rhs) && !canConvert(rhs, lhs) && !sameType(lhs, rhs)) {
+                error(expr, "relational operands must have compatible types: " +
+                    typeString(lhs) + " and " + typeString(rhs));
+                return {};
+            }
             return TypeView{ "bool", {}, {}, nullptr, true, false };
         case BinaryOp::And:
         case BinaryOp::Or:
