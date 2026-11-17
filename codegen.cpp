@@ -624,7 +624,7 @@ private:
                     std::string val = emitExpr(stmt->return_values.get());
                     out_ << "    ret " << val << "\n";
                 } else {
-                    out_ << "    ret\n";
+                    out_ << "    ret void\n";
                 }
                 break;
             case Stmt::Kind::ArrayStream: {
