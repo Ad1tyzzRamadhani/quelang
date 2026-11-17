@@ -1660,7 +1660,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeBinary(Expr* expr) {
         case BinaryOp::Gte:
             requireNumeric(lhs, expr, "relational operator");
             requireNumeric(rhs, expr, "relational operator");
-            if (!canConvert(lhs, rhs) && !canConvert(rhs, lhs))
+            if (!isAssignable(lhs, rhs) && !isAssignable(rhs, lhs))
                 error(expr, "relational operands must have matching types");
             return TypeView{ "bool", {}, {}, nullptr, true, false };
         case BinaryOp::And:
