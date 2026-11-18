@@ -310,9 +310,9 @@ private:
                 assignExpr->assign.lhs = std::move(lhsDeref);
                 assignExpr->assign.rhs = std::move(stmt->throw_stmt.expr);
 
-                auto exprStmt = std::make_unique<Stmt>();
-                exprStmt->kind = Stmt::Kind::ExprStmt;
-                exprStmt->expr_stmt = std::move(assignExpr);
+                auto storeStmt = std::make_unique<Stmt>();
+                storeStmt->kind = Stmt::Kind::ExprStmt;
+                storeStmt->expr_stmt = std::move(assignExpr);
 
                 auto returnStmt = std::make_unique<Stmt>();
                 returnStmt->kind = Stmt::Kind::Return;
@@ -320,7 +320,7 @@ private:
 
                 stmt->kind = Stmt::Kind::Block;
                 stmt->block.stmts.clear();
-                stmt->block.stmts.push_back(std::move(exprStmt));
+                stmt->block.stmts.push_back(std::move(storeStmt));
                 stmt->block.stmts.push_back(std::move(returnStmt));
                 
                 break;
