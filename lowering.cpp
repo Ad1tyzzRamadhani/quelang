@@ -15,6 +15,7 @@ public:
     }
 
 private:
+    Type* current_return_type = nullptr;
     void lowerFunction(Function* func) {
         // Jika fungsi tidak memiliki klausa throws (is_throws == false atau throws_type kosong), lewati.
         if (!func->is_throws || !func->throws_type) {
@@ -22,6 +23,7 @@ private:
         }
 
         // 1. Buat parameter tambahan untuk menampung error (out-parameter)
+        current_return_type = func->return_types.get();
         // Contoh: Tipe error diambil dari func->throws_type, nama parameter tersembunyi misal "__throwed"
         Function::Param errorParam;
         errorParam.type = std::move(func->throws_type); // Salin tipe data error
@@ -43,6 +45,7 @@ private:
         // karena sudah berhasil didesugar menjadi parameter biasa di level lower.
         func->is_throws = false;
         func->throws_type = nullptr;
+        current_return_type = nullptr;
     }
 
     void lowerStmt(Stmt* stmt, Type* throwsType) {
@@ -104,35 +107,30 @@ private:
 
             // --- INI TRANSFORMASI UTAMA UNTUK 'throw expr;' ---
             case Stmt::Kind::ThrowStmt: {
-                // Ubah Stmt::Kind::ThrowStmt menjadi Assignment + Return dini:
-                // throw 45;  -->  __throwed = 45; return;
-
-                // 1. Buat expression assignment: __throwed = <expr>
+                // 1. Buat expression assignment: *__throwed = <expr_throw>
+                // (Catatan: Menggunakan dereference atau langsung assign ke parameter pointer)
                 auto assignExpr = std::make_unique<Expr>();
                 assignExpr->kind = Expr::Kind::Assign;
                 assignExpr->assign.op = AssignOp::Assign;
 
-                // Buat LHS: ident__throwed
                 auto lhsIdent = std::make_unique<Expr>();
                 lhsIdent->kind = Expr::Kind::Ident;
                 lhsIdent->ident = std::make_unique<QualifiedName>();
                 lhsIdent->ident->parts.push_back("__throwed");
                 assignExpr->assign.lhs = std::move(lhsIdent);
 
-                // Pindahkan expr dari throw_stmt ke RHS assign
                 assignExpr->assign.rhs = std::move(stmt->throw_stmt.expr);
 
-                // 2. Bungkus assignment kedalam ExprStmt
                 auto exprStmt = std::make_unique<Stmt>();
                 exprStmt->kind = Stmt::Kind::ExprStmt;
                 exprStmt->expr_stmt = std::move(assignExpr);
 
-                // 3. Buat Stmt::Kind::Return kosong untuk early return
+                // 2. Buat Stmt::Kind::Return dengan nilai default yang sesuai tipe fungsinya
                 auto returnStmt = std::make_unique<Stmt>();
                 returnStmt->kind = Stmt::Kind::Return;
-                returnStmt->return_values = nullptr;
+                returnStmt->return_values = createDefaultReturnExpr(current_return_type);
 
-                // 4. Ubah node stmt saat ini menjadi blok yang berisi (assignExpr, returnStmt)
+                // 3. Ubah node stmt saat ini menjadi blok (assignExpr, returnStmt)
                 stmt->kind = Stmt::Kind::Block;
                 stmt->block.stmts.clear();
                 stmt->block.stmts.push_back(std::move(exprStmt));
