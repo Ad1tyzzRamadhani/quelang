@@ -207,7 +207,7 @@ private:
                     nullLit->kind = Expr::Kind::Literal;
                     nullLit->literal = std::make_unique<Literal>();
                     nullLit->literal->kind = Literal::Kind::Null;
-                    nullLit->literal->value = "0";
+                    nullLit->literal->value = "null";
                     item.init = std::move(nullLit);
                     vdecl.items.push_back(std::move(item));
                     varDeclStmt->var_decl = std::move(vdecl);
@@ -291,21 +291,29 @@ private:
                 break;
             }
 
-                        case Stmt::Kind::ThrowStmt: {
+            // --- 1. Perbaikan ThrowStmt ---
+            case Stmt::Kind::ThrowStmt: {
+                // throw 7;  -->  *__throwed = 7; return 0;
+                // Kita gunakan UnaryOp::Deref pada __throwed agar menyimpannya ke memori tujuan
                 auto assignExpr = std::make_unique<Expr>();
                 assignExpr->kind = Expr::Kind::Assign;
                 assignExpr->assign.op = AssignOp::Assign;
 
+                auto lhsDeref = std::make_unique<Expr>();
+                lhsDeref->kind = Expr::Kind::Unary;
+                lhsDeref->unary.op = UnaryOp::Deref;
+                
                 auto lhsIdent = std::make_unique<Expr>();
                 lhsIdent->kind = Expr::Kind::Ident;
                 lhsIdent->ident = std::make_unique<QualifiedName>();
                 lhsIdent->ident->parts.push_back("__throwed");
-                assignExpr->assign.lhs = std::move(lhsIdent);
+                lhsDeref->unary.expr = std::move(lhsIdent);
 
+                assignExpr->assign.lhs = std::move(lhsDeref);
                 assignExpr->assign.rhs = std::move(stmt->throw_stmt.expr);
 
                 auto exprStmt = std::make_unique<Stmt>();
-                exprStmt->kind = Stmt::Kind::ExprStmt; // <-- PERBAIKAN DI SINI (gunakan Stmt::Kind, bukan Expr::Kind)
+                exprStmt->kind = Stmt::Kind::ExprStmt;
                 exprStmt->expr_stmt = std::move(assignExpr);
 
                 auto returnStmt = std::make_unique<Stmt>();
