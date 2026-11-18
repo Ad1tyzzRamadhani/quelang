@@ -48,6 +48,52 @@ private:
         current_return_type = nullptr;
     }
 
+    std::unique_ptr<Expr> createDefaultReturnExpr(Type* type) {
+        if (!type || !type->base || type->base->parts.empty()) {
+            return nullptr; // Jika void / tidak ada return type
+        }
+
+        const std::string& typeName = type->base->parts.back();
+
+        // Cek apakah tipe primitif Integer / Number
+        if (typeName == "int" || typeName == "i32" || typeName == "i64" || 
+            typeName == "u32" || typeName == "u64" || typeName == "byte" || typeName == "char") {
+            auto expr = std::make_unique<Expr>();
+            expr->kind = Expr::Kind::Literal;
+            expr->literal = std::make_unique<Literal>();
+            expr->literal->kind = Literal::Kind::Number;
+            expr->literal->value = "0";
+            return expr;
+        }
+        
+        // Cek apakah tipe primitif Float / Double
+        if (typeName == "float" || typeName == "double" || typeName == "f32" || typeName == "f64") {
+            auto expr = std::make_unique<Expr>();
+            expr->kind = Expr::Kind::Literal;
+            expr->literal = std::make_unique<Literal>();
+            expr->literal->kind = Literal::Kind::Float;
+            expr->literal->value = "0.0";
+            return expr;
+        }
+
+        // Cek apakah tipe Boolean
+        if (typeName == "bool") {
+            auto expr = std::make_unique<Expr>();
+            expr->kind = Expr::Kind::Literal;
+            expr->literal = std::make_unique<Literal>();
+            expr->literal->kind = Literal::Kind::False;
+            expr->literal->value = "false";
+            return expr;
+        }
+
+        // Jika bukan primitif, berarti berupa Objek / Struct -> Lakukan Zero Init (StructInit kosong)
+        auto structExpr = std::make_unique<Expr>();
+        structExpr->kind = Expr::Kind::StructInit;
+        structExpr->struct_init.type_name = std::make_unique<Type>(*type);
+        structExpr->struct_init.fields.clear(); // Kosongkan field untuk zero-init (misal: Point{})
+        return structExpr;
+    }
+
     void lowerStmt(Stmt* stmt, Type* throwsType) {
         if (!stmt) return;
 
