@@ -65,6 +65,7 @@ int main(int argc, char* argv[]) {
         SemanticAnalyzer semantic;
         
         auto ast = parser.parseProgram();
+        lowerAST(ast.get());
         bool validate = semantic.analyze(*ast);
         auto diagnostics = semantic.diagnostics();
         
@@ -84,7 +85,7 @@ int main(int argc, char* argv[]) {
             std::cerr << "Compilation failed: Semantic errors detected.\n";
             return 1;
         }
-        lowerAST(ast.get());
+        
         std::string outputcru = codegen(ast.get());
         
         std::ofstream outFile(cro_output_file);
