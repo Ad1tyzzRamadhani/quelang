@@ -233,7 +233,7 @@ private:
                     rhs->kind = Expr::Kind::Literal;
                     rhs->literal = std::make_unique<Literal>();
                     rhs->literal->kind = Literal::Kind::Null;
-                    rhs->literal->value = "0";
+                    rhs->literal->value = "null";
 
                     condExpr->binary.lhs = std::move(lhs);
                     condExpr->binary.rhs = std::move(rhs);
