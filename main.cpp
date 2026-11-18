@@ -15,6 +15,7 @@
 #include "semantic_symbol.cpp"
 #include "semantic.hpp"
 #include "semantic.cpp"
+#include "lowering.cpp"
 #include "codegen.cpp"
 
 void printUsage(const char* progName) {
