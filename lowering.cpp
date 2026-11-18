@@ -88,37 +88,24 @@ private:
 
         // Jika bukan primitif, berarti berupa Objek / Struct -> Lakukan Zero Init (StructInit kosong)
                 // Jika bukan primitif, berarti berupa Objek / Struct -> Lakukan Zero Init (StructInit kosong)
+                // Jika bukan primitif, berarti berupa Objek / Struct -> Lakukan Zero Init (StructInit kosong)
         auto structExpr = std::make_unique<Expr>();
         structExpr->kind = Expr::Kind::StructInit;
         
-        // Buat salinan Type dengan aman (Deep Copy manual untuk menghindari copy constructor unique_ptr)
         auto copiedType = std::make_unique<Type>();
-        if (type) {
+        if (type && type->base) {
             copiedType->file = type->file;
             copiedType->line_start = type->line_start;
             copiedType->column_start = type->column_start;
-            copiedType->is_array = type->is_array;
-            copiedType->unsized_array = type->unsized_array;
-            copiedType->qualifiers = type->qualifiers;
             
-            // Deep copy base (QualifiedName) jika ada
-            if (type->base) {
-                auto newBase = std::make_unique<QualifiedName>();
-                newBase->parts = type->base->parts;
-                copiedType->base = std::move(newBase);
-            }
-            
-            // Salin modifiers jika diperlukan
-            for (const auto& mod : type->modifiers) {
-                TypeModifier m;
-                m.kind = mod.kind;
-                // salin bagian lain dari mod jika ada...
-                copiedType->modifiers.push_back(m);
-            }
+            // Cukup salin QualifiedName base-nya saja (nama struct, misal "Point")
+            auto newBase = std::make_unique<QualifiedName>();
+            newBase->parts = type->base->parts;
+            copiedType->base = std::move(newBase);
         }
 
         structExpr->struct_init.type_name = std::move(copiedType);
-        structExpr->struct_init.fields.clear(); // Kosongkan field untuk zero-init (misal: Point{})
+        structExpr->struct_init.fields.clear(); // Point{}
         return structExpr;
     }
 
