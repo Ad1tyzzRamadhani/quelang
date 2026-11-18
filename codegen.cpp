@@ -1169,6 +1169,18 @@ private:
             case Expr::Kind::Assign: {
                 std::string rhsVal = emitExpr(expr->assign.rhs.get());
 
+                if (expr->assign.lhs->kind == Expr::Kind::Unary && 
+                    expr->assign.lhs->unary.op == UnaryOp::Deref) {
+                    
+                    // Evaluasi ekspresi di dalam deref (yaitu 'a') untuk mendapatkan alamat pointer-nya
+                    std::string ptrReg = emitExpr(expr->assign.lhs->unary.expr.get());
+                    std::string rhsType = getExprType(expr->assign.rhs.get());
+
+                    // Cetak instruksi store ke IR CRU
+                    out_ << "    store " << rhsType << " " << rhsVal << ", " << ptrReg << "\n";
+                    return rhsVal;
+                }
+
                 // Tangani Compound Assignment (+=, -=, *=, /=, %=)
                 if (expr->assign.op != AssignOp::Assign) {
                     std::string lhsVal = emitExpr(expr->assign.lhs.get());
