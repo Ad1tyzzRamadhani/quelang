@@ -286,7 +286,7 @@ bool ParseState::isForwardDeclAhead() {
 
         match(TokenType::KW_CONST);
 
-        if (match(TokenType::KW_THROWS)) {
+        if (match(TokenType::KW_THROW)) {
             parseType();
         }
 
