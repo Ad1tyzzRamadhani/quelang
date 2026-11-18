@@ -130,9 +130,15 @@ private:
             }
 
             case Stmt::Kind::If: {
-                if (stmt->if_stmt.then_block) lowerStmt(stmt->if_stmt.then_block.get());
-                for (auto& elif : stmt->if_stmt.elifs) lowerStmt(elif.block.get());
-                if (stmt->if_stmt.else_block) lowerStmt(stmt->if_stmt.else_block.get());
+                if (stmt->if_stmt.then_block) {
+                    lowerStmt(stmt->if_stmt.then_block.get()); // Pastikan ini memanggil lowerStmt secara rekursif!
+                }
+                for (auto& elif : stmt->if_stmt.elifs) {
+                    if (elif.block) lowerStmt(elif.block.get());
+                }
+                if (stmt->if_stmt.else_block) {
+                    lowerStmt(stmt->if_stmt.else_block.get());
+                }
                 break;
             }
 
