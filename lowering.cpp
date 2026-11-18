@@ -24,7 +24,7 @@ private:
         // 1. Buat parameter tambahan untuk menampung error (out-parameter)
         // Contoh: Tipe error diambil dari func->throws_type, nama parameter tersembunyi misal "__throwed"
         Function::Param errorParam;
-        errorParam.type = std::make_unique<Type>(*func->throws_type); // Salin tipe data error
+        errorParam.type = std::move(func->throws_type); // Salin tipe data error
         errorParam.name = "__throwed";
         errorParam.init = nullptr;
 
