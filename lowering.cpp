@@ -31,35 +31,35 @@ public:
 
 private:
     void lowerFunction(Function* func) {
-        if (!func->is_throws || !func->throws_type) {
-            if (func->body) {
-                lowerStmt(func->body.get());
-            }
-            return;
+        // Cek apakah fungsi ini dulunya adalah fungsi throws (gunakan pengecekan awal sebelum di-reset)
+        bool was_throws = func->is_throws && func->throws_type;
+
+        if (was_throws) {
+            // 1. Buat parameter tambahan out-parameter (pointer)
+            Function::Param errorParam;
+            errorParam.type = std::move(func->throws_type); 
+            
+            TypeModifier mod;
+            mod.kind = TypeModifier::Kind::Pointer;
+            errorParam.type->modifiers.push_back(std::move(mod));
+
+            errorParam.name = "__throwed";
+            errorParam.init = nullptr;
+
+            func->params.push_back(std::move(errorParam));
         }
 
         current_return_type = func->return_types.get();
 
-        // 1. Buat parameter tambahan out-parameter (pointer)
-        Function::Param errorParam;
-        errorParam.type = std::move(func->throws_type); 
-        
-        TypeModifier mod;
-        mod.kind = TypeModifier::Kind::Pointer;
-        errorParam.type->modifiers.push_back(std::move(mod));
-
-        errorParam.name = "__throwed";
-        errorParam.init = nullptr;
-
-        func->params.push_back(std::move(errorParam));
-
-        // 2. Transformasi body fungsi
+        // 2. Transformasi body fungsi (Lowering semua statement di dalam body)
         if (func->body) {
             lowerStmt(func->body.get());
         }
 
-        func->is_throws = false;
-        func->throws_type = nullptr;
+        if (was_throws) {
+            func->is_throws = false;
+            func->throws_type = nullptr;
+        }
         current_return_type = nullptr;
     }
 
