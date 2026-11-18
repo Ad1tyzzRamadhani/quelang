@@ -25,6 +25,9 @@ private:
         // Contoh: Tipe error diambil dari func->throws_type, nama parameter tersembunyi misal "__throwed"
         Function::Param errorParam;
         errorParam.type = std::move(func->throws_type); // Salin tipe data error
+        auto mod = std::make_unique<TypeModifier>();
+        mod.kind = TypeModifier::Kind::Pointer;
+        errorParam.type.modifiers.push(std::move(mod));
         errorParam.name = "__throwed";
         errorParam.init = nullptr;
 
