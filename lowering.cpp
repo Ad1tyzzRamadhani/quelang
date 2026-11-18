@@ -170,15 +170,14 @@ private:
                                         refExpr->kind = Expr::Kind::Unary;
                                         refExpr->unary.op = UnaryOp::Ref;
 
+                                                                                // Ganti bagian pembuatan refExpr (&__err_ptr) menjadi identExpr langsung (__err_ptr)
                                         auto identExpr = std::make_unique<Expr>();
                                         identExpr->kind = Expr::Kind::Ident;
                                         identExpr->ident = std::make_unique<QualifiedName>();
                                         identExpr->ident->parts.push_back("__err_ptr");
 
-                                        refExpr->unary.expr = std::move(identExpr);
-
-                                        // Masukkan ke argumen fungsi
-                                        op.args.push_back(std::move(refExpr));
+                                        // Masukkan langsung sebagai argumen fungsi
+                                        op.args.push_back(std::move(identExpr));
                                         break;
                                     }
                                 }
@@ -293,15 +292,14 @@ private:
 
             // --- 1. Perbaikan ThrowStmt ---
             case Stmt::Kind::ThrowStmt: {
-                // throw 7;  -->  *__throwed = 7; return 0;
-                // Kita gunakan UnaryOp::Deref pada __throwed agar menyimpannya ke memori tujuan
+                // *__throwed = <expr>; return 0;
                 auto assignExpr = std::make_unique<Expr>();
                 assignExpr->kind = Expr::Kind::Assign;
                 assignExpr->assign.op = AssignOp::Assign;
 
                 auto lhsDeref = std::make_unique<Expr>();
                 lhsDeref->kind = Expr::Kind::Unary;
-                lhsDeref->unary.op = UnaryOp::Deref;
+                lhsDeref->unary.op = UnaryOp::Deref; // *
                 
                 auto lhsIdent = std::make_unique<Expr>();
                 lhsIdent->kind = Expr::Kind::Ident;
