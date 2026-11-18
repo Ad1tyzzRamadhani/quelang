@@ -83,7 +83,7 @@ int main(int argc, char* argv[]) {
             std::cerr << "Compilation failed: Semantic errors detected.\n";
             return 1;
         }
-        lowerAst(ast);
+        lowerAST(*ast);
         std::string outputcru = codegen(ast.get());
         
         std::ofstream outFile(cro_output_file);
