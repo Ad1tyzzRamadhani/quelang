@@ -387,7 +387,7 @@ std::unique_ptr<Function> ParseState::parseFunction(Visibility visibility) {
         fn->is_const = true;
     }
 
-    if (match(TokenType::KW_THROWS)) {
+    if (match(TokenType::KW_THROW)) {
         fn->throws_type = parseType();
         fn->is_throws = true;
     }
@@ -501,7 +501,7 @@ std::unique_ptr<ForwardDecl> ParseState::parseForwardDecl(Visibility visibility)
         decl->is_const = true;
     }
 
-    if (match(TokenType::KW_THROWS)) {
+    if (match(TokenType::KW_THROW)) {
         decl->throws_type = parseType();
         decl->is_throws = true;
     }
