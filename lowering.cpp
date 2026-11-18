@@ -291,7 +291,7 @@ private:
                 break;
             }
 
-            case Stmt::Kind::ThrowStmt: {
+                        case Stmt::Kind::ThrowStmt: {
                 auto assignExpr = std::make_unique<Expr>();
                 assignExpr->kind = Expr::Kind::Assign;
                 assignExpr->assign.op = AssignOp::Assign;
@@ -305,7 +305,7 @@ private:
                 assignExpr->assign.rhs = std::move(stmt->throw_stmt.expr);
 
                 auto exprStmt = std::make_unique<Stmt>();
-                exprStmt->kind = Expr::Kind::ExprStmt;
+                exprStmt->kind = Stmt::Kind::ExprStmt; // <-- PERBAIKAN DI SINI (gunakan Stmt::Kind, bukan Expr::Kind)
                 exprStmt->expr_stmt = std::move(assignExpr);
 
                 auto returnStmt = std::make_unique<Stmt>();
