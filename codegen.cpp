@@ -1172,12 +1172,40 @@ private:
                 if (expr->assign.lhs->kind == Expr::Kind::Unary && 
                     expr->assign.lhs->unary.op == UnaryOp::Deref) {
                     
-                    // Evaluasi ekspresi di dalam deref (yaitu 'a') untuk mendapatkan alamat pointer-nya
-                    std::string ptrReg = emitExpr(expr->assign.lhs->unary.expr.get());
+                    // Ambil ekspresi di dalam deref (misal: identitas "__throwed" atau variabel pointer lain)
+                    Expr* innerExpr = expr->assign.lhs->unary.expr.get();
+                    std::string ptrAddrReg;
+
+                    // Jika di dalam deref adalah identifier (seperti __throwed atau a)
+                    if (innerExpr->kind == Expr::Kind::Ident && innerExpr->ident && !innerExpr->ident->parts.empty()) {
+                        std::string varName = innerExpr->ident->parts.back();
+                        std::string varReg, varType;
+                        
+                        // Cari apakah itu parameter atau variabel lokal yang tersimpan di stack alloca
+                        if (paramTypes_.find(varName) != paramTypes_.end()) {
+                            // Jika parameter, ambil slot stack alloca-nya (misal: %t1 yang berisi simpanan %__throwed)
+                            // Di fungsi emitFunction, parameter non-const disimpan ke alloca stack. Kita bisa cari reg stack-nya via lookupVar:
+                            if (lookupVar(varName, varReg, varType)) {
+                                ptrAddrReg = freshTemp();
+                                out_ << "    " << ptrAddrReg << " = load ptr " << varReg << "\n";
+                            } else {
+                                ptrAddrReg = "%" + varName; // Fallback
+                            }
+                        } else if (lookupVar(varName, varReg, varType)) {
+                            // Untuk variabel lokal biasa, lakukan load ptr dari slot stack-nya
+                            ptrAddrReg = freshTemp();
+                            out_ << "    " << ptrAddrReg << " = load ptr " << varReg << "\n";
+                        } else {
+                            ptrAddrReg = emitExpr(innerExpr);
+                        }
+                    } else {
+                        ptrAddrReg = emitExpr(innerExpr);
+                    }
+
                     std::string rhsType = getExprType(expr->assign.rhs.get());
 
-                    // Cetak instruksi store ke IR CRU
-                    out_ << "    store " << rhsType << " " << rhsVal << ", " << ptrReg << "\n";
+                    // Cetak instruksi store ke alamat memori yang sudah diload dengan aman!
+                    out_ << "    store " << rhsType << " " << rhsVal << ", " << ptrAddrReg << "\n";
                     return rhsVal;
                 }
 
