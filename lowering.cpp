@@ -195,6 +195,61 @@ public:
     }
 
 private:
+
+        // --- Tambah di private LoweringEngine ---
+    void lowerExpr(Expr* expr) {
+        if (!expr) return;
+
+        switch (expr->kind) {
+            case Expr::Kind::Postfix: {
+                lowerExpr(expr->postfix.base.get());
+
+                bool isThrowingCall = false;
+                if (expr->postfix.base &&
+                    expr->postfix.base->kind == Expr::Kind::Ident &&
+                    expr->postfix.base->ident &&
+                    !expr->postfix.base->ident->parts.empty()) {
+                    isThrowingCall = throwing_functions.count(expr->postfix.base->ident->parts.back()) > 0;
+                }
+
+                for (auto& op : expr->postfix.ops) {
+                    for (auto& arg : op.args) {
+                        lowerExpr(arg.get());
+                    }
+                    if (op.index) {
+                        lowerExpr(op.index.get());
+                    }
+                    if (op.kind == Expr::PostfixOp::Kind::Call && isThrowingCall) {
+                        op.args.push_back(makeNullLiteral());
+                        isThrowingCall = false;
+                    }
+                }
+                break;
+            }
+            case Expr::Kind::Unary:
+                lowerExpr(expr->unary.expr.get());
+                break;
+            case Expr::Kind::Binary:
+                lowerExpr(expr->binary.lhs.get());
+                lowerExpr(expr->binary.rhs.get());
+                break;
+            case Expr::Kind::Assign:
+                lowerExpr(expr->assign.lhs.get());
+                lowerExpr(expr->assign.rhs.get());
+                break;
+            case Expr::Kind::Ternary:
+                lowerExpr(expr->ternary.cond.get());
+                lowerExpr(expr->ternary.then_expr.get());
+                lowerExpr(expr->ternary.else_expr.get());
+                break;
+            case Expr::Kind::Cast:
+                lowerExpr(expr->cast.base.get());
+                break;
+            default:
+                break;
+        }
+    }
+
     void lowerFunction(Function* func) {
         // Cek apakah fungsi ini dulunya adalah fungsi throws (gunakan pengecekan awal sebelum di-reset)
         bool was_throws = func->is_throws && func->throws_type;
@@ -287,6 +342,25 @@ private:
         if (!stmt) return;
 
         switch (stmt->kind) {
+             case Stmt::Kind::ExprStmt: {
+                lowerExpr(stmt->expr_stmt.get());
+                break;
+            }
+
+            case Stmt::Kind::VarDecl: {
+                for (auto& it : stmt->var_decl.items) {
+                    lowerExpr(it.init.get());
+                    for (auto& a : it.args) {
+                        lowerExpr(a.get());
+                    }
+                }
+                break;
+            }
+
+            case Stmt::Kind::Return: {
+                lowerExpr(stmt->return_values.get());
+                break;
+            }
             case Stmt::Kind::Block: {
                 for (auto& s : stmt->block.stmts) {
                     lowerStmt(s.get());
@@ -476,8 +550,10 @@ private:
             }
 
             // --- Perbaikan ThrowStmt ---
+                        // --- Perbaikan ThrowStmt ---
             case Stmt::Kind::ThrowStmt: {
-                // *__throwed = <expr>; return <default>;
+                // if (__throwed == null) { *__throwed = <expr>; }
+                // return <default>;
                 auto assignExpr = std::make_unique<Expr>();
                 assignExpr->kind = Expr::Kind::Assign;
                 assignExpr->assign.op = AssignOp::Assign;
@@ -485,12 +561,7 @@ private:
                 auto lhsDeref = std::make_unique<Expr>();
                 lhsDeref->kind = Expr::Kind::Unary;
                 lhsDeref->unary.op = UnaryOp::Deref; // *
-
-                auto lhsIdent = std::make_unique<Expr>();
-                lhsIdent->kind = Expr::Kind::Ident;
-                lhsIdent->ident = std::make_unique<QualifiedName>();
-                lhsIdent->ident->parts.push_back("__throwed");
-                lhsDeref->unary.expr = std::move(lhsIdent);
+                lhsDeref->unary.expr = makeIdentExpr("__throwed");
 
                 assignExpr->assign.lhs = std::move(lhsDeref);
                 assignExpr->assign.rhs = std::move(stmt->throw_stmt.expr);
@@ -499,17 +570,33 @@ private:
                 storeStmt->kind = Stmt::Kind::ExprStmt;
                 storeStmt->expr_stmt = std::move(assignExpr);
 
+                auto thenBlock = std::make_unique<Stmt>();
+                thenBlock->kind = Stmt::Kind::Block;
+                thenBlock->block.stmts.push_back(std::move(storeStmt));
+
+                auto condExpr = std::make_unique<Expr>();
+                condExpr->kind = Expr::Kind::Binary;
+                condExpr->binary.op = BinaryOp::Eq; // __throwed == null
+                condExpr->binary.lhs = makeIdentExpr("__throwed");
+                condExpr->binary.rhs = makeNullLiteral();
+
+                auto ifStmt = std::make_unique<Stmt>();
+                ifStmt->kind = Stmt::Kind::If;
+                ifStmt->if_stmt.cond = std::move(condExpr);
+                ifStmt->if_stmt.then_block = std::move(thenBlock);
+
                 auto returnStmt = std::make_unique<Stmt>();
                 returnStmt->kind = Stmt::Kind::Return;
                 returnStmt->return_values = createDefaultReturnExpr(current_return_type);
 
                 stmt->kind = Stmt::Kind::Block;
                 stmt->block.stmts.clear();
-                stmt->block.stmts.push_back(std::move(storeStmt));
+                stmt->block.stmts.push_back(std::move(ifStmt));
                 stmt->block.stmts.push_back(std::move(returnStmt));
 
                 break;
             }
+
 
             default:
                 break;
