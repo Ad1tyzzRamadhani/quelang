@@ -1,5 +1,6 @@
 #include <memory>
 #include <vector>
+#include <string>
 #include <unordered_set>
 #include <stdexcept>
 
@@ -7,6 +8,86 @@ class LoweringEngine {
 private:
     Type* current_return_type = nullptr;
     std::unordered_set<std::string> throwing_functions; // Menyimpan daftar nama fungsi yang melempar error
+    int err_var_counter = 0;
+
+    std::string nextErrVarName() {
+        return "__err_slot_" + std::to_string(err_var_counter++);
+    }
+
+    TypeModifier cloneTypeModifier(const TypeModifier& src) const {
+        TypeModifier dst;
+        dst.kind = src.kind;
+        for (const auto& p : src.func_params) {
+            dst.func_params.push_back(cloneType(p.get()));
+        }
+        dst.func_return = cloneType(src.func_return.get());
+        dst.throws_type = cloneType(src.throws_type.get());
+        return dst;
+    }
+
+    bool isPointerLikeType(const Type* type) const {
+        if (!type) return false;
+        if (!type->modifiers.empty()) {
+            const auto& lastMod = type->modifiers.back();
+            if (lastMod.kind == TypeModifier::Kind::Pointer ||
+                lastMod.kind == TypeModifier::Kind::Reference) {
+                return true;
+            }
+        }
+        if (type->base && !type->base->parts.empty()) {
+            const std::string& baseName = type->base->parts.back();
+            if (baseName == "ptr") return true;
+        }
+        return false;
+    }
+
+    std::unique_ptr<Type> cloneType(const Type* src) const {
+        if (!src) return nullptr;
+        auto dst = std::make_unique<Type>();
+        dst->file = src->file;
+        dst->line_start = src->line_start;
+        dst->column_start = src->column_start;
+        dst->is_array = src->is_array;
+        dst->unsized_array = src->unsized_array;
+        dst->qualifiers = src->qualifiers;
+
+        for (const auto& mod : src->modifiers) {
+            dst->modifiers.push_back(cloneTypeModifier(mod));
+        }
+
+        if (src->base) {
+            auto newBase = std::make_unique<QualifiedName>();
+            newBase->parts = src->base->parts;
+            newBase->is_absolute = src->base->is_absolute;
+            dst->base = std::move(newBase);
+        }
+        return dst;
+    }
+
+    std::unique_ptr<Expr> makeIdentExpr(const std::string& name) const {
+        auto expr = std::make_unique<Expr>();
+        expr->kind = Expr::Kind::Ident;
+        expr->ident = std::make_unique<QualifiedName>();
+        expr->ident->parts.push_back(name);
+        return expr;
+    }
+
+    std::unique_ptr<Expr> makeRefExpr(const std::string& name) const {
+        auto refExpr = std::make_unique<Expr>();
+        refExpr->kind = Expr::Kind::Unary;
+        refExpr->unary.op = UnaryOp::Ref;
+        refExpr->unary.expr = makeIdentExpr(name);
+        return refExpr;
+    }
+
+    std::unique_ptr<Expr> makeNullLiteral() const {
+        auto nullLit = std::make_unique<Expr>();
+        nullLit->kind = Expr::Kind::Literal;
+        nullLit->literal = std::make_unique<Literal>();
+        nullLit->literal->kind = Literal::Kind::Null;
+        nullLit->literal->value = "null";
+        return nullLit;
+    }
 
 public:
     void lowerProgram(FileProgram* program) {
@@ -37,8 +118,8 @@ private:
         if (was_throws) {
             // 1. Buat parameter tambahan out-parameter (pointer)
             Function::Param errorParam;
-            errorParam.type = std::move(func->throws_type); 
-            
+            errorParam.type = std::move(func->throws_type);
+
             TypeModifier mod;
             mod.kind = TypeModifier::Kind::Pointer;
             errorParam.type->modifiers.push_back(std::move(mod));
@@ -63,73 +144,6 @@ private:
         current_return_type = nullptr;
     }
 
-    // --- Di dalam private member LoweringEngine ---
-int err_var_counter = 0;
-
-std::string nextErrVarName() {
-    return "__err_slot_" + std::to_string(err_var_counter++);
-}
-
-bool isPointerLikeType(const Type* type) const {
-    if (!type) return false;
-    if (!type->modifiers.empty()) {
-        const auto& lastMod = type->modifiers.back();
-        if (lastMod.kind == TypeModifier::Kind::Pointer ||
-            lastMod.kind == TypeModifier::Kind::Ref) {
-            return true;
-        }
-    }
-    if (type->base && !type->base->parts.empty()) {
-        const std::string& baseName = type->base->parts.back();
-        if (baseName == "ptr") return true;
-    }
-    return false;
-}
-
-std::unique_ptr<Type> cloneType(const Type* src) const {
-    if (!src) return nullptr;
-    auto dst = std::make_unique<Type>();
-    dst->file = src->file;
-    dst->line_start = src->line_start;
-    dst->column_start = src->column_start;
-    dst->modifiers = src->modifiers;
-
-    if (src->base) {
-        auto newBase = std::make_unique<QualifiedName>();
-        newBase->parts = src->base->parts;
-        dst->base = std::move(newBase);
-    }
-    return dst;
-}
-
-std::unique_ptr<Expr> makeIdentExpr(const std::string& name) const {
-    auto expr = std::make_unique<Expr>();
-    expr->kind = Expr::Kind::Ident;
-    expr->ident = std::make_unique<QualifiedName>();
-    expr->ident->parts.push_back(name);
-    return expr;
-}
-
-std::unique_ptr<Expr> makeRefExpr(const std::string& name) const {
-    auto refExpr = std::make_unique<Expr>();
-    refExpr->kind = Expr::Kind::Unary;
-    refExpr->unary.op = UnaryOp::Ref;
-    refExpr->unary.expr = makeIdentExpr(name);
-    return refExpr;
-}
-
-std::unique_ptr<Expr> makeNullLiteral() const {
-    auto nullLit = std::make_unique<Expr>();
-    nullLit->kind = Expr::Kind::Literal;
-    nullLit->literal = std::make_unique<Literal>();
-    nullLit->literal->kind = Literal::Kind::Null;
-    nullLit->literal->value = "null";
-    return nullLit;
-}
-
-// Implementasikan sesuai definisi AST Expr Anda agar init bisa dipakai 2x
-
-
     std::unique_ptr<Expr> createDefaultReturnExpr(Type* type) {
         if (!type || !type->base || type->base->parts.empty()) {
             return nullptr;
@@ -137,7 +151,7 @@ std::unique_ptr<Expr> makeNullLiteral() const {
 
         const std::string& typeName = type->base->parts.back();
 
-        if (typeName == "int" || typeName == "i32" || typeName == "i64" || 
+        if (typeName == "int" || typeName == "i32" || typeName == "i64" ||
             typeName == "u32" || typeName == "u64" || typeName == "byte" || typeName == "char") {
             auto expr = std::make_unique<Expr>();
             expr->kind = Expr::Kind::Literal;
@@ -146,7 +160,7 @@ std::unique_ptr<Expr> makeNullLiteral() const {
             expr->literal->value = "0";
             return expr;
         }
-        
+
         if (typeName == "float" || typeName == "double" || typeName == "f32" || typeName == "f64") {
             auto expr = std::make_unique<Expr>();
             expr->kind = Expr::Kind::Literal;
@@ -168,13 +182,13 @@ std::unique_ptr<Expr> makeNullLiteral() const {
         // Struct / Object Zero Init
         auto structExpr = std::make_unique<Expr>();
         structExpr->kind = Expr::Kind::StructInit;
-        
+
         auto copiedType = std::make_unique<Type>();
         if (type && type->base) {
             copiedType->file = type->file;
             copiedType->line_start = type->line_start;
             copiedType->column_start = type->column_start;
-            
+
             auto newBase = std::make_unique<QualifiedName>();
             newBase->parts = type->base->parts;
             copiedType->base = std::move(newBase);
@@ -198,7 +212,7 @@ std::unique_ptr<Expr> makeNullLiteral() const {
 
             case Stmt::Kind::If: {
                 if (stmt->if_stmt.then_block) {
-                    lowerStmt(stmt->if_stmt.then_block.get()); // Pastikan ini memanggil lowerStmt secara rekursif!
+                    lowerStmt(stmt->if_stmt.then_block.get());
                 }
                 for (auto& elif : stmt->if_stmt.elifs) {
                     if (elif.block) lowerStmt(elif.block.get());
@@ -216,119 +230,119 @@ std::unique_ptr<Expr> makeNullLiteral() const {
 
             // --- TRANSFORMASI UTAMA UNTUK 'do ... catch' ---
             case Stmt::Kind::DoStmt: {
-    if (stmt->do_stmt.body) {
-        lowerStmt(stmt->do_stmt.body.get());
-    }
+                if (stmt->do_stmt.body) {
+                    lowerStmt(stmt->do_stmt.body.get());
+                }
 
-    if (stmt->do_stmt.iscatch) {
-        std::string slotName = nextErrVarName();       // misal: __err_slot_0
-        std::string initVarName = slotName + "_init";  // misal: __err_slot_0_init
+                if (stmt->do_stmt.iscatch) {
+                    std::string slotName = nextErrVarName();       // misal: __err_slot_0
+                    std::string initVarName = slotName + "_init";  // misal: __err_slot_0_init
 
-        Type* errTypePtr = stmt->do_stmt.error_var.type.get();
-        bool isPtrLike = isPointerLikeType(errTypePtr);
+                    Type* errTypePtr = stmt->do_stmt.error_var.type.get();
+                    bool isPtrLike = isPointerLikeType(errTypePtr);
 
-        // Ambil expr init aslinya sekali saja (di-move, tidak perlu di-clone!)
-        std::unique_ptr<Expr> rawInit;
-        if (!stmt->do_stmt.error_var.items.empty() && stmt->do_stmt.error_var.items[0].init) {
-            rawInit = std::move(stmt->do_stmt.error_var.items[0].init);
-        } else if (isPtrLike) {
-            rawInit = makeNullLiteral();
-        } else {
-            rawInit = createDefaultReturnExpr(errTypePtr);
-        }
+                    // Ambil expr init aslinya sekali saja (di-move, tidak perlu di-clone!)
+                    std::unique_ptr<Expr> rawInit;
+                    if (!stmt->do_stmt.error_var.items.empty() && stmt->do_stmt.error_var.items[0].init) {
+                        rawInit = std::move(stmt->do_stmt.error_var.items[0].init);
+                    } else if (isPtrLike) {
+                        rawInit = makeNullLiteral();
+                    } else {
+                        rawInit = createDefaultReturnExpr(errTypePtr);
+                    }
 
-        // Inject &__err_slot_N ke pemanggilan throwing_functions di dalam body
-        if (stmt->do_stmt.body &&
-            stmt->do_stmt.body->kind == Stmt::Kind::ExprStmt &&
-            stmt->do_stmt.body->expr_stmt &&
-            stmt->do_stmt.body->expr_stmt->kind == Expr::Kind::Postfix) {
+                    // Inject &__err_slot_N ke pemanggilan throwing_functions di dalam body
+                    if (stmt->do_stmt.body &&
+                        stmt->do_stmt.body->kind == Stmt::Kind::ExprStmt &&
+                        stmt->do_stmt.body->expr_stmt &&
+                        stmt->do_stmt.body->expr_stmt->kind == Expr::Kind::Postfix) {
 
-            auto& postfix = stmt->do_stmt.body->expr_stmt->postfix;
-            if (postfix.base && postfix.base->kind == Expr::Kind::Ident &&
-                postfix.base->ident && !postfix.base->ident->parts.empty()) {
+                        auto& postfix = stmt->do_stmt.body->expr_stmt->postfix;
+                        if (postfix.base && postfix.base->kind == Expr::Kind::Ident &&
+                            postfix.base->ident && !postfix.base->ident->parts.empty()) {
 
-                std::string funcName = postfix.base->ident->parts.back();
-                if (throwing_functions.count(funcName)) {
-                    for (auto& op : postfix.ops) {
-                        if (op.kind == Expr::PostfixOp::Kind::Call) {
-                            op.args.push_back(makeRefExpr(slotName));
-                            break;
+                            std::string funcName = postfix.base->ident->parts.back();
+                            if (throwing_functions.count(funcName)) {
+                                for (auto& op : postfix.ops) {
+                                    if (op.kind == Expr::PostfixOp::Kind::Call) {
+                                        op.args.push_back(makeRefExpr(slotName));
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
+
+                    auto desugaredBlock = std::make_unique<Stmt>();
+                    desugaredBlock->kind = Stmt::Kind::Block;
+
+                    // 1. Simpan nilai awal ke variabel lokal: T __err_slot_0_init = <rawInit>;
+                    VarDecl initDecl;
+                    initDecl.type = cloneType(errTypePtr);
+                    VarDecl::Item initItem;
+                    initItem.name = initVarName;
+                    initItem.init = std::move(rawInit);
+                    initDecl.items.push_back(std::move(initItem));
+
+                    auto initDeclStmt = std::make_unique<Stmt>();
+                    initDeclStmt->kind = Stmt::Kind::VarDecl;
+                    initDeclStmt->var_decl = std::move(initDecl);
+                    desugaredBlock->block.stmts.push_back(std::move(initDeclStmt));
+
+                    // 2. Wadah error ikut diinisialisasi dari __err_slot_0_init: T __err_slot_0 = __err_slot_0_init;
+                    VarDecl slotDecl;
+                    slotDecl.type = cloneType(errTypePtr);
+                    VarDecl::Item slotItem;
+                    slotItem.name = slotName;
+                    slotItem.init = makeIdentExpr(initVarName);
+                    slotDecl.items.push_back(std::move(slotItem));
+
+                    auto slotDeclStmt = std::make_unique<Stmt>();
+                    slotDeclStmt->kind = Stmt::Kind::VarDecl;
+                    slotDeclStmt->var_decl = std::move(slotDecl);
+                    desugaredBlock->block.stmts.push_back(std::move(slotDeclStmt));
+
+                    // 3. Eksekusi body asli (yang argumennya sudah disuntik &__err_slot_0)
+                    desugaredBlock->block.stmts.push_back(std::move(stmt->do_stmt.body));
+
+                    // 4. Cek kondisi:
+                    //    - pointer/ref: __err_slot_0 != null
+                    //    - stack/value: __err_slot_0 != __err_slot_0_init
+                    auto ifStmt = std::make_unique<Stmt>();
+                    ifStmt->kind = Stmt::Kind::If;
+
+                    auto condExpr = std::make_unique<Expr>();
+                    condExpr->kind = Expr::Kind::Binary;
+                    condExpr->binary.op = BinaryOp::Ne;
+                    condExpr->binary.lhs = makeIdentExpr(slotName);
+                    condExpr->binary.rhs = isPtrLike ? makeNullLiteral() : makeIdentExpr(initVarName);
+                    ifStmt->if_stmt.cond = std::move(condExpr);
+
+                    // 5. Blok catch: T name = __err_slot_0; <catch_body>
+                    auto catchBlock = std::make_unique<Stmt>();
+                    catchBlock->kind = Stmt::Kind::Block;
+
+                    if (!stmt->do_stmt.error_var.items.empty()) {
+                        stmt->do_stmt.error_var.items[0].init = makeIdentExpr(slotName);
+
+                        auto errorVarStmt = std::make_unique<Stmt>();
+                        errorVarStmt->kind = Stmt::Kind::VarDecl;
+                        errorVarStmt->var_decl = std::move(stmt->do_stmt.error_var);
+                        catchBlock->block.stmts.push_back(std::move(errorVarStmt));
+                    }
+
+                    if (stmt->do_stmt.catch_body) {
+                        lowerStmt(stmt->do_stmt.catch_body.get());
+                        catchBlock->block.stmts.push_back(std::move(stmt->do_stmt.catch_body));
+                    }
+
+                    ifStmt->if_stmt.then_block = std::move(catchBlock);
+                    desugaredBlock->block.stmts.push_back(std::move(ifStmt));
+
+                    *stmt = std::move(*desugaredBlock);
                 }
+                break;
             }
-        }
-
-        auto desugaredBlock = std::make_unique<Stmt>();
-        desugaredBlock->kind = Stmt::Kind::Block;
-
-        // 1. Simpan nilai awal ke variabel lokal: T __err_slot_0_init = <rawInit>;
-        VarDecl initDecl;
-        initDecl.type = cloneType(errTypePtr);
-        VarDecl::Item initItem;
-        initItem.name = initVarName;
-        initItem.init = std::move(rawInit);
-        initDecl.items.push_back(std::move(initItem));
-
-        auto initDeclStmt = std::make_unique<Stmt>();
-        initDeclStmt->kind = Stmt::Kind::VarDecl;
-        initDeclStmt->var_decl = std::move(initDecl);
-        desugaredBlock->block.stmts.push_back(std::move(initDeclStmt));
-
-        // 2. Wadah error ikut diinisialisasi dari __err_slot_0_init: T __err_slot_0 = __err_slot_0_init;
-        VarDecl slotDecl;
-        slotDecl.type = cloneType(errTypePtr);
-        VarDecl::Item slotItem;
-        slotItem.name = slotName;
-        slotItem.init = makeIdentExpr(initVarName);
-        slotDecl.items.push_back(std::move(slotItem));
-
-        auto slotDeclStmt = std::make_unique<Stmt>();
-        slotDeclStmt->kind = Stmt::Kind::VarDecl;
-        slotDeclStmt->var_decl = std::move(slotDecl);
-        desugaredBlock->block.stmts.push_back(std::move(slotDeclStmt));
-
-        // 3. Eksekusi body asli (yang argumennya sudah disuntik &__err_slot_0)
-        desugaredBlock->block.stmts.push_back(std::move(stmt->do_stmt.body));
-
-        // 4. Cek kondisi:
-        //    - pointer/ref: __err_slot_0 != null
-        //    - stack/value: __err_slot_0 != __err_slot_0_init
-        auto ifStmt = std::make_unique<Stmt>();
-        ifStmt->kind = Stmt::Kind::If;
-
-        auto condExpr = std::make_unique<Expr>();
-        condExpr->kind = Expr::Kind::Binary;
-        condExpr->binary.op = BinaryOp::Ne;
-        condExpr->binary.lhs = makeIdentExpr(slotName);
-        condExpr->binary.rhs = isPtrLike ? makeNullLiteral() : makeIdentExpr(initVarName);
-        ifStmt->if_stmt.cond = std::move(condExpr);
-
-        // 5. Blok catch: T name = __err_slot_0; <catch_body>
-        auto catchBlock = std::make_unique<Stmt>();
-        catchBlock->kind = Stmt::Kind::Block;
-
-        if (!stmt->do_stmt.error_var.items.empty()) {
-            stmt->do_stmt.error_var.items[0].init = makeIdentExpr(slotName);
-
-            auto errorVarStmt = std::make_unique<Stmt>();
-            errorVarStmt->kind = Stmt::Kind::VarDecl;
-            errorVarStmt->var_decl = std::move(stmt->do_stmt.error_var);
-            catchBlock->block.stmts.push_back(std::move(errorVarStmt));
-        }
-
-        if (stmt->do_stmt.catch_body) {
-            lowerStmt(stmt->do_stmt.catch_body.get());
-            catchBlock->block.stmts.push_back(std::move(stmt->do_stmt.catch_body));
-        }
-
-        ifStmt->if_stmt.then_block = std::move(catchBlock);
-        desugaredBlock->block.stmts.push_back(std::move(ifStmt));
-
-        *stmt = std::move(*desugaredBlock);
-    }
-    break;
-}
 
             case Stmt::Kind::SwitchCase: {
                 for (auto& c : stmt->switch_stmt.cases) {
@@ -342,9 +356,9 @@ std::unique_ptr<Expr> makeNullLiteral() const {
                 break;
             }
 
-            // --- 1. Perbaikan ThrowStmt ---
+            // --- Perbaikan ThrowStmt ---
             case Stmt::Kind::ThrowStmt: {
-                // *__throwed = <expr>; return 0;
+                // *__throwed = <expr>; return <default>;
                 auto assignExpr = std::make_unique<Expr>();
                 assignExpr->kind = Expr::Kind::Assign;
                 assignExpr->assign.op = AssignOp::Assign;
@@ -352,7 +366,7 @@ std::unique_ptr<Expr> makeNullLiteral() const {
                 auto lhsDeref = std::make_unique<Expr>();
                 lhsDeref->kind = Expr::Kind::Unary;
                 lhsDeref->unary.op = UnaryOp::Deref; // *
-                
+
                 auto lhsIdent = std::make_unique<Expr>();
                 lhsIdent->kind = Expr::Kind::Ident;
                 lhsIdent->ident = std::make_unique<QualifiedName>();
@@ -374,7 +388,7 @@ std::unique_ptr<Expr> makeNullLiteral() const {
                 stmt->block.stmts.clear();
                 stmt->block.stmts.push_back(std::move(storeStmt));
                 stmt->block.stmts.push_back(std::move(returnStmt));
-                
+
                 break;
             }
 
