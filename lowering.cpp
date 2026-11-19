@@ -61,14 +61,15 @@ void injectErrSlotInExpr(Expr* expr, const std::string& slotName) {
                 for (auto& arg : op.args) {
                     injectErrSlotInExpr(arg.get(), slotName);
                 }
-                if (expr->postfix.index) {
-                    injectErrSlotInExpr(expr->postfix.index.get(), slotName);
+                if (op.index) {
+                    injectErrSlotInExpr(op.index.get(), slotName);
                 }
                 if (op.kind == Expr::PostfixOp::Kind::Call && isThrowingCall) {
                     op.args.push_back(makeRefExpr(slotName));
-                    isThrowingCall = false; // cegah double-push jika ada chained call
-                }
+                    isThrowingCall = false;
+                }  
             }
+
             break;
         }
         case Expr::Kind::Unary:
