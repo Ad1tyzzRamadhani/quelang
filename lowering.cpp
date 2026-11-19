@@ -389,10 +389,6 @@ private:
             // --- TRANSFORMASI UTAMA UNTUK 'do ... catch' ---
                         // --- TRANSFORMASI UTAMA UNTUK 'do ... catch' ---
             case Stmt::Kind::DoStmt: {
-                if (stmt->do_stmt.body) {
-                    lowerStmt(stmt->do_stmt.body.get());
-                }
-
                 if (stmt->do_stmt.iscatch) {
                     std::string slotName = "__err_slot_" + std::to_string(err_var_counter++);
                     std::string initVarName = slotName + "_init";
