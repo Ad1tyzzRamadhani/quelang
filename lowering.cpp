@@ -572,7 +572,7 @@ private:
 
                 auto condExpr = std::make_unique<Expr>();
                 condExpr->kind = Expr::Kind::Binary;
-                condExpr->binary.op = BinaryOp::Eq; // __throwed == null
+                condExpr->binary.op = BinaryOp::Ne; // __throwed == null
                 condExpr->binary.lhs = makeIdentExpr("__throwed");
                 condExpr->binary.rhs = makeNullLiteral();
 
