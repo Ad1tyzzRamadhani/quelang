@@ -2748,9 +2748,9 @@ bool SemanticAnalyzer::checkJump(Stmt& stmt) {
         error(&stmt, "empty jump target");
         return false;
     }
-    if (!symbols_.lookup(stmt.jump_target)) {
+    /*if (!symbols_.lookup(stmt.jump_target)) {
         error(&stmt, "unknown jump target '" + stmt.jump_target + "'");
         return false;
-    }
+    }*/
     return true;
 }
