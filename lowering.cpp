@@ -41,6 +41,88 @@ private:
         return false;
     }
 
+    // --- Helper rekursif untuk menyuntikkan &__err_slot_N ke call throwing_functions ---
+void injectErrSlotInExpr(Expr* expr, const std::string& slotName) {
+    if (!expr) return;
+
+    switch (expr->kind) {
+        case Expr::Kind::Postfix: {
+            injectErrSlotInExpr(expr->postfix.base.get(), slotName);
+
+            bool isThrowingCall = false;
+            if (expr->postfix.base &&
+                expr->postfix.base->kind == Expr::Kind::Ident &&
+                expr->postfix.base->ident &&
+                !expr->postfix.base->ident->parts.empty()) {
+                isThrowingCall = throwing_functions.count(expr->postfix.base->ident->parts.back()) > 0;
+            }
+
+            for (auto& op : expr->postfix.ops) {
+                for (auto& arg : op.args) {
+                    injectErrSlotInExpr(arg.get(), slotName);
+                }
+                if (expr->postfix.index) {
+                    injectErrSlotInExpr(expr->postfix.index.get(), slotName);
+                }
+                if (op.kind == Expr::PostfixOp::Kind::Call && isThrowingCall) {
+                    op.args.push_back(makeRefExpr(slotName));
+                    isThrowingCall = false; // cegah double-push jika ada chained call
+                }
+            }
+            break;
+        }
+        case Expr::Kind::Unary:
+            injectErrSlotInExpr(expr->unary.expr.get(), slotName);
+            break;
+        case Expr::Kind::Binary:
+            injectErrSlotInExpr(expr->binary.lhs.get(), slotName);
+            injectErrSlotInExpr(expr->binary.rhs.get(), slotName);
+            break;
+        case Expr::Kind::Assign:
+            injectErrSlotInExpr(expr->assign.lhs.get(), slotName);
+            injectErrSlotInExpr(expr->assign.rhs.get(), slotName);
+            break;
+        case Expr::Kind::Ternary:
+            injectErrSlotInExpr(expr->ternary.cond.get(), slotName);
+            injectErrSlotInExpr(expr->ternary.then_expr.get(), slotName);
+            injectErrSlotInExpr(expr->ternary.else_expr.get(), slotName);
+            break;
+        case Expr::Kind::Cast:
+            injectErrSlotInExpr(expr->cast.base.get(), slotName);
+            break;
+        default:
+            break;
+    }
+}
+
+void injectErrSlotInStmt(Stmt* s, const std::string& slotName) {
+    if (!s) return;
+
+    switch (s->kind) {
+        case Stmt::Kind::Block:
+            for (auto& child : s->block.stmts) {
+                injectErrSlotInStmt(child.get(), slotName);
+            }
+            break;
+        case Stmt::Kind::ExprStmt:
+            injectErrSlotInExpr(s->expr_stmt.get(), slotName);
+            break;
+        case Stmt::Kind::VarDecl:
+            for (auto& it : s->var_decl.items) {
+                injectErrSlotInExpr(it.init.get(), slotName);
+                for (auto& a : it.args) {
+                    injectErrSlotInExpr(a.get(), slotName);
+                }
+            }
+            break;
+        case Stmt::Kind::Return:
+            injectErrSlotInExpr(s->return_values.get(), slotName);
+            break;
+        default:
+            break;
+    }
+}
+
     std::unique_ptr<Type> cloneType(const Type* src) const {
         if (!src) return nullptr;
         auto dst = std::make_unique<Type>();
@@ -252,26 +334,7 @@ private:
                     }
 
                     // Inject &__err_slot_N ke pemanggilan throwing_functions di dalam body
-                    if (stmt->do_stmt.body &&
-                        stmt->do_stmt.body->kind == Stmt::Kind::ExprStmt &&
-                        stmt->do_stmt.body->expr_stmt &&
-                        stmt->do_stmt.body->expr_stmt->kind == Expr::Kind::Postfix) {
-
-                        auto& postfix = stmt->do_stmt.body->expr_stmt->postfix;
-                        if (postfix.base && postfix.base->kind == Expr::Kind::Ident &&
-                            postfix.base->ident && !postfix.base->ident->parts.empty()) {
-
-                            std::string funcName = postfix.base->ident->parts.back();
-                            if (throwing_functions.count(funcName)) {
-                                for (auto& op : postfix.ops) {
-                                    if (op.kind == Expr::PostfixOp::Kind::Call) {
-                                        op.args.push_back(makeRefExpr(slotName));
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    injectErrSlotInStmt(stmt->do_stmt.body.get(), slotName);
 
                     auto desugaredBlock = std::make_unique<Stmt>();
                     desugaredBlock->kind = Stmt::Kind::Block;
