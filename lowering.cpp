@@ -40,6 +40,8 @@ private:
         }
         return false;
     }
+    int err_var_counter = 0;
+    int label_counter = 0;
 
     // --- Helper rekursif untuk menyuntikkan &__err_slot_N ke call throwing_functions ---
 void injectErrSlotInExpr(Expr* expr, const std::string& slotName) {
@@ -312,19 +314,21 @@ private:
             }
 
             // --- TRANSFORMASI UTAMA UNTUK 'do ... catch' ---
+                        // --- TRANSFORMASI UTAMA UNTUK 'do ... catch' ---
             case Stmt::Kind::DoStmt: {
                 if (stmt->do_stmt.body) {
                     lowerStmt(stmt->do_stmt.body.get());
                 }
 
                 if (stmt->do_stmt.iscatch) {
-                    std::string slotName = nextErrVarName();       // misal: __err_slot_0
-                    std::string initVarName = slotName + "_init";  // misal: __err_slot_0_init
+                    std::string slotName = "__err_slot_" + std::to_string(err_var_counter++);
+                    std::string initVarName = slotName + "_init";
+                    std::string catchLabel = "__catch_" + std::to_string(label_counter);
+                    std::string endLabel = "__do_end_" + std::to_string(label_counter++);
 
                     Type* errTypePtr = stmt->do_stmt.error_var.type.get();
                     bool isPtrLike = isPointerLikeType(errTypePtr);
 
-                    // Ambil expr init aslinya sekali saja (di-move, tidak perlu di-clone!)
                     std::unique_ptr<Expr> rawInit;
                     if (!stmt->do_stmt.error_var.items.empty() && stmt->do_stmt.error_var.items[0].init) {
                         rawInit = std::move(stmt->do_stmt.error_var.items[0].init);
@@ -334,13 +338,10 @@ private:
                         rawInit = createDefaultReturnExpr(errTypePtr);
                     }
 
-                    // Inject &__err_slot_N ke pemanggilan throwing_functions di dalam body
-                    injectErrSlotInStmt(stmt->do_stmt.body.get(), slotName);
-
                     auto desugaredBlock = std::make_unique<Stmt>();
                     desugaredBlock->kind = Stmt::Kind::Block;
 
-                    // 1. Simpan nilai awal ke variabel lokal: T __err_slot_0_init = <rawInit>;
+                    // 1. T __err_slot_N_init = <rawInit>;
                     VarDecl initDecl;
                     initDecl.type = cloneType(errTypePtr);
                     VarDecl::Item initItem;
@@ -353,7 +354,7 @@ private:
                     initDeclStmt->var_decl = std::move(initDecl);
                     desugaredBlock->block.stmts.push_back(std::move(initDeclStmt));
 
-                    // 2. Wadah error ikut diinisialisasi dari __err_slot_0_init: T __err_slot_0 = __err_slot_0_init;
+                    // 2. T __err_slot_N = __err_slot_N_init;
                     VarDecl slotDecl;
                     slotDecl.type = cloneType(errTypePtr);
                     VarDecl::Item slotItem;
@@ -366,47 +367,102 @@ private:
                     slotDeclStmt->var_decl = std::move(slotDecl);
                     desugaredBlock->block.stmts.push_back(std::move(slotDeclStmt));
 
-                    // 3. Eksekusi body asli (yang argumennya sudah disuntik &__err_slot_0)
-                    desugaredBlock->block.stmts.push_back(std::move(stmt->do_stmt.body));
+                    // 3. Kumpulkan statement body + sisipkan cek langsung di bawah tiap call throwing
+                    std::vector<std::unique_ptr<Stmt>> bodyList;
+                    if (stmt->do_stmt.body) {
+                        if (stmt->do_stmt.body->kind == Stmt::Kind::Block) {
+                            for (auto& child : stmt->do_stmt.body->block.stmts) {
+                                bodyList.push_back(std::move(child));
+                            }
+                        } else {
+                            bodyList.push_back(std::move(stmt->do_stmt.body));
+                        }
+                    }
 
-                    // 4. Cek kondisi:
-                    //    - pointer/ref: __err_slot_0 != null
-                    //    - stack/value: __err_slot_0 != __err_slot_0_init
-                    auto ifStmt = std::make_unique<Stmt>();
-                    ifStmt->kind = Stmt::Kind::If;
+                    for (auto& s : bodyList) {
+                        bool hasThrowCall = false;
+                        Expr* targetExpr = nullptr;
+                        if (s->kind == Stmt::Kind::ExprStmt) targetExpr = s->expr_stmt.get();
+                        else if (s->kind == Stmt::Kind::VarDecl && !s->var_decl.items.empty()) targetExpr = s->var_decl.items[0].init.get();
+                        else if (s->kind == Stmt::Kind::Return) targetExpr = s->return_values.get();
 
-                    auto condExpr = std::make_unique<Expr>();
-                    condExpr->kind = Expr::Kind::Binary;
-                    condExpr->binary.op = BinaryOp::Ne;
-                    condExpr->binary.lhs = makeIdentExpr(slotName);
-                    condExpr->binary.rhs = isPtrLike ? makeNullLiteral() : makeIdentExpr(initVarName);
-                    ifStmt->if_stmt.cond = std::move(condExpr);
+                        if (targetExpr && targetExpr->kind == Expr::Kind::Postfix &&
+                            targetExpr->postfix.base && targetExpr->postfix.base->kind == Expr::Kind::Ident &&
+                            targetExpr->postfix.base->ident && !targetExpr->postfix.base->ident->parts.empty()) {
+                            std::string fname = targetExpr->postfix.base->ident->parts.back();
+                            if (throwing_functions.count(fname)) {
+                                for (auto& op : targetExpr->postfix.ops) {
+                                    if (op.kind == Expr::PostfixOp::Kind::Call) {
+                                        op.args.push_back(makeRefExpr(slotName));
+                                        hasThrowCall = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
 
-                    // 5. Blok catch: T name = __err_slot_0; <catch_body>
-                    auto catchBlock = std::make_unique<Stmt>();
-                    catchBlock->kind = Stmt::Kind::Block;
+                        desugaredBlock->block.stmts.push_back(std::move(s));
+
+                        if (hasThrowCall) {
+                            auto ifStmt = std::make_unique<Stmt>();
+                            ifStmt->kind = Stmt::Kind::If;
+
+                            auto condExpr = std::make_unique<Expr>();
+                            condExpr->kind = Expr::Kind::Binary;
+                            condExpr->binary.op = BinaryOp::Ne;
+                            condExpr->binary.lhs = makeIdentExpr(slotName);
+                            condExpr->binary.rhs = isPtrLike ? makeNullLiteral() : makeIdentExpr(initVarName);
+                            ifStmt->if_stmt.cond = std::move(condExpr);
+
+                            auto jumpStmt = std::make_unique<Stmt>();
+                            jumpStmt->kind = Stmt::Kind::Jump;
+                            jumpStmt->jump_target = catchLabel;
+
+                            auto thenBlock = std::make_unique<Stmt>();
+                            thenBlock->kind = Stmt::Kind::Block;
+                            thenBlock->block.stmts.push_back(std::move(jumpStmt));
+                            ifStmt->if_stmt.then_block = std::move(thenBlock);
+
+                            desugaredBlock->block.stmts.push_back(std::move(ifStmt));
+                        }
+                    }
+
+                    // 4. Sukses semua -> lompat ke akhir
+                    auto jumpEnd = std::make_unique<Stmt>();
+                    jumpEnd->kind = Stmt::Kind::Jump;
+                    jumpEnd->jump_target = endLabel;
+                    desugaredBlock->block.stmts.push_back(std::move(jumpEnd));
+
+                    // 5. Label catch
+                    auto lblCatch = std::make_unique<Stmt>();
+                    lblCatch->kind = Stmt::Kind::Label;
+                    lblCatch->label = catchLabel;
+                    desugaredBlock->block.stmts.push_back(std::move(lblCatch));
 
                     if (!stmt->do_stmt.error_var.items.empty()) {
                         stmt->do_stmt.error_var.items[0].init = makeIdentExpr(slotName);
-
                         auto errorVarStmt = std::make_unique<Stmt>();
                         errorVarStmt->kind = Stmt::Kind::VarDecl;
                         errorVarStmt->var_decl = std::move(stmt->do_stmt.error_var);
-                        catchBlock->block.stmts.push_back(std::move(errorVarStmt));
+                        desugaredBlock->block.stmts.push_back(std::move(errorVarStmt));
                     }
 
                     if (stmt->do_stmt.catch_body) {
                         lowerStmt(stmt->do_stmt.catch_body.get());
-                        catchBlock->block.stmts.push_back(std::move(stmt->do_stmt.catch_body));
+                        desugaredBlock->block.stmts.push_back(std::move(stmt->do_stmt.catch_body));
                     }
 
-                    ifStmt->if_stmt.then_block = std::move(catchBlock);
-                    desugaredBlock->block.stmts.push_back(std::move(ifStmt));
+                    // 6. Label akhir
+                    auto lblEnd = std::make_unique<Stmt>();
+                    lblEnd->kind = Stmt::Kind::Label;
+                    lblEnd->label = endLabel;
+                    desugaredBlock->block.stmts.push_back(std::move(lblEnd));
 
                     *stmt = std::move(*desugaredBlock);
                 }
                 break;
             }
+
 
             case Stmt::Kind::SwitchCase: {
                 for (auto& c : stmt->switch_stmt.cases) {
