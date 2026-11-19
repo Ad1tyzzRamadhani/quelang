@@ -63,6 +63,73 @@ private:
         current_return_type = nullptr;
     }
 
+    // --- Di dalam private member LoweringEngine ---
+int err_var_counter = 0;
+
+std::string nextErrVarName() {
+    return "__err_slot_" + std::to_string(err_var_counter++);
+}
+
+bool isPointerLikeType(const Type* type) const {
+    if (!type) return false;
+    if (!type->modifiers.empty()) {
+        const auto& lastMod = type->modifiers.back();
+        if (lastMod.kind == TypeModifier::Kind::Pointer ||
+            lastMod.kind == TypeModifier::Kind::Ref) {
+            return true;
+        }
+    }
+    if (type->base && !type->base->parts.empty()) {
+        const std::string& baseName = type->base->parts.back();
+        if (baseName == "ptr") return true;
+    }
+    return false;
+}
+
+std::unique_ptr<Type> cloneType(const Type* src) const {
+    if (!src) return nullptr;
+    auto dst = std::make_unique<Type>();
+    dst->file = src->file;
+    dst->line_start = src->line_start;
+    dst->column_start = src->column_start;
+    dst->modifiers = src->modifiers;
+
+    if (src->base) {
+        auto newBase = std::make_unique<QualifiedName>();
+        newBase->parts = src->base->parts;
+        dst->base = std::move(newBase);
+    }
+    return dst;
+}
+
+std::unique_ptr<Expr> makeIdentExpr(const std::string& name) const {
+    auto expr = std::make_unique<Expr>();
+    expr->kind = Expr::Kind::Ident;
+    expr->ident = std::make_unique<QualifiedName>();
+    expr->ident->parts.push_back(name);
+    return expr;
+}
+
+std::unique_ptr<Expr> makeRefExpr(const std::string& name) const {
+    auto refExpr = std::make_unique<Expr>();
+    refExpr->kind = Expr::Kind::Unary;
+    refExpr->unary.op = UnaryOp::Ref;
+    refExpr->unary.expr = makeIdentExpr(name);
+    return refExpr;
+}
+
+std::unique_ptr<Expr> makeNullLiteral() const {
+    auto nullLit = std::make_unique<Expr>();
+    nullLit->kind = Expr::Kind::Literal;
+    nullLit->literal = std::make_unique<Literal>();
+    nullLit->literal->kind = Literal::Kind::Null;
+    nullLit->literal->value = "null";
+    return nullLit;
+}
+
+// Implementasikan sesuai definisi AST Expr Anda agar init bisa dipakai 2x
+
+
     std::unique_ptr<Expr> createDefaultReturnExpr(Type* type) {
         if (!type || !type->base || type->base->parts.empty()) {
             return nullptr;
