@@ -1,382 +1,404 @@
-#pragma once
-#include <string>
-#include <vector>
 #include <memory>
-#include <optional>
+#include <vector>
+#include <string>
+#include <unordered_set>
+#include <stdexcept>
 
-struct Expr;
-struct Stmt;
-struct Type;
+class LoweringEngine {
+private:
+    Type* current_return_type = nullptr;
+    std::unordered_set<std::string> throwing_functions; // Menyimpan daftar nama fungsi yang melempar error
+    int err_var_counter = 0;
 
-// AST Base / Node Base
+    std::string nextErrVarName() {
+        return "__err_slot_" + std::to_string(err_var_counter++);
+    }
 
-struct Node {
-    virtual ~Node() = default;
-    int line_start = -1, column_start = -1;
-    int line_end = -1, column_end = -1;
-    std::string file;
+    TypeModifier cloneTypeModifier(const TypeModifier& src) const {
+        TypeModifier dst;
+        dst.kind = src.kind;
+        for (const auto& p : src.func_params) {
+            dst.func_params.push_back(cloneType(p.get()));
+        }
+        dst.func_return = cloneType(src.func_return.get());
+        dst.throws_type = cloneType(src.throws_type.get());
+        return dst;
+    }
+
+    bool isPointerLikeType(const Type* type) const {
+        if (!type) return false;
+        if (!type->modifiers.empty()) {
+            const auto& lastMod = type->modifiers.back();
+            if (lastMod.kind == TypeModifier::Kind::Pointer ||
+                lastMod.kind == TypeModifier::Kind::Reference) {
+                return true;
+            }
+        }
+        if (type->base && !type->base->parts.empty()) {
+            const std::string& baseName = type->base->parts.back();
+            if (baseName == "ptr") return true;
+        }
+        return false;
+    }
+
+    std::unique_ptr<Type> cloneType(const Type* src) const {
+        if (!src) return nullptr;
+        auto dst = std::make_unique<Type>();
+        dst->file = src->file;
+        dst->line_start = src->line_start;
+        dst->column_start = src->column_start;
+        dst->is_array = src->is_array;
+        dst->unsized_array = src->unsized_array;
+        dst->qualifiers = src->qualifiers;
+
+        for (const auto& mod : src->modifiers) {
+            dst->modifiers.push_back(cloneTypeModifier(mod));
+        }
+
+        if (src->base) {
+            auto newBase = std::make_unique<QualifiedName>();
+            newBase->parts = src->base->parts;
+            newBase->is_absolute = src->base->is_absolute;
+            dst->base = std::move(newBase);
+        }
+        return dst;
+    }
+
+    std::unique_ptr<Expr> makeIdentExpr(const std::string& name) const {
+        auto expr = std::make_unique<Expr>();
+        expr->kind = Expr::Kind::Ident;
+        expr->ident = std::make_unique<QualifiedName>();
+        expr->ident->parts.push_back(name);
+        return expr;
+    }
+
+    std::unique_ptr<Expr> makeRefExpr(const std::string& name) const {
+        auto refExpr = std::make_unique<Expr>();
+        refExpr->kind = Expr::Kind::Unary;
+        refExpr->unary.op = UnaryOp::Ref;
+        refExpr->unary.expr = makeIdentExpr(name);
+        return refExpr;
+    }
+
+    std::unique_ptr<Expr> makeNullLiteral() const {
+        auto nullLit = std::make_unique<Expr>();
+        nullLit->kind = Expr::Kind::Literal;
+        nullLit->literal = std::make_unique<Literal>();
+        nullLit->literal->kind = Literal::Kind::Null;
+        nullLit->literal->value = "null";
+        return nullLit;
+    }
+
+public:
+    void lowerProgram(FileProgram* program) {
+        if (!program) return;
+
+        // Pass 1: Kumpulkan semua fungsi yang memiliki klausa throws
+        for (auto& node : program->decls) {
+            if (auto func = dynamic_cast<Function*>(node.get())) {
+                if (func->is_throws && func->name && !func->name->parts.empty()) {
+                    throwing_functions.insert(func->name->parts.back());
+                }
+            }
+        }
+
+        // Pass 2: Lowering deklarasi (fungsi, dll)
+        for (auto& node : program->decls) {
+            if (auto func = dynamic_cast<Function*>(node.get())) {
+                lowerFunction(func);
+            }
+        }
+    }
+
+private:
+    void lowerFunction(Function* func) {
+        // Cek apakah fungsi ini dulunya adalah fungsi throws (gunakan pengecekan awal sebelum di-reset)
+        bool was_throws = func->is_throws && func->throws_type;
+
+        if (was_throws) {
+            // 1. Buat parameter tambahan out-parameter (pointer)
+            Function::Param errorParam;
+            errorParam.type = std::move(func->throws_type);
+
+            TypeModifier mod;
+            mod.kind = TypeModifier::Kind::Pointer;
+            errorParam.type->modifiers.push_back(std::move(mod));
+
+            errorParam.name = "__throwed";
+            errorParam.init = nullptr;
+
+            func->params.push_back(std::move(errorParam));
+        }
+
+        current_return_type = func->return_types.get();
+
+        // 2. Transformasi body fungsi (Lowering semua statement di dalam body)
+        if (func->body) {
+            lowerStmt(func->body.get());
+        }
+
+        if (was_throws) {
+            func->is_throws = false;
+            func->throws_type = nullptr;
+        }
+        current_return_type = nullptr;
+    }
+
+    std::unique_ptr<Expr> createDefaultReturnExpr(Type* type) {
+        if (!type || !type->base || type->base->parts.empty()) {
+            return nullptr;
+        }
+
+        const std::string& typeName = type->base->parts.back();
+
+        if (typeName == "int" || typeName == "i32" || typeName == "i64" ||
+            typeName == "u32" || typeName == "u64" || typeName == "byte" || typeName == "char") {
+            auto expr = std::make_unique<Expr>();
+            expr->kind = Expr::Kind::Literal;
+            expr->literal = std::make_unique<Literal>();
+            expr->literal->kind = Literal::Kind::Number;
+            expr->literal->value = "0";
+            return expr;
+        }
+
+        if (typeName == "float" || typeName == "double" || typeName == "f32" || typeName == "f64") {
+            auto expr = std::make_unique<Expr>();
+            expr->kind = Expr::Kind::Literal;
+            expr->literal = std::make_unique<Literal>();
+            expr->literal->kind = Literal::Kind::Float;
+            expr->literal->value = "0.0";
+            return expr;
+        }
+
+        if (typeName == "bool") {
+            auto expr = std::make_unique<Expr>();
+            expr->kind = Expr::Kind::Literal;
+            expr->literal = std::make_unique<Literal>();
+            expr->literal->kind = Literal::Kind::False;
+            expr->literal->value = "false";
+            return expr;
+        }
+
+        // Struct / Object Zero Init
+        auto structExpr = std::make_unique<Expr>();
+        structExpr->kind = Expr::Kind::StructInit;
+
+        auto copiedType = std::make_unique<Type>();
+        if (type && type->base) {
+            copiedType->file = type->file;
+            copiedType->line_start = type->line_start;
+            copiedType->column_start = type->column_start;
+
+            auto newBase = std::make_unique<QualifiedName>();
+            newBase->parts = type->base->parts;
+            copiedType->base = std::move(newBase);
+        }
+
+        structExpr->struct_init.type_name = std::move(copiedType);
+        structExpr->struct_init.fields.clear();
+        return structExpr;
+    }
+
+    void lowerStmt(Stmt* stmt) {
+        if (!stmt) return;
+
+        switch (stmt->kind) {
+            case Stmt::Kind::Block: {
+                for (auto& s : stmt->block.stmts) {
+                    lowerStmt(s.get());
+                }
+                break;
+            }
+
+            case Stmt::Kind::If: {
+                if (stmt->if_stmt.then_block) {
+                    lowerStmt(stmt->if_stmt.then_block.get());
+                }
+                for (auto& elif : stmt->if_stmt.elifs) {
+                    if (elif.block) lowerStmt(elif.block.get());
+                }
+                if (stmt->if_stmt.else_block) {
+                    lowerStmt(stmt->if_stmt.else_block.get());
+                }
+                break;
+            }
+
+            case Stmt::Kind::While: {
+                if (stmt->while_stmt.body) lowerStmt(stmt->while_stmt.body.get());
+                break;
+            }
+
+            // --- TRANSFORMASI UTAMA UNTUK 'do ... catch' ---
+            case Stmt::Kind::DoStmt: {
+                if (stmt->do_stmt.body) {
+                    lowerStmt(stmt->do_stmt.body.get());
+                }
+
+                if (stmt->do_stmt.iscatch) {
+                    std::string slotName = nextErrVarName();       // misal: __err_slot_0
+                    std::string initVarName = slotName + "_init";  // misal: __err_slot_0_init
+
+                    Type* errTypePtr = stmt->do_stmt.error_var.type.get();
+                    bool isPtrLike = isPointerLikeType(errTypePtr);
+
+                    // Ambil expr init aslinya sekali saja (di-move, tidak perlu di-clone!)
+                    std::unique_ptr<Expr> rawInit;
+                    if (!stmt->do_stmt.error_var.items.empty() && stmt->do_stmt.error_var.items[0].init) {
+                        rawInit = std::move(stmt->do_stmt.error_var.items[0].init);
+                    } else if (isPtrLike) {
+                        rawInit = makeNullLiteral();
+                    } else {
+                        rawInit = createDefaultReturnExpr(errTypePtr);
+                    }
+
+                    // Inject &__err_slot_N ke pemanggilan throwing_functions di dalam body
+                    if (stmt->do_stmt.body &&
+                        stmt->do_stmt.body->kind == Stmt::Kind::ExprStmt &&
+                        stmt->do_stmt.body->expr_stmt &&
+                        stmt->do_stmt.body->expr_stmt->kind == Expr::Kind::Postfix) {
+
+                        auto& postfix = stmt->do_stmt.body->expr_stmt->postfix;
+                        if (postfix.base && postfix.base->kind == Expr::Kind::Ident &&
+                            postfix.base->ident && !postfix.base->ident->parts.empty()) {
+
+                            std::string funcName = postfix.base->ident->parts.back();
+                            if (throwing_functions.count(funcName)) {
+                                for (auto& op : postfix.ops) {
+                                    if (op.kind == Expr::PostfixOp::Kind::Call) {
+                                        op.args.push_back(makeRefExpr(slotName));
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    auto desugaredBlock = std::make_unique<Stmt>();
+                    desugaredBlock->kind = Stmt::Kind::Block;
+
+                    // 1. Simpan nilai awal ke variabel lokal: T __err_slot_0_init = <rawInit>;
+                    VarDecl initDecl;
+                    initDecl.type = cloneType(errTypePtr);
+                    VarDecl::Item initItem;
+                    initItem.name = initVarName;
+                    initItem.init = std::move(rawInit);
+                    initDecl.items.push_back(std::move(initItem));
+
+                    auto initDeclStmt = std::make_unique<Stmt>();
+                    initDeclStmt->kind = Stmt::Kind::VarDecl;
+                    initDeclStmt->var_decl = std::move(initDecl);
+                    desugaredBlock->block.stmts.push_back(std::move(initDeclStmt));
+
+                    // 2. Wadah error ikut diinisialisasi dari __err_slot_0_init: T __err_slot_0 = __err_slot_0_init;
+                    VarDecl slotDecl;
+                    slotDecl.type = cloneType(errTypePtr);
+                    VarDecl::Item slotItem;
+                    slotItem.name = slotName;
+                    slotItem.init = makeIdentExpr(initVarName);
+                    slotDecl.items.push_back(std::move(slotItem));
+
+                    auto slotDeclStmt = std::make_unique<Stmt>();
+                    slotDeclStmt->kind = Stmt::Kind::VarDecl;
+                    slotDeclStmt->var_decl = std::move(slotDecl);
+                    desugaredBlock->block.stmts.push_back(std::move(slotDeclStmt));
+
+                    // 3. Eksekusi body asli (yang argumennya sudah disuntik &__err_slot_0)
+                    desugaredBlock->block.stmts.push_back(std::move(stmt->do_stmt.body));
+
+                    // 4. Cek kondisi:
+                    //    - pointer/ref: __err_slot_0 != null
+                    //    - stack/value: __err_slot_0 != __err_slot_0_init
+                    auto ifStmt = std::make_unique<Stmt>();
+                    ifStmt->kind = Stmt::Kind::If;
+
+                    auto condExpr = std::make_unique<Expr>();
+                    condExpr->kind = Expr::Kind::Binary;
+                    condExpr->binary.op = BinaryOp::Ne;
+                    condExpr->binary.lhs = makeIdentExpr(slotName);
+                    condExpr->binary.rhs = isPtrLike ? makeNullLiteral() : makeIdentExpr(initVarName);
+                    ifStmt->if_stmt.cond = std::move(condExpr);
+
+                    // 5. Blok catch: T name = __err_slot_0; <catch_body>
+                    auto catchBlock = std::make_unique<Stmt>();
+                    catchBlock->kind = Stmt::Kind::Block;
+
+                    if (!stmt->do_stmt.error_var.items.empty()) {
+                        stmt->do_stmt.error_var.items[0].init = makeIdentExpr(slotName);
+
+                        auto errorVarStmt = std::make_unique<Stmt>();
+                        errorVarStmt->kind = Stmt::Kind::VarDecl;
+                        errorVarStmt->var_decl = std::move(stmt->do_stmt.error_var);
+                        catchBlock->block.stmts.push_back(std::move(errorVarStmt));
+                    }
+
+                    if (stmt->do_stmt.catch_body) {
+                        lowerStmt(stmt->do_stmt.catch_body.get());
+                        catchBlock->block.stmts.push_back(std::move(stmt->do_stmt.catch_body));
+                    }
+
+                    ifStmt->if_stmt.then_block = std::move(catchBlock);
+                    desugaredBlock->block.stmts.push_back(std::move(ifStmt));
+
+                    *stmt = std::move(*desugaredBlock);
+                }
+                break;
+            }
+
+            case Stmt::Kind::SwitchCase: {
+                for (auto& c : stmt->switch_stmt.cases) {
+                    if (c.body) lowerStmt(c.body.get());
+                }
+                break;
+            }
+
+            case Stmt::Kind::Unsafe: {
+                if (stmt->unsafe_stmt.stmt) lowerStmt(stmt->unsafe_stmt.stmt.get());
+                break;
+            }
+
+            // --- Perbaikan ThrowStmt ---
+            case Stmt::Kind::ThrowStmt: {
+                // *__throwed = <expr>; return <default>;
+                auto assignExpr = std::make_unique<Expr>();
+                assignExpr->kind = Expr::Kind::Assign;
+                assignExpr->assign.op = AssignOp::Assign;
+
+                auto lhsDeref = std::make_unique<Expr>();
+                lhsDeref->kind = Expr::Kind::Unary;
+                lhsDeref->unary.op = UnaryOp::Deref; // *
+
+                auto lhsIdent = std::make_unique<Expr>();
+                lhsIdent->kind = Expr::Kind::Ident;
+                lhsIdent->ident = std::make_unique<QualifiedName>();
+                lhsIdent->ident->parts.push_back("__throwed");
+                lhsDeref->unary.expr = std::move(lhsIdent);
+
+                assignExpr->assign.lhs = std::move(lhsDeref);
+                assignExpr->assign.rhs = std::move(stmt->throw_stmt.expr);
+
+                auto storeStmt = std::make_unique<Stmt>();
+                storeStmt->kind = Stmt::Kind::ExprStmt;
+                storeStmt->expr_stmt = std::move(assignExpr);
+
+                auto returnStmt = std::make_unique<Stmt>();
+                returnStmt->kind = Stmt::Kind::Return;
+                returnStmt->return_values = createDefaultReturnExpr(current_return_type);
+
+                stmt->kind = Stmt::Kind::Block;
+                stmt->block.stmts.clear();
+                stmt->block.stmts.push_back(std::move(storeStmt));
+                stmt->block.stmts.push_back(std::move(returnStmt));
+
+                break;
+            }
+
+            default:
+                break;
+        }
+    }
 };
 
-// Qualified Name System
-
-struct QualifiedName : Node {
-    std::vector<std::string> parts;
-    bool is_absolute = false;
-};
-
-// Literal
-
-struct Literal : Node {
-    enum class Kind {
-        Number, Float, Hex, Binary,
-        Char, String, RawString,
-        True, False, Null, None
-    } kind;
-
-    std::string value;
-};
-
-// Type System
-
-enum class TypeQualifier { Const, Volatile, Atomic};
-
-struct TypeModifier {
-    enum class Kind { Pointer, Reference, Restrict , FuncPtr } kind;
-    std::vector<std::unique_ptr<Type>> func_params;
-    std::unique_ptr<Type> func_return;
-    std::unique_ptr<Type> throws_type;
-};
-
-struct Type : Node {
-    bool is_array = false;
-    bool unsized_array = false;
-    std::vector<TypeQualifier> qualifiers;
-    std::unique_ptr<QualifiedName> base;
-    std::vector<TypeModifier> modifiers;
-    std::unique_ptr<Literal> bit_width;
-    std::vector<std::unique_ptr<Literal>> array_dims;
-};
-
-// Expr System
-
-enum class BinaryOp {
-    Add, Sub, Mul, Div, Mod,
-    Eq, Ne, Lt, Lte, Gt, Gte,
-    And, Or, Xor,
-    BitAnd, BitOr, BitXor,
-    Shl, Shr,
-    Coalesce,
-    In
-};
-
-enum class UnaryOp {
-    Neg, Deref, Ref, Not, BitNot, Move
-};
-
-enum class AssignOp {
-    Assign, AddEq, SubEq, MulEq, DivEq, ModEq
-};
-
-struct Expr : Node {
-    enum class Kind {
-        Literal, Ident,
-
-        Unary,
-        Binary,
-        Assign,
-        Ternary,
-        Postfix,
-
-        Cast,
-        New,
-        Move,
-
-        StructInit,
-        ArrayLiteral, 
-        Intrinsic
-    } kind;
-
-    // BasicExpr
-    std::unique_ptr<Literal> literal;
-    std::unique_ptr<QualifiedName> ident;
-
-    // UnaryOp
-    struct {
-        UnaryOp op;
-        std::unique_ptr<Expr> expr;
-    } unary;
-
-    // BinaryOp
-    struct {
-        BinaryOp op;
-        std::unique_ptr<Expr> lhs;
-        std::unique_ptr<Expr> rhs;
-    } binary;
-
-    // Single Assign Expr -> a = add(5,7);
-    struct {
-        AssignOp op;
-        std::unique_ptr<Expr> lhs;
-        std::unique_ptr<Expr> rhs;
-    } assign;
-
-    // Ternary
-    struct {
-        std::unique_ptr<Expr> cond;
-        std::unique_ptr<Expr> then_expr;
-        std::unique_ptr<Expr> else_expr;
-    } ternary;
-
-    struct {
-        std::string name;
-        std::unique_ptr<Type> type;
-        std::vector<std::unique_ptr<Expr>> args;
-    } intrinsic;
-
-    // PostFix Op
-    struct PostfixOp {
-        enum class Kind { MemberAccess, SafeArrow, Arrow, Call, Index } kind;
-
-        std::string name;
-        std::vector<std::unique_ptr<Expr>> args;
-        std::unique_ptr<Expr> index;
-    };
-
-    struct {
-        std::unique_ptr<Expr> base;
-        std::vector<PostfixOp> ops;
-    } postfix;
-
-    // cast -> foo as! T;
-    struct {
-        std::unique_ptr<Expr> base;
-        std::unique_ptr<Type> target;
-    } cast;
-
-    // new
-    struct {
-        std::unique_ptr<QualifiedName> type;
-        std::vector<std::unique_ptr<Expr>> args;
-        std::vector<std::unique_ptr<Expr>> array_dims;
-        std::unique_ptr<Literal> alloc_size;
-    } new_expr;
-
-    struct {
-        std::unique_ptr<Type> type_name;
-        std::vector<std::pair<std::optional<std::string>, std::unique_ptr<Expr>>> fields;
-    } struct_init;
-
-    std::vector<std::unique_ptr<Expr>> array_items;
-    std::vector<int> array_size;
-};
-
-// Statement
-
-struct UseDecl;
-struct Constructor;
-enum class Visibility { Private, Public };
-
-struct VarDecl : Node {
-    Visibility visibility = Visibility::Private;
-    std::unique_ptr<Type> type;
-    struct Item {
-        std::string name;
-        std::unique_ptr<Expr> init;
-        std::vector<std::unique_ptr<Expr>> args;
-        std::unique_ptr<Literal> bit_width;
-        bool is_array = false;
-    };
-
-    std::vector<Item> items;
-    bool is_atomic = false;
-    bool is_static = false;
-    bool is_extern = false;
-    bool is_none = false;
-};
-
-struct Stmt : Node {
-    enum class Kind {
-        VarDecl, If, While, DoStmt,
-        Return, Break, Continue, SwitchCase,
-        ExprStmt, Block, ThrowStmt,
-        Label, Jump, Unsafe,
-        Drop, Wipe, ArrayStream
-    } kind;
-
-    struct {
-        std::vector<std::unique_ptr<Stmt>> stmts;
-    } block;
-
-    VarDecl var_decl;
-
-    struct IfStmt {
-        std::unique_ptr<Expr> cond;
-        std::unique_ptr<Stmt> then_block;
-
-        struct Elif {
-            std::unique_ptr<Expr> cond;
-            std::unique_ptr<Stmt> block;
-        };
-
-        std::vector<Elif> elifs;
-        std::unique_ptr<Stmt> else_block;
-    } if_stmt;
-
-    struct {
-        std::unique_ptr<Expr> cond;
-        std::unique_ptr<Stmt> body;
-    } while_stmt;
-
-    struct {
-        std::unique_ptr<Expr> target;                   // Contoh: out_ (sisi kiri panah pertama)
-        std::vector<std::unique_ptr<Expr>> sources;     // Contoh: [src1, src2, "literal"] (rantai sisi kanan)
-    } array_stream;
-
-    struct {
-        std::unique_ptr<Stmt> body;
-        std::unique_ptr<Expr> cond;
-
-        bool iscatch = false;
-        VarDecl error_var;
-        std::unique_ptr<Stmt> catch_body;
-    } do_stmt;
-
-    struct SwitchStmt {
-        std::unique_ptr<Expr> expr;
-
-        struct Case {
-            bool is_default = false;
-            std::vector<std::unique_ptr<Expr>> values;
-            std::unique_ptr<Stmt> body;
-        };
-
-        std::vector<Case> cases;
-    } switch_stmt;
-
-    std::unique_ptr<Expr> expr_stmt;
-
-    struct {
-        std::unique_ptr<Expr> expr;
-        bool is_array = false;
-        bool is_reference = false;
-    } drop_stmt;
-
-    struct {
-        std::unique_ptr<Expr> expr;
-        bool is_array = false;
-    } wipe_stmt;
-
-    struct {
-        std::unique_ptr<Expr> expr;
-    } throw_stmt;
-
-    struct {
-        std::unique_ptr<Stmt> stmt;
-    } unsafe_stmt;
-
-    std::string label;
-    std::string jump_target;
-
-    std::unique_ptr<Expr> return_values;
-};
-
-// Top Level Scope Program
-
-struct ForwardDecl : Node {
-    Visibility visibility = Visibility::Private;
-    enum class Kind { Struct, Function } kind;
-    std::unique_ptr<QualifiedName> name;
-    std::unique_ptr<Type> return_types;
-    std::vector<std::unique_ptr<Type>> params;
-    std::unique_ptr<Type> throws_type;
-    bool is_static = false;
-    bool is_extern = false;
-    bool is_const = false; // void foo() const;
-    bool is_noreturn = false;
-    bool is_throws = false;
-};
-
-struct Function : Node {
-    Visibility visibility = Visibility::Private;
-
-    std::unique_ptr<Type> return_types;
-    std::unique_ptr<QualifiedName> name;
-
-    struct Param {
-        std::unique_ptr<Type> type;
-        std::string name;
-        std::unique_ptr<Expr> init;
-    };
-    std::vector<Param> params;
-
-    std::unique_ptr<Stmt> body;
-    std::unique_ptr<Type> throws_type;
-
-    bool is_static = false; // static void foo();
-    bool is_const = false; // void foo() const;
-    bool is_noreturn = false;
-    bool is_throws = false;
-};
-
-// Data Structure
-
-struct UnionDef : Node {
-    Visibility visibility = Visibility::Private;
-    std::unique_ptr<QualifiedName> name;
-
-    struct Field {
-        std::unique_ptr<Type> type;
-        std::string name;
-    };
-
-    std::vector<Field> fields;
-    std::optional<std::string> default_field;
-};
-
-struct Constructor : Node {
-    struct Param {
-        std::unique_ptr<Type> type;
-        std::string name;
-        std::unique_ptr<Expr> init;
-    };
-    std::vector<Param> params;
-    std::unique_ptr<Stmt> body;
-};
-
-struct Destructor : Node {
-    std::unique_ptr<Stmt> body;
-};
-
-struct StructDef : Node {
-    Visibility visibility = Visibility::Private;
-    std::unique_ptr<QualifiedName> name;
-    std::vector<std::unique_ptr<Node>> members;
-    std::unique_ptr<Constructor> ctor;
-    std::unique_ptr<Destructor> dtor;
-    std::unique_ptr<Constructor> default_ctor;
-    std::optional<std::string> default_field;
-};
-
-// Enum ( Enum Union & Constant Enum )
-
-struct EnumDef : Node {
-    Visibility visibility = Visibility::Private;
-    std::unique_ptr<QualifiedName> name;
-    std::unique_ptr<Type> underlying_type;
-
-    struct Item {
-        std::string name;
-        std::unique_ptr<Expr> value;
-    };
-
-    std::vector<Item> items;
-};
-
-struct NamespaceDecl : Node {
-    std::unique_ptr<QualifiedName> name;
-    std::vector<std::unique_ptr<Node>> items;
-};
-
-struct FileProgram : Node {
-    std::vector<std::unique_ptr<Node>> decls;
-};
+void lowerAST(FileProgram* program) {
+    LoweringEngine engine;
+    engine.lowerProgram(program);
+}
