@@ -40,7 +40,6 @@ private:
         }
         return false;
     }
-    int err_var_counter = 0;
     int label_counter = 0;
 
     // --- Helper rekursif untuk menyuntikkan &__err_slot_N ke call throwing_functions ---
