@@ -41,6 +41,56 @@ private:
         return false;
     }
     int label_counter = 0;
+    bool consumeTryAndInjectSlot(Expr* expr, const std::string& slotName) {
+        if (!expr) return false;
+
+        if (expr->kind == Expr::Kind::Try) {
+            if (!expr->try_expr.expr) return false;
+            *expr = std::move(*expr->try_expr.expr);
+            injectErrSlotInExpr(expr, slotName);
+            return true;
+        }
+
+        switch (expr->kind) {
+            case Expr::Kind::Unary:
+                return consumeTryAndInjectSlot(expr->unary.expr.get(), slotName);
+            case Expr::Kind::Binary:
+                return consumeTryAndInjectSlot(expr->binary.lhs.get(), slotName) ||
+                       consumeTryAndInjectSlot(expr->binary.rhs.get(), slotName);
+            case Expr::Kind::Assign:
+                return consumeTryAndInjectSlot(expr->assign.lhs.get(), slotName) ||
+                       consumeTryAndInjectSlot(expr->assign.rhs.get(), slotName);
+            case Expr::Kind::Ternary:
+                return consumeTryAndInjectSlot(expr->ternary.cond.get(), slotName) ||
+                       consumeTryAndInjectSlot(expr->ternary.then_expr.get(), slotName) ||
+                       consumeTryAndInjectSlot(expr->ternary.else_expr.get(), slotName);
+            case Expr::Kind::Cast:
+                return consumeTryAndInjectSlot(expr->cast.base.get(), slotName);
+            default:
+                return false;
+        }
+    }
+
+    bool tryHandleStmtInDo(Stmt* s, const std::string& slotName) {
+        if (!s) return false;
+        if (s->kind == Stmt::Kind::ExprStmt) {
+            return consumeTryAndInjectSlot(s->expr_stmt.get(), slotName);
+        }
+        if (s->kind == Stmt::Kind::VarDecl) {
+            bool found = false;
+            for (auto& it : s->var_decl.items) {
+                if (consumeTryAndInjectSlot(it.init.get(), slotName)) found = true;
+                for (auto& a : it.args) {
+                    if (consumeTryAndInjectSlot(a.get(), slotName)) found = true;
+                }
+            }
+            return found;
+        }
+        if (s->kind == Stmt::Kind::Return) {
+            return consumeTryAndInjectSlot(s->return_values.get(), slotName);
+        }
+        return false;
+    }
 
     // --- Helper rekursif untuk menyuntikkan &__err_slot_N ke call throwing_functions ---
 void injectErrSlotInExpr(Expr* expr, const std::string& slotName) {
@@ -229,6 +279,14 @@ private:
             case Expr::Kind::Unary:
                 lowerExpr(expr->unary.expr.get());
                 break;
+            case Expr::Kind::Try: {
+                if (expr->try_expr.expr) {
+                    lowerExpr(expr->try_expr.expr.get());
+                    *expr = std::move(*expr->try_expr.expr);
+                }
+                break;
+            }
+
             case Expr::Kind::Binary:
                 lowerExpr(expr->binary.lhs.get());
                 lowerExpr(expr->binary.rhs.get());
@@ -450,25 +508,9 @@ private:
                     }
 
                     for (auto& s : bodyList) {
-                        bool hasThrowCall = false;
-                        Expr* targetExpr = nullptr;
-                        if (s->kind == Stmt::Kind::ExprStmt) targetExpr = s->expr_stmt.get();
-                        else if (s->kind == Stmt::Kind::VarDecl && !s->var_decl.items.empty()) targetExpr = s->var_decl.items[0].init.get();
-                        else if (s->kind == Stmt::Kind::Return) targetExpr = s->return_values.get();
-
-                        if (targetExpr && targetExpr->kind == Expr::Kind::Postfix &&
-                            targetExpr->postfix.base && targetExpr->postfix.base->kind == Expr::Kind::Ident &&
-                            targetExpr->postfix.base->ident && !targetExpr->postfix.base->ident->parts.empty()) {
-                            std::string fname = targetExpr->postfix.base->ident->parts.back();
-                            if (throwing_functions.count(fname)) {
-                                for (auto& op : targetExpr->postfix.ops) {
-                                    if (op.kind == Expr::PostfixOp::Kind::Call) {
-                                        op.args.push_back(makeRefExpr(slotName));
-                                        hasThrowCall = true;
-                                        break;
-                                    }
-                                }
-                            }
+                        bool hasThrowCall = tryHandleStmtInDo(s.get(), slotName);
+                        if (!hasThrowCall) {
+                            lowerStmt(s.get());
                         }
 
                         desugaredBlock->block.stmts.push_back(std::move(s));
