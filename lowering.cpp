@@ -46,7 +46,8 @@ private:
 
         if (expr->kind == Expr::Kind::Try) {
             if (!expr->try_expr.expr) return false;
-            *expr = std::move(*expr->try_expr.expr);
+            auto inner = std::move(expr->try_expr.expr);
+            *expr = std::move(*inner);
             injectErrSlotInExpr(expr, slotName);
             return true;
         }
@@ -281,8 +282,9 @@ private:
                 break;
             case Expr::Kind::Try: {
                 if (expr->try_expr.expr) {
-                    lowerExpr(expr->try_expr.expr.get());
-                    *expr = std::move(*expr->try_expr.expr);
+                    auto inner = std::move(expr->try_expr.expr);
+                    lowerExpr(inner.get());
+                    *expr = std::move(*inner);
                 }
                 break;
             }
