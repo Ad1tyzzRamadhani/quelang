@@ -289,6 +289,7 @@ private:
         }
 
         const std::string& typeName = type->base->parts.back();
+        if(typeName == "void") return nullptr;
 
         if (typeName == "int" || typeName == "i32" || typeName == "i64" ||
             typeName == "u32" || typeName == "u64" || typeName == "byte" || typeName == "char") {
