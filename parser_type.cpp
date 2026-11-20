@@ -132,10 +132,6 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
                     TokenType::RPAREN,
                     "expected ')' to close function pointer parameter list"
                 );
-                if (check(TokenType::KW_THROW)) {
-                    consume(TokenType::KW_THROW, " THROWS FUNCPTR");
-                    mod.throws_type = parseType();
-                }
                 if (
                     check(TokenType::STAR)
                 ) {
@@ -153,6 +149,10 @@ std::unique_ptr<Type> ParseState::parseFuncPtrType(std::vector<TypeQualifier> tq
                     );
                 } else {
                     error("expected '*' to finalize function pointer declaration");
+                }
+                if (check(TokenType::KW_THROW)) {
+                    consume(TokenType::KW_THROW, " THROWS FUNCPTR");
+                    mod.throws_type = parseType();
                 }
             }
             catch (...) {
