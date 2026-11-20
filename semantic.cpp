@@ -905,9 +905,9 @@ void SemanticAnalyzer::analyzeDo(Stmt& stmt) {
         requireBoolean(cond, stmt.do_stmt.cond.get(), "do/while condition");
     }
     if (stmt.do_stmt.iscatch) {
-        if (!function_stack_.back().is_throws && !function_stack_.back().throws_type) {
+        /*if (!function_stack_.back().is_throws && !function_stack_.back().throws_type) {
             warning(&stmt, "do/catch is used in a function without a throws contract");
-        }
+        }*/
         symbols_.enterScope("catch");
         function_stack_.back().catch_depth++;
         if (!stmt.do_stmt.error_var.items.empty()) {
@@ -1445,7 +1445,10 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
     if (!expr) return invalid;
     switch (expr->kind) {
         case Expr::Kind::Literal: return analyzeLiteral(expr->literal.get());
-                case Expr::Kind::Try: {
+        case Expr::Kind::Try: {
+            if (function_stack_.empty() || function_stack_.back().catch_depth == 0) {
+                error(expr, "'try' can only be used inside a 'do ... catch' block");
+            }
             if (!expr->try_expr.expr) {
                 error(expr, "'try' requires an expression");
                 return invalid;
