@@ -521,11 +521,22 @@ std::unique_ptr<Expr> ParseState::parseUnary() {
         match(TokenType::AMP)   ||
         match(TokenType::TILDE) ||
         match(TokenType::KW_MOVE) ||
+        match(TokenType::KW_TRY) ||
         match(TokenType::KW_NOT) ||
         match(TokenType::BANG))
     {
         TokenType opTok = tokens[pos - 1].type;
 
+        if (opTok == TokenType::KW_TRY) {
+            auto expr = std::make_unique<Expr>();
+            expr->kind = Expr::Kind::Try;
+            expr->file = tokens[pos - 1].file;
+            expr->line_start = tokens[pos - 1].line;
+            expr->column_start = tokens[pos - 1].column;
+            expr->try_expr.expr = parseUnary();
+            return expr;
+        }
+        
         auto expr = std::make_unique<Expr>();
         expr->kind = Expr::Kind::Unary;
         expr->file = tokens[pos - 1].file;
