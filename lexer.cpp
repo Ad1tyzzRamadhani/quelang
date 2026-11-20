@@ -211,9 +211,14 @@ private:
 
         if (file.empty())
             error("empty @line filename");
+        while (peek() && peek() != '\n')
+            advance();
+        if (peek() == '\n')
+            advance();
 
         current_file = file;
-
+        line = 0;
+        column = 0;
     }
 
     void binary() {
