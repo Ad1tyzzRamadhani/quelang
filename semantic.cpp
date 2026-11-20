@@ -1445,6 +1445,76 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
     if (!expr) return invalid;
     switch (expr->kind) {
         case Expr::Kind::Literal: return analyzeLiteral(expr->literal.get());
+                case Expr::Kind::Try: {
+            if (!expr->try_expr.expr) {
+                error(expr, "'try' requires an expression");
+                return invalid;
+            }
+
+            Expr* inner = expr->try_expr.expr.get();
+            TypeView result = analyzeExpr(inner);
+
+            // Pastikan ekspresi di dalam `try` adalah pemanggilan fungsi / method
+            // dan target panggilannya memiliki deklarasi `throws`.
+            bool is_throwing_target = false;
+            std::string target_name = "<expression>";
+
+            if (inner->kind == Expr::Kind::Postfix &&
+                !inner->postfix.ops.empty() &&
+                inner->postfix.ops.back().kind == Expr::PostfixOp::Kind::Call) {
+
+                // Kasus 1: pemanggilan langsung fungsi / method -> foo(...)
+                if (inner->postfix.base &&
+                    inner->postfix.base->kind == Expr::Kind::Ident &&
+                    inner->postfix.base->ident) {
+                    target_name = qualifiedName(*inner->postfix.base->ident);
+                    if (SemanticSymbol* sym = resolveSymbol(target_name)) {
+                        if (sym->function_signature) {
+                            is_throwing_target = sym->function_signature->is_throws ||
+                                                 (sym->function_signature->throws_type != nullptr);
+                        } else {
+                            is_throwing_target = sym->is_throws;
+                        }
+                    }
+                }
+                // Kasus 2: pemanggilan method pada objek / pointer -> obj.foo(...) atau ptr->foo(...)
+                else if (inner->postfix.base &&
+                         inner->postfix.base->kind == Expr::Kind::Postfix &&
+                         !inner->postfix.base->postfix.ops.empty()) {
+                    const auto& last_op = inner->postfix.base->postfix.ops.back();
+                    if (last_op.kind == Expr::PostfixOp::Kind::MemberAccess ||
+                        last_op.kind == Expr::PostfixOp::Kind::Arrow ||
+                        last_op.kind == Expr::PostfixOp::Kind::SafeArrow) {
+                        target_name = last_op.name;
+                        // Analisis base objeknya agar tipenya terbaca, lalu cek member fungsinya
+                        TypeView base_type = analyzeExpr(inner->postfix.base->postfix.base.get());
+                        if (base_type.valid) {
+                            if (last_op.kind == Expr::PostfixOp::Kind::Arrow ||
+                                last_op.kind == Expr::PostfixOp::Kind::SafeArrow) {
+                                if (!base_type.modifiers.empty() &&
+                                    (base_type.modifiers.back() == TypeModifier::Kind::Pointer ||
+                                     base_type.modifiers.back() == TypeModifier::Kind::Reference)) {
+                                    base_type.modifiers.pop_back();
+                                }
+                            }
+                            MemberInfo m = findMember(base_type, last_op.name);
+                            if (m.found && m.is_function && m.function) {
+                                is_throwing_target = m.function->is_throws ||
+                                                     (m.function->throws_type != nullptr);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!is_throwing_target) {
+                error(expr, "'try' can only be applied to a call to a throws function, '" +
+                            target_name + "' does not declare throws");
+            }
+
+            return result;
+        }
+
         case Expr::Kind::Ident: {
             if (!expr->ident) return invalid;
             if (expr->ident->is_absolute) {
