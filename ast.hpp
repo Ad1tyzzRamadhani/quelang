@@ -86,6 +86,7 @@ struct Expr : Node {
         Assign,
         Ternary,
         Postfix,
+        Try, 
 
         Cast,
         New,
@@ -106,6 +107,9 @@ struct Expr : Node {
         std::unique_ptr<Expr> expr;
     } unary;
 
+    struct {
+        std::unique_ptr<Expr> expr;
+    } try_expr;
     // BinaryOp
     struct {
         BinaryOp op;
