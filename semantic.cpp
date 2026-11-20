@@ -1446,9 +1446,9 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
     switch (expr->kind) {
         case Expr::Kind::Literal: return analyzeLiteral(expr->literal.get());
         case Expr::Kind::Try: {
-            if (function_stack_.empty() || function_stack_.back().catch_depth == 0) {
+            /*if (function_stack_.empty() || function_stack_.back().catch_depth == 0) {
                 error(expr, "'try' can only be used inside a 'do ... catch' block");
-            }
+            }*/
             if (!expr->try_expr.expr) {
                 error(expr, "'try' requires an expression");
                 return invalid;
