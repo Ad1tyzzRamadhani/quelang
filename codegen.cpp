@@ -1144,6 +1144,16 @@ private:
                     std::string valRes = emitExpr(fieldPair.second.get());
                     std::string fieldAddrRes = freshTemp();
                     std::string fieldType = "i32";
+
+                    auto it = structDefinitions_.find(structName);
+                    if (it != structDefinitions_.end()) {
+                        for (const auto& f : it->second.fields) {
+                            if (f.name == fieldPair.first || f.index == fieldIdx) {
+                                fieldType = f.type;
+                                 break;
+                            }
+                        }
+                    }
                     
                     if (valRes.rfind('"', 0) == 0 && valRes.back() == '"') {
                         fieldType = "ptr";
