@@ -41,6 +41,7 @@ private:
     struct FieldInfo {
         std::string name;
         std::string type;
+        std::string elementType;
         int index;
     };
 
@@ -151,6 +152,56 @@ private:
         }
         return "i32";
     }
+
+    std::string getPointeeType(Expr* expr) {
+    if (!expr) return "i32";
+
+    if (expr->kind == Expr::Kind::Ident && expr->ident && !expr->ident->parts.empty()) {
+        std::string name = expr->ident->parts.back();
+        if (symbolElementTypes_.count(name)) return symbolElementTypes_[name];
+        if (paramElementTypes_.count(name)) return paramElementTypes_[name];
+    }
+
+    if (expr->kind == Expr::Kind::Postfix) {
+        std::string currentType = getExprType(expr->postfix.base.get());
+        std::string lastElemType = "i8";
+        if (expr->postfix.base && expr->postfix.base->kind == Expr::Kind::Ident &&
+            expr->postfix.base->ident && !expr->postfix.base->ident->parts.empty()) {
+            std::string baseName = expr->postfix.base->ident->parts.back();
+            if (symbolElementTypes_.count(baseName)) lastElemType = symbolElementTypes_[baseName];
+            else if (paramElementTypes_.count(baseName)) lastElemType = paramElementTypes_[baseName];
+        }
+
+        for (const auto& op : expr->postfix.ops) {
+            if (op.kind == Expr::PostfixOp::Kind::MemberAccess ||
+                op.kind == Expr::PostfixOp::Kind::Arrow ||
+                op.kind == Expr::PostfixOp::Kind::SafeArrow) {
+                if (structDefinitions_.count(currentType)) {
+                    for (const auto& f : structDefinitions_[currentType].fields) {
+                        if (f.name == op.name) {
+                            currentType = f.type;
+                            lastElemType = f.elementType;
+                            break;
+                        }
+                    }
+                }
+            } else if (op.kind == Expr::PostfixOp::Kind::Index) {
+                currentType = lastElemType;
+            }
+        }
+        return lastElemType;
+    }
+
+    if (expr->kind == Expr::Kind::Unary && expr->unary.op == UnaryOp::Ref) {
+        return getExprType(expr->unary.expr.get());
+    }
+
+    if (expr->kind == Expr::Kind::Cast && expr->cast.target) {
+        return getElementType(expr->cast.target.get());
+    }
+
+    return "i8";
+}
 
 
     std::string getElementType(Type* type) {
@@ -298,6 +349,8 @@ private:
                 }
             case Expr::Kind::Unary:
                 if (expr->unary.op == UnaryOp::Not) return "bool";
+                if (expr->unary.op == UnaryOp::Ref) return "ptr";
+                if (expr->unary.op == UnaryOp::Deref) return getPointeeType(expr->unary.expr.get());
                 return getExprType(expr->unary.expr.get());
             case Expr::Kind::Ternary:
                 return getExprType(expr->ternary.then_expr.get());
@@ -506,9 +559,10 @@ private:
         for (const auto& member : structDef->members) {
             if (auto var = dynamic_cast<VarDecl*>(member.get())) {
                 std::string fieldType = emitType(var->type.get());
+                std::string fieldElemType = getElementType(var->type.get());
                 for (const auto& item : var->items) {
                     out_ << "    " << item.name << ": " << fieldType << "\n";
-                    info.fields.push_back({item.name, fieldType, index++});
+                    info.fields.push_back({item.name, fieldType, fieldElemType, index++});
                 }
             }
         }
@@ -1406,19 +1460,9 @@ private:
                     }
 
                     case UnaryOp::Deref: {
-                        std::string varType = "i32";
-                        if (expr->unary.expr->kind == Expr::Kind::Ident && 
-                            expr->unary.expr->ident && 
-                            !expr->unary.expr->ident->parts.empty()) {
-                            std::string idName = expr->unary.expr->ident->parts.back();
-                            if (symbolTypes_.find(idName) != symbolTypes_.end()) {
-                                std::string baseType = symbolTypes_[idName];
-                                varType = (baseType == "ptr") ? "i32" : baseType;
-                            }
-                        }
-
-                        out_ << "    " << res << " = load " << varType << " " << operandVal << "\n";
-                        return res;
+                        std::string loadType = getPointeeType(expr->unary.expr.get());
+                        out_ << "    " << res << " = load " << loadType << " " << operandVal << "\n";
+                        return res;  
                     }
 
                     case UnaryOp::Neg: {
