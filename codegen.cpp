@@ -705,7 +705,7 @@ private:
                         scopes_.back()[item.name] = reg;
                         scopeTypes_.back()[item.name] = t;
                     }
-                    if (item.init->kind == Expr::Kind::StructInit) {
+                    if (item.init && item.init->kind == Expr::Kind::StructInit) {
                         std::string structReg = emitExpr(item.init.get());
                         if (!scopes_.empty()) {
                             scopes_.back()[item.name] = structReg;
@@ -1655,9 +1655,6 @@ private:
                             }  
                         }
 
-                        std::string fieldAddrRes = freshTemp();
-                        out_ << "    " << fieldAddrRes << " = field addr " << currentType << ", " << currentReg << ", " << fieldIndex << "\n";
-            
                         std::string fieldAddrRes = freshTemp();
                         out_ << "    " << fieldAddrRes << " = field addr " << currentType << ", " << currentReg << ", " << fieldIndex << "\n";
 
