@@ -268,6 +268,10 @@ private:
     }
 
     std::string emitFieldAddr(Expr* expr, std::string& outFieldType) {
+    if (!expr) {
+        outFieldType = "i32";
+        return "0";
+    }
     std::string baseName;
     if (expr->postfix.base && expr->postfix.base->kind == Expr::Kind::Ident &&
         expr->postfix.base->ident && !expr->postfix.base->ident->parts.empty()) {
@@ -1637,10 +1641,10 @@ private:
                            op.kind == Expr::PostfixOp::Kind::Arrow || 
                            op.kind == Expr::PostfixOp::Kind::SafeArrow) 
                     {
-                        /*int fieldIndex = 0;
+                        int fieldIndex = 0;
                         std::string fieldType = "i32";
             
-                        if (structDefinitions_.find(currentType) != structDefinitions_.end()) {
+                        if (structDefinitions_.count(currentType)) {
                             const auto& sInfo = structDefinitions_[currentType];
                             for (const auto& f : sInfo.fields) {
                                 if (f.name == op.name) {
@@ -1654,16 +1658,24 @@ private:
                         std::string fieldAddrRes = freshTemp();
                         out_ << "    " << fieldAddrRes << " = field addr " << currentType << ", " << currentReg << ", " << fieldIndex << "\n";
             
-                        std::string loadRes = freshTemp();
-                        out_ << "    " << loadRes << " = load " << fieldType << " " << fieldAddrRes << "\n";
-             
-                        currentReg = loadRes;
-                        currentType = fieldType;*/
-                        std::string fieldType = "i32";
+                        std::string fieldAddrRes = freshTemp();
+                        out_ << "    " << fieldAddrRes << " = field addr " << currentType << ", " << currentReg << ", " << fieldIndex << "\n";
+
+                        if (fieldType.rfind("[", 0) == 0) {
+                            currentReg = fieldAddrRes;
+                            currentType = fieldType;
+                        } else {
+                            std::string loadRes = freshTemp();
+                            out_ << "    " << loadRes << " = load " << fieldType << " " << fieldAddrRes << "\n";
+                            currentReg = loadRes;
+                            currentType = fieldType;
+                        }
+                        
+                        /*std::string fieldType = "i32";
                         std::string fieldAddr = emitFieldAddr(expr, fieldType);
                         std::string loadRes = freshTemp();
                         out_ << "    " << loadRes << " = load " << fieldType << " " << fieldAddr << "\n";
-                        return loadRes;
+                        return loadRes;*/
                     }
                 }
                 return currentReg;
