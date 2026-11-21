@@ -267,6 +267,62 @@ private:
         return result;
     }
 
+    std::string emitFieldAddr(Expr* expr, std::string& outFieldType) {
+    std::string baseName;
+    if (expr->postfix.base && expr->postfix.base->kind == Expr::Kind::Ident &&
+        expr->postfix.base->ident && !expr->postfix.base->ident->parts.empty()) {
+        baseName = expr->postfix.base->ident->parts.back();
+    }
+
+    std::string curReg = "%" + baseName;
+    std::string curType = "i32";
+    std::string varReg, varType;
+    if (lookupVar(baseName, varReg, varType)) {
+        curReg = varReg;
+        curType = varType;
+    } else if (symbolTypes_.count(baseName)) {
+        curType = symbolTypes_[baseName];
+    }
+
+    for (size_t i = 0; i < expr->postfix.ops.size(); ++i) {
+        const auto& op = expr->postfix.ops[i];
+        if (op.kind == Expr::PostfixOp::Kind::MemberAccess ||
+            op.kind == Expr::PostfixOp::Kind::Arrow ||
+            op.kind == Expr::PostfixOp::Kind::SafeArrow) {
+
+            int fieldIndex = 0;
+            std::string fieldType = "i32";
+            if (structDefinitions_.count(curType)) {
+                for (const auto& f : structDefinitions_[curType].fields) {
+                    if (f.name == op.name) {
+                        fieldIndex = f.index;
+                        fieldType = f.type;
+                        break;
+                    }
+                }
+            }
+
+            std::string fieldAddr = freshTemp();
+            out_ << "    " << fieldAddr << " = field addr " << curType << ", " << curReg << ", " << fieldIndex << "\n";
+
+            bool isLast = (i + 1 == expr->postfix.ops.size());
+            if (isLast) {
+                outFieldType = fieldType;
+                return fieldAddr;
+            }
+
+            std::string loaded = freshTemp();
+            out_ << "    " << loaded << " = load " << fieldType << " " << fieldAddr << "\n";
+            curReg = loaded;
+            curType = fieldType;
+        }
+    }
+
+    outFieldType = curType;
+    return curReg;
+}
+
+
     std::string getExprType(Expr* expr) {
         if (!expr) return "i32";
         
@@ -1454,6 +1510,10 @@ private:
                 
                 switch (expr->unary.op) {
                     case UnaryOp::Ref: {
+                        if (expr->unary.expr && expr->unary.expr->kind == Expr::Kind::Postfix) {
+                            std::string ignoredType;
+                            return emitFieldAddr(expr->unary.expr.get(), ignoredType);
+                        }
                         if (expr->unary.expr->kind == Expr::Kind::Ident && 
                             expr->unary.expr->ident) {
                             if (expr->unary.expr->ident->is_absolute) {
@@ -1577,7 +1637,7 @@ private:
                            op.kind == Expr::PostfixOp::Kind::Arrow || 
                            op.kind == Expr::PostfixOp::Kind::SafeArrow) 
                     {
-                        int fieldIndex = 0;
+                        /*int fieldIndex = 0;
                         std::string fieldType = "i32";
             
                         if (structDefinitions_.find(currentType) != structDefinitions_.end()) {
@@ -1598,7 +1658,12 @@ private:
                         out_ << "    " << loadRes << " = load " << fieldType << " " << fieldAddrRes << "\n";
              
                         currentReg = loadRes;
-                        currentType = fieldType;
+                        currentType = fieldType;*/
+                        std::string fieldType = "i32";
+                        std::string fieldAddr = emitFieldAddr(expr, fieldType);
+                        std::string loadRes = freshTemp();
+                        out_ << "    " << loadRes << " = load " << fieldType << " " << fieldAddr << "\n";
+                        return loadRes;
                     }
                 }
                 return currentReg;
