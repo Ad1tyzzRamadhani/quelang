@@ -30,6 +30,7 @@ private:
     std::unordered_map<std::string, std::string> functionReturnTypes_; // Melacak tipe return fungsi secara dinamis
     std::vector<std::string> loopCondLabels_;
     std::vector<std::string> loopEndLabels_;
+    std::unordered_map<std::string, std::string> pointerStructTypes_;
     std::vector<std::unordered_map<std::string, std::string>> scopes_;
     std::vector<std::unordered_map<std::string, std::string>> scopeTypes_;
     std::unordered_map<std::string, std::string> paramElementTypes_;
@@ -133,6 +134,25 @@ private:
         }
         out_ << "\n";
     }
+
+    void recordPointerStructType(const std::string& name, Type* type) {
+    if (!type || !type->base || type->base->parts.empty()) return;
+    bool hasPtr = false;
+    for (const auto& mod : type->modifiers) {
+        if (mod.kind == TypeModifier::Kind::Pointer ||
+            mod.kind == TypeModifier::Kind::Reference) {
+            hasPtr = true;
+            break;
+        }
+    }
+    if (hasPtr) {
+        std::string baseName = type->base->parts.back();
+        if (structDefinitions_.count(baseName)) {
+            pointerStructTypes_[name] = baseName;
+        }
+    }
+}
+
 
         std::string getIndexElemType(const std::string& baseName, const std::string& currentType) {
         if (currentType.rfind("[", 0) == 0) {
@@ -1377,6 +1397,59 @@ private:
                         else if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
                             currentType = symbolTypes_[baseName];
                         }
+
+                        if (currentType == "ptr" && pointerStructTypes_.count(baseName)) {
+            std::string ptrLoaded = freshTemp();
+            out_ << "    " << ptrLoaded << " = load ptr " << currentReg << "\n";
+            currentReg = ptrLoaded;
+            currentType = pointerStructTypes_[baseName];
+        }
+
+        // Telusuri ops[0 .. ops.size() - 2] untuk mendapatkan alamat target terakhir
+        for (size_t i = 0; i + 1 < postfix.ops.size(); ++i) {
+            const auto& op = postfix.ops[i];
+            if (op.kind == Expr::PostfixOp::Kind::MemberAccess ||
+                op.kind == Expr::PostfixOp::Kind::Arrow ||
+                op.kind == Expr::PostfixOp::Kind::SafeArrow) {
+                int fieldIndex = 0;
+                std::string fieldType = "i32";
+                if (structDefinitions_.count(currentType)) {
+                    for (const auto& f : structDefinitions_[currentType].fields) {
+                        if (f.name == op.name) {
+                            fieldIndex = f.index;
+                            fieldType = f.type;
+                            break;
+                        }
+                    }
+                }
+                std::string fieldAddr = freshTemp();
+                out_ << "    " << fieldAddr << " = field addr " << currentType << ", " << currentReg << ", " << fieldIndex << "\n";
+                if (fieldType.rfind("[", 0) == 0) {
+                    currentReg = fieldAddr;
+                    currentType = fieldType;
+                } else {
+                    std::string fVal = freshTemp();
+                    out_ << "    " << fVal << " = load " << fieldType << " " << fieldAddr << "\n";
+                    currentReg = fVal;
+                    currentType = fieldType;
+                }
+            } else if (op.kind == Expr::PostfixOp::Kind::Index) {
+                std::string idxVal = emitExpr(op.index.get());
+                std::string elemType = getIndexElemType(baseName, currentType);
+                std::string elemAddr = freshTemp();
+                out_ << "    " << elemAddr << " = elem addr " << elemType << " " << currentReg << ", " << idxVal << "\n";
+                if (elemType == "ptr") {
+                    std::string eVal = freshTemp();
+                    out_ << "    " << eVal << " = load ptr " << elemAddr << "\n";
+                    currentReg = eVal;
+                    currentType = "ptr";
+                } else {
+                    currentReg = elemAddr;
+                    currentType = elemType;
+                }
+            }
+        }
+
 
                         // Evaluasi ekspresi indeks
                         auto& lastOp = postfix.ops.back();
