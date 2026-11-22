@@ -15,6 +15,7 @@ public:
         paramTypes_.clear();
         functionReturnTypes_.clear();
         structDefinitions_.clear();
+        pointerStructTypes_.clear();
 
         for (const auto& node : program->decls) {
             emitNode(node.get());
@@ -344,7 +345,7 @@ private:
 
     outFieldType = curType;
     return curReg;
-}
+    }
 
 
     std::string getExprType(Expr* expr) {
@@ -585,6 +586,7 @@ private:
             paramElementTypes_[p.name] = elemT;
             scopes_.back()[p.name] = "%" + p.name;
             scopeTypes_.back()[p.name] = pType;
+            recordPointerStructType(p.name, p.type.get());
             out_ << pType  << " " + p.name;
             if (i + 1 < func->params.size()) out_ << ", ";
         }
@@ -720,6 +722,7 @@ private:
                     symbolTypes_[item.name] = t;
                     std::string elemT = getElementType(stmt->var_decl.type.get());
                     symbolElementTypes_[item.name] = elemT;
+                    recordPointerStructType(item.name, stmt->var_decl.type.get());
                     std::string reg = "%" + item.name + "_" + std::to_string(tempCounter_++);
                     if (!scopes_.empty()) {
                         scopes_.back()[item.name] = reg;
@@ -1714,7 +1717,7 @@ private:
                            op.kind == Expr::PostfixOp::Kind::Arrow || 
                            op.kind == Expr::PostfixOp::Kind::SafeArrow) 
                     {
-                        int fieldIndex = 0;
+                        /*int fieldIndex = 0;
                         std::string fieldType = "i32";
             
                         if (structDefinitions_.count(currentType)) {
@@ -1739,7 +1742,17 @@ private:
                             out_ << "    " << loadRes << " = load " << fieldType << " " << fieldAddrRes << "\n";
                             currentReg = loadRes;
                             currentType = fieldType;
-                        }
+                        }*/
+
+                        std::string structType = currentType;
+                    if ((op.kind == Expr::PostfixOp::Kind::Arrow || op.kind == Expr::PostfixOp::Kind::SafeArrow) &&
+    currentType == "ptr" && pointerStructTypes_.count(baseName)) {
+    std::string ptrVal = freshTemp();
+    out_ << "    " << ptrVal << " = load ptr " << currentReg << "\n";
+    currentReg = ptrVal;
+    structType = pointerStructTypes_[baseName];
+}
+
                         
                         /*std::string fieldType = "i32";
                         std::string fieldAddr = emitFieldAddr(expr, fieldType);
