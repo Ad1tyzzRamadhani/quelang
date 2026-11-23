@@ -299,7 +299,6 @@ private:
     }
 
     std::string emitFieldAddr(Expr* expr, std::string& outFieldType) {
-    std::string emitFieldAddr(Expr* expr, std::string& outFieldType) {
     if (!expr) {
         outFieldType = "i32";
         return "0";
@@ -1818,24 +1817,42 @@ private:
                     } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess ||
            op.kind == Expr::PostfixOp::Kind::Arrow ||
            op.kind == Expr::PostfixOp::Kind::SafeArrow) {
-    std::string structName = currentType;
+    std::string structType = currentType;
     if ((op.kind == Expr::PostfixOp::Kind::Arrow || op.kind == Expr::PostfixOp::Kind::SafeArrow) &&
-        !structDefinitions_.count(structName) && pointerStructTypes_.count(baseName)) {
-        structName = pointerStructTypes_[baseName];
+        currentType == "ptr" && pointerStructTypes_.count(baseName)) {
+        std::string ptrVal = freshTemp();
+        out_ << "    " << ptrVal << " = load ptr " << currentReg << "\n";
+        currentReg = ptrVal;
+        structType = pointerStructTypes_[baseName];
     }
 
+    int fieldIndex = 0;
     std::string fieldType = "i32";
-    if (structDefinitions_.count(structName)) {
-        const auto& sInfo = structDefinitions_[structName];
+    if (structDefinitions_.count(structType)) {
+        const auto& sInfo = structDefinitions_[structType];
         for (const auto& f : sInfo.fields) {
             if (f.name == op.name) {
+                fieldIndex = f.index;
                 fieldType = f.type;
                 break;
             }
         }
     }
-    currentType = fieldType;
+
+    std::string fieldAddrRes = freshTemp();
+    out_ << "    " << fieldAddrRes << " = field addr " << structType << ", " << currentReg << ", " << fieldIndex << "\n";
+
+    if (fieldType.rfind("[", 0) == 0) {
+        currentReg = fieldAddrRes;
+        currentType = fieldType;
+    } else {
+        std::string loadRes = freshTemp();
+        out_ << "    " << loadRes << " = load " << fieldType << " " << fieldAddrRes << "\n";
+        currentReg = loadRes;
+        currentType = fieldType;
+    }
 }
+
 
                 }
                 return currentReg;
