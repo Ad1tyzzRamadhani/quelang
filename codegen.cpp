@@ -1767,7 +1767,14 @@ private:
                     currentType = symbolTypes_[baseName];
                 }
 
-                                for (size_t i = 0; i < expr->postfix.ops.size(); ++i) {
+                if (currentType == "ptr" && !expr->postfix.ops.empty() &&
+                    expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::Index) {
+                    std::string loadedPtr = freshTemp();
+                    out_ << "    " << loadedPtr << " = load ptr " << currentReg << "\n";
+                    currentReg = loadedPtr;
+                }
+
+                for (size_t i = 0; i < expr->postfix.ops.size(); ++i) {
                     const auto& op = expr->postfix.ops[i];
                     bool hasNextOp = (i + 1 < expr->postfix.ops.size());
                     const Expr::PostfixOp* nextOp = hasNextOp ? &expr->postfix.ops[i + 1] : nullptr;
