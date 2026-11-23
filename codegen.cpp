@@ -288,11 +288,23 @@ private:
         return result;
     }
 
+    std::string resolveStructTypeForArrow(const std::string& baseName, const std::string& curType) const {
+    if (structDefinitions_.count(curType)) {
+        return curType;
+    }
+    if (!baseName.empty() && pointerStructTypes_.count(baseName)) {
+        return pointerStructTypes_.at(baseName);
+    }
+    return curType;
+    }
+
+    std::string emitFieldAddr(Expr* expr, std::string& outFieldType) {
     std::string emitFieldAddr(Expr* expr, std::string& outFieldType) {
     if (!expr) {
         outFieldType = "i32";
         return "0";
     }
+
     std::string baseName;
     if (expr->postfix.base && expr->postfix.base->kind == Expr::Kind::Ident &&
         expr->postfix.base->ident && !expr->postfix.base->ident->parts.empty()) {
@@ -315,10 +327,19 @@ private:
             op.kind == Expr::PostfixOp::Kind::Arrow ||
             op.kind == Expr::PostfixOp::Kind::SafeArrow) {
 
+            std::string structType = curType;
+            if ((op.kind == Expr::PostfixOp::Kind::Arrow || op.kind == Expr::PostfixOp::Kind::SafeArrow) &&
+                curType == "ptr" && pointerStructTypes_.count(baseName)) {
+                std::string ptrLoaded = freshTemp();
+                out_ << "    " << ptrLoaded << " = load ptr " << curReg << "\n";
+                curReg = ptrLoaded;
+                structType = pointerStructTypes_[baseName];
+            }
+
             int fieldIndex = 0;
             std::string fieldType = "i32";
-            if (structDefinitions_.count(curType)) {
-                for (const auto& f : structDefinitions_[curType].fields) {
+            if (structDefinitions_.count(structType)) {
+                for (const auto& f : structDefinitions_[structType].fields) {
                     if (f.name == op.name) {
                         fieldIndex = f.index;
                         fieldType = f.type;
@@ -328,7 +349,7 @@ private:
             }
 
             std::string fieldAddr = freshTemp();
-            out_ << "    " << fieldAddr << " = field addr " << curType << ", " << curReg << ", " << fieldIndex << "\n";
+            out_ << "    " << fieldAddr << " = field addr " << structType << ", " << curReg << ", " << fieldIndex << "\n";
 
             bool isLast = (i + 1 == expr->postfix.ops.size());
             if (isLast) {
@@ -336,16 +357,22 @@ private:
                 return fieldAddr;
             }
 
-            std::string loaded = freshTemp();
-            out_ << "    " << loaded << " = load " << fieldType << " " << fieldAddr << "\n";
-            curReg = loaded;
-            curType = fieldType;
+            if (fieldType.rfind("[", 0) == 0) {
+                curReg = fieldAddr;
+                curType = fieldType;
+            } else {
+                std::string loaded = freshTemp();
+                out_ << "    " << loaded << " = load " << fieldType << " " << fieldAddr << "\n";
+                curReg = loaded;
+                curType = fieldType;
+            }
         }
     }
 
     outFieldType = curType;
     return curReg;
-    }
+}
+
 
 
     std::string getExprType(Expr* expr) {
@@ -1713,53 +1740,28 @@ private:
                         out_ << "    " << loadRes << " = load " << elemType << " " << elemAddrRes << "\n";
                         currentReg = loadRes;
                         currentType = elemType;
-                    } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess || 
-                           op.kind == Expr::PostfixOp::Kind::Arrow || 
-                           op.kind == Expr::PostfixOp::Kind::SafeArrow) 
-                    {
-                        /*int fieldIndex = 0;
-                        std::string fieldType = "i32";
-            
-                        if (structDefinitions_.count(currentType)) {
-                            const auto& sInfo = structDefinitions_[currentType];
-                            for (const auto& f : sInfo.fields) {
-                                if (f.name == op.name) {
-                                    fieldIndex = f.index;
-                                    fieldType = f.type;
-                                    break;
-                                }
-                            }  
-                        }
+                    } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess ||
+           op.kind == Expr::PostfixOp::Kind::Arrow ||
+           op.kind == Expr::PostfixOp::Kind::SafeArrow) {
+    std::string structName = currentType;
+    if ((op.kind == Expr::PostfixOp::Kind::Arrow || op.kind == Expr::PostfixOp::Kind::SafeArrow) &&
+        !structDefinitions_.count(structName) && pointerStructTypes_.count(baseName)) {
+        structName = pointerStructTypes_[baseName];
+    }
 
-                        std::string fieldAddrRes = freshTemp();
-                        out_ << "    " << fieldAddrRes << " = field addr " << currentType << ", " << currentReg << ", " << fieldIndex << "\n";
-
-                        if (fieldType.rfind("[", 0) == 0) {
-                            currentReg = fieldAddrRes;
-                            currentType = fieldType;
-                        } else {
-                            std::string loadRes = freshTemp();
-                            out_ << "    " << loadRes << " = load " << fieldType << " " << fieldAddrRes << "\n";
-                            currentReg = loadRes;
-                            currentType = fieldType;
-                        }*/
-
-                        std::string structType = currentType;
-                    if ((op.kind == Expr::PostfixOp::Kind::Arrow || op.kind == Expr::PostfixOp::Kind::SafeArrow) &&
-    currentType == "ptr" && pointerStructTypes_.count(baseName)) {
-    std::string ptrVal = freshTemp();
-    out_ << "    " << ptrVal << " = load ptr " << currentReg << "\n";
-    currentReg = ptrVal;
-    structType = pointerStructTypes_[baseName];
+    std::string fieldType = "i32";
+    if (structDefinitions_.count(structName)) {
+        const auto& sInfo = structDefinitions_[structName];
+        for (const auto& f : sInfo.fields) {
+            if (f.name == op.name) {
+                fieldType = f.type;
+                break;
+            }
+        }
+    }
+    currentType = fieldType;
 }
 
-                        
-                        /*std::string fieldType = "i32";
-                        std::string fieldAddr = emitFieldAddr(expr, fieldType);
-                        std::string loadRes = freshTemp();
-                        out_ << "    " << loadRes << " = load " << fieldType << " " << fieldAddr << "\n";
-                        return loadRes;*/
-                    }
                 }
                 return currentReg;
             }
