@@ -1437,8 +1437,8 @@ private:
         // Telusuri ops[0 .. ops.size() - 2] untuk mendapatkan alamat target terakhir
         for (size_t i = 0; i + 1 < postfix.ops.size(); ++i) {
             const auto& op = postfix.ops[i];
-            if (lastOp.kind == Expr::PostfixOp::Kind::MemberAccess ||
-    lastOp.kind == Expr::PostfixOp::Kind::Arrow) {
+            if (op.kind == Expr::PostfixOp::Kind::MemberAccess ||
+    op.kind == Expr::PostfixOp::Kind::Arrow) {
 
     std::string baseName = "";
     if (postfix.base && postfix.base->kind == Expr::Kind::Ident &&
@@ -1511,7 +1511,7 @@ private:
     }
 
     std::string targetStruct = currentType;
-    if (lastOp.kind == Expr::PostfixOp::Kind::Arrow &&
+    if (op.kind == Expr::PostfixOp::Kind::Arrow &&
         currentType == "ptr" && pointerStructTypes_.count(baseName)) {
         std::string ptrVal = freshTemp();
         out_ << "    " << ptrVal << " = load ptr " << currentReg << "\n";
@@ -1524,7 +1524,7 @@ private:
     if (structDefinitions_.find(targetStruct) != structDefinitions_.end()) {
         const auto& sInfo = structDefinitions_[targetStruct];
         for (const auto& f : sInfo.fields) {
-            if (f.name == lastOp.name) {
+            if (f.name == op.name) {
                 fieldIndex = f.index;
                 fieldType = f.type;
                 break;
