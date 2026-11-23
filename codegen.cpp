@@ -1491,52 +1491,6 @@ private:
             }
         }
 
-
-    std::string targetStruct = currentType;
-    if (op.kind == Expr::PostfixOp::Kind::Arrow &&
-        currentType == "ptr" && pointerStructTypes_.count(baseName)) {
-        std::string ptrVal = freshTemp();
-        out_ << "    " << ptrVal << " = load ptr " << currentReg << "\n";
-        currentReg = ptrVal;
-        targetStruct = pointerStructTypes_[baseName];
-    }
-
-    int fieldIndex = 0;
-    std::string fieldType = "i32";
-    if (structDefinitions_.find(targetStruct) != structDefinitions_.end()) {
-        const auto& sInfo = structDefinitions_[targetStruct];
-        for (const auto& f : sInfo.fields) {
-            if (f.name == op.name) {
-                fieldIndex = f.index;
-                fieldType = f.type;
-                break;
-            }
-        }
-    }
-
-    std::string fieldAddrRes = freshTemp();
-    out_ << "    " << fieldAddrRes << " = field addr " << targetStruct << ", " << currentReg << ", " << fieldIndex << "\n";
-    out_ << "    store " << fieldType << " " << rhsVal << ", " << fieldAddrRes << "\n";
-    return rhsVal;
-}
- else if (op.kind == Expr::PostfixOp::Kind::Index) {
-                std::string idxVal = emitExpr(op.index.get());
-                std::string elemType = getIndexElemType(baseName, currentType);
-                std::string elemAddr = freshTemp();
-                out_ << "    " << elemAddr << " = elem addr " << elemType << " " << currentReg << ", " << idxVal << "\n";
-                if (elemType == "ptr") {
-                    std::string eVal = freshTemp();
-                    out_ << "    " << eVal << " = load ptr " << elemAddr << "\n";
-                    currentReg = eVal;
-                    currentType = "ptr";
-                } else {
-                    currentReg = elemAddr;
-                    currentType = elemType;
-                }
-            }
-        }
-
-
                         // Evaluasi ekspresi indeks
                         auto& lastOp = postfix.ops.back();
                         std::string indexVal = emitExpr(lastOp.index.get());
