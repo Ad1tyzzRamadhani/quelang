@@ -1438,32 +1438,107 @@ private:
         // Telusuri ops[0 .. ops.size() - 2] untuk mendapatkan alamat target terakhir
         for (size_t i = 0; i + 1 < postfix.ops.size(); ++i) {
             const auto& op = postfix.ops[i];
-            if (op.kind == Expr::PostfixOp::Kind::MemberAccess ||
-                op.kind == Expr::PostfixOp::Kind::Arrow ||
-                op.kind == Expr::PostfixOp::Kind::SafeArrow) {
-                int fieldIndex = 0;
-                std::string fieldType = "i32";
-                if (structDefinitions_.count(currentType)) {
-                    for (const auto& f : structDefinitions_[currentType].fields) {
-                        if (f.name == op.name) {
-                            fieldIndex = f.index;
-                            fieldType = f.type;
-                            break;
-                        }
+            if (lastOp.kind == Expr::PostfixOp::Kind::MemberAccess ||
+    lastOp.kind == Expr::PostfixOp::Kind::Arrow) {
+
+    std::string baseName = "";
+    if (postfix.base && postfix.base->kind == Expr::Kind::Ident &&
+        postfix.base->ident && !postfix.base->ident->parts.empty()) {
+        baseName = postfix.base->ident->parts.back();
+    }
+
+    std::string currentReg = "%" + baseName;
+    std::string currentType = "i32";
+    std::string varReg, varType;
+    if (lookupVar(baseName, varReg, varType)) {
+        currentReg = varReg;
+        currentType = varType;
+    } else if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
+        currentType = symbolTypes_[baseName];
+    }
+
+    // Telusuri segmen awal ops[0 .. ops.size() - 2] jika rantai lebih dari 1 langkah
+    for (size_t i = 0; i + 1 < postfix.ops.size(); ++i) {
+        const auto& seg = postfix.ops[i];
+        if (seg.kind == Expr::PostfixOp::Kind::MemberAccess ||
+            seg.kind == Expr::PostfixOp::Kind::Arrow ||
+            seg.kind == Expr::PostfixOp::Kind::SafeArrow) {
+            std::string segStruct = currentType;
+            if ((seg.kind == Expr::PostfixOp::Kind::Arrow || seg.kind == Expr::PostfixOp::Kind::SafeArrow) &&
+                currentType == "ptr" && pointerStructTypes_.count(baseName)) {
+                std::string ptrVal = freshTemp();
+                out_ << "    " << ptrVal << " = load ptr " << currentReg << "\n";
+                currentReg = ptrVal;
+                segStruct = pointerStructTypes_[baseName];
+            }
+
+            int idx = 0;
+            std::string fType = "i32";
+            if (structDefinitions_.count(segStruct)) {
+                for (const auto& f : structDefinitions_[segStruct].fields) {
+                    if (f.name == seg.name) {
+                        idx = f.index;
+                        fType = f.type;
+                        break;
                     }
                 }
-                std::string fieldAddr = freshTemp();
-                out_ << "    " << fieldAddr << " = field addr " << currentType << ", " << currentReg << ", " << fieldIndex << "\n";
-                if (fieldType.rfind("[", 0) == 0) {
-                    currentReg = fieldAddr;
-                    currentType = fieldType;
-                } else {
-                    std::string fVal = freshTemp();
-                    out_ << "    " << fVal << " = load " << fieldType << " " << fieldAddr << "\n";
-                    currentReg = fVal;
-                    currentType = fieldType;
-                }
-            } else if (op.kind == Expr::PostfixOp::Kind::Index) {
+            }
+            std::string fAddr = freshTemp();
+            out_ << "    " << fAddr << " = field addr " << segStruct << ", " << currentReg << ", " << idx << "\n";
+            if (fType.rfind("[", 0) == 0) {
+                currentReg = fAddr;
+                currentType = fType;
+            } else {
+                std::string fVal = freshTemp();
+                out_ << "    " << fVal << " = load " << fType << " " << fAddr << "\n";
+                currentReg = fVal;
+                currentType = fType;
+            }
+        } else if (seg.kind == Expr::PostfixOp::Kind::Index) {
+            std::string idxVal = emitExpr(seg.index.get());
+            std::string elemType = getIndexElemType(baseName, currentType);
+            std::string elemAddr = freshTemp();
+            out_ << "    " << elemAddr << " = elem addr " << elemType << " " << currentReg << ", " << idxVal << "\n";
+            if (elemType == "ptr") {
+                std::string eVal = freshTemp();
+                out_ << "    " << eVal << " = load ptr " << elemAddr << "\n";
+                currentReg = eVal;
+                currentType = "ptr";
+            } else {
+                currentReg = elemAddr;
+                currentType = elemType;
+            }
+        }
+    }
+
+    std::string targetStruct = currentType;
+    if (lastOp.kind == Expr::PostfixOp::Kind::Arrow &&
+        currentType == "ptr" && pointerStructTypes_.count(baseName)) {
+        std::string ptrVal = freshTemp();
+        out_ << "    " << ptrVal << " = load ptr " << currentReg << "\n";
+        currentReg = ptrVal;
+        targetStruct = pointerStructTypes_[baseName];
+    }
+
+    int fieldIndex = 0;
+    std::string fieldType = "i32";
+    if (structDefinitions_.find(targetStruct) != structDefinitions_.end()) {
+        const auto& sInfo = structDefinitions_[targetStruct];
+        for (const auto& f : sInfo.fields) {
+            if (f.name == lastOp.name) {
+                fieldIndex = f.index;
+                fieldType = f.type;
+                break;
+            }
+        }
+    }
+
+    std::string fieldAddrRes = freshTemp();
+    out_ << "    " << fieldAddrRes << " = field addr " << targetStruct << ", " << currentReg << ", " << fieldIndex << "\n";
+    out_ << "    store " << fieldType << " " << rhsVal << ", " << fieldAddrRes << "\n";
+    return rhsVal;
+}
+ else if (op.kind == Expr::PostfixOp::Kind::Index) {
                 std::string idxVal = emitExpr(op.index.get());
                 std::string elemType = getIndexElemType(baseName, currentType);
                 std::string elemAddr = freshTemp();
