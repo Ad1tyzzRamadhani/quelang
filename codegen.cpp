@@ -1435,27 +1435,6 @@ private:
         }
 
         // Telusuri ops[0 .. ops.size() - 2] untuk mendapatkan alamat target terakhir
-        for (size_t i = 0; i + 1 < postfix.ops.size(); ++i) {
-            const auto& op = postfix.ops[i];
-            if (op.kind == Expr::PostfixOp::Kind::MemberAccess ||
-    op.kind == Expr::PostfixOp::Kind::Arrow) {
-
-    std::string baseName = "";
-    if (postfix.base && postfix.base->kind == Expr::Kind::Ident &&
-        postfix.base->ident && !postfix.base->ident->parts.empty()) {
-        baseName = postfix.base->ident->parts.back();
-    }
-
-    std::string currentReg = "%" + baseName;
-    std::string currentType = "i32";
-    std::string varReg, varType;
-    if (lookupVar(baseName, varReg, varType)) {
-        currentReg = varReg;
-        currentType = varType;
-    } else if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
-        currentType = symbolTypes_[baseName];
-    }
-
     // Telusuri segmen awal ops[0 .. ops.size() - 2] jika rantai lebih dari 1 langkah
             // Telusuri ops[0 .. ops.size() - 2] untuk mendapatkan alamat array/pointer target terakhir
         for (size_t i = 0; i + 1 < postfix.ops.size(); ++i) {
