@@ -155,7 +155,7 @@ private:
 }
 
 
-        std::string getIndexElemType(const std::string& baseName, const std::string& currentType) {
+            std::string getIndexElemType(const std::string& baseName, const std::string& currentType) {
         if (currentType.rfind("[", 0) == 0) {
             size_t bracketPos = currentType.find("]");
             if (bracketPos != std::string::npos) {
@@ -163,6 +163,9 @@ private:
             }
         }
         if (currentType == "ptr") {
+            if (!baseName.empty() && pointerStructTypes_.count(baseName)) {
+                return pointerStructTypes_[baseName];
+            }
             if (paramElementTypes_.find(baseName) != paramElementTypes_.end()) {
                 return paramElementTypes_[baseName];
             }
@@ -173,6 +176,7 @@ private:
         }
         return "i32";
     }
+
 
     std::string getPointeeType(Expr* expr) {
     if (!expr) return "i32";
