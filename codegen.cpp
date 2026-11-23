@@ -1767,7 +1767,11 @@ private:
                     currentType = symbolTypes_[baseName];
                 }
 
-                for (const auto& op : expr->postfix.ops) {
+                                for (size_t i = 0; i < expr->postfix.ops.size(); ++i) {
+                    const auto& op = expr->postfix.ops[i];
+                    bool hasNextOp = (i + 1 < expr->postfix.ops.size());
+                    const Expr::PostfixOp* nextOp = hasNextOp ? &expr->postfix.ops[i + 1] : nullptr;
+
                     if (op.kind == Expr::PostfixOp::Kind::Call) {
                         std::vector<std::string> argVals;
                         for (const auto& arg : op.args) {
@@ -1781,73 +1785,77 @@ private:
                         }
 
                         std::string callRes = freshTemp();
-                        if(retType != "void")
+                        if (retType != "void")
                             out_ << "    " << callRes << " = call " << retType << " @" << baseName << "(";
-                        else 
+                        else
                             out_ << "    call " << retType << " @" << baseName << "(";
-                        for (size_t i = 0; i < argVals.size(); ++i) {
-                            out_ << argVals[i];
-                            if (i + 1 < argVals.size()) out_ << ", ";
+                        for (size_t a = 0; a < argVals.size(); ++a) {
+                            out_ << argVals[a];
+                            if (a + 1 < argVals.size()) out_ << ", ";
                         }
                         out_ << ")\n";
                         return callRes;
                     } else if (op.kind == Expr::PostfixOp::Kind::Index) {
-                        std::string rawIndexVal = emitExpr(op.index.get());
-                        
-                        // PASTIKAN INDEKS SELALU i32: 
-                        // Jika hasil evaluasi di dalam kurung siku (seperti i += 1) menghasilkan tipe lain,
-                        // kita paksa/cast ke i32 agar aman untuk instruksi elem addr.
-                        std::string indexVal = rawIndexVal;
-                        
+                        std::string indexVal = emitExpr(op.index.get());
                         std::string elemType = getIndexElemType(baseName, currentType);
                         std::string elemAddrRes = freshTemp();
                         out_ << "    " << elemAddrRes << " = elem addr " << elemType << " " << currentReg << ", " << indexVal << "\n";
-                        
-                        std::string loadRes = freshTemp();
-                        out_ << "    " << loadRes << " = load " << elemType << " " << elemAddrRes << "\n";
-                        currentReg = loadRes;
-                        currentType = elemType;
+
+                        bool nextIsField = nextOp && (
+                            nextOp->kind == Expr::PostfixOp::Kind::MemberAccess ||
+                            nextOp->kind == Expr::PostfixOp::Kind::Arrow ||
+                            nextOp->kind == Expr::PostfixOp::Kind::SafeArrow
+                        );
+
+                        if (nextIsField && structDefinitions_.count(elemType)) {
+                            currentReg = elemAddrRes;
+                            currentType = elemType;
+                        } else {
+                            std::string loadRes = freshTemp();
+                            out_ << "    " << loadRes << " = load " << elemType << " " << elemAddrRes << "\n";
+                            currentReg = loadRes;
+                            currentType = elemType;
+                        }
                     } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess ||
-           op.kind == Expr::PostfixOp::Kind::Arrow ||
-           op.kind == Expr::PostfixOp::Kind::SafeArrow) {
-    std::string structType = currentType;
-    if ((op.kind == Expr::PostfixOp::Kind::Arrow || op.kind == Expr::PostfixOp::Kind::SafeArrow) &&
-        currentType == "ptr" && pointerStructTypes_.count(baseName)) {
-        std::string ptrVal = freshTemp();
-        out_ << "    " << ptrVal << " = load ptr " << currentReg << "\n";
-        currentReg = ptrVal;
-        structType = pointerStructTypes_[baseName];
-    }
+                               op.kind == Expr::PostfixOp::Kind::Arrow ||
+                               op.kind == Expr::PostfixOp::Kind::SafeArrow) {
+                        std::string structType = currentType;
+                        if ((op.kind == Expr::PostfixOp::Kind::Arrow || op.kind == Expr::PostfixOp::Kind::SafeArrow) &&
+                            currentType == "ptr" && pointerStructTypes_.count(baseName)) {
+                            std::string ptrVal = freshTemp();
+                            out_ << "    " << ptrVal << " = load ptr " << currentReg << "\n";
+                            currentReg = ptrVal;
+                            structType = pointerStructTypes_[baseName];
+                        }
 
-    int fieldIndex = 0;
-    std::string fieldType = "i32";
-    if (structDefinitions_.count(structType)) {
-        const auto& sInfo = structDefinitions_[structType];
-        for (const auto& f : sInfo.fields) {
-            if (f.name == op.name) {
-                fieldIndex = f.index;
-                fieldType = f.type;
-                break;
-            }
-        }
-    }
+                        int fieldIndex = 0;
+                        std::string fieldType = "i32";
+                        if (structDefinitions_.count(structType)) {
+                            const auto& sInfo = structDefinitions_[structType];
+                            for (const auto& f : sInfo.fields) {
+                                if (f.name == op.name) {
+                                    fieldIndex = f.index;
+                                    fieldType = f.type;
+                                    break;
+                                }
+                            }
+                        }
 
-    std::string fieldAddrRes = freshTemp();
-    out_ << "    " << fieldAddrRes << " = field addr " << structType << ", " << currentReg << ", " << fieldIndex << "\n";
+                        std::string fieldAddrRes = freshTemp();
+                        out_ << "    " << fieldAddrRes << " = field addr " << structType << ", " << currentReg << ", " << fieldIndex << "\n";
 
-    if (fieldType.rfind("[", 0) == 0) {
-        currentReg = fieldAddrRes;
-        currentType = fieldType;
-    } else {
-        std::string loadRes = freshTemp();
-        out_ << "    " << loadRes << " = load " << fieldType << " " << fieldAddrRes << "\n";
-        currentReg = loadRes;
-        currentType = fieldType;
-    }
-}
-
-
+                        if (fieldType.rfind("[", 0) == 0) {
+                            currentReg = fieldAddrRes;
+                            currentType = fieldType;
+                        } else {
+                            std::string loadRes = freshTemp();
+                            out_ << "    " << loadRes << " = load " << fieldType << " " << fieldAddrRes << "\n";
+                            currentReg = loadRes;
+                            currentType = fieldType;
+                        }
+                    }
                 }
+      
                 return currentReg;
             }
 
