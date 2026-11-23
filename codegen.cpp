@@ -1457,58 +1457,61 @@ private:
     }
 
     // Telusuri segmen awal ops[0 .. ops.size() - 2] jika rantai lebih dari 1 langkah
-    for (size_t i = 0; i + 1 < postfix.ops.size(); ++i) {
-        const auto& seg = postfix.ops[i];
-        if (seg.kind == Expr::PostfixOp::Kind::MemberAccess ||
-            seg.kind == Expr::PostfixOp::Kind::Arrow ||
-            seg.kind == Expr::PostfixOp::Kind::SafeArrow) {
-            std::string segStruct = currentType;
-            if ((seg.kind == Expr::PostfixOp::Kind::Arrow || seg.kind == Expr::PostfixOp::Kind::SafeArrow) &&
-                currentType == "ptr" && pointerStructTypes_.count(baseName)) {
-                std::string ptrVal = freshTemp();
-                out_ << "    " << ptrVal << " = load ptr " << currentReg << "\n";
-                currentReg = ptrVal;
-                segStruct = pointerStructTypes_[baseName];
-            }
+            // Telusuri ops[0 .. ops.size() - 2] untuk mendapatkan alamat array/pointer target terakhir
+        for (size_t i = 0; i + 1 < postfix.ops.size(); ++i) {
+            const auto& op = postfix.ops[i];
+            if (op.kind == Expr::PostfixOp::Kind::MemberAccess ||
+                op.kind == Expr::PostfixOp::Kind::Arrow ||
+                op.kind == Expr::PostfixOp::Kind::SafeArrow) {
+                std::string segStruct = currentType;
+                if ((op.kind == Expr::PostfixOp::Kind::Arrow || op.kind == Expr::PostfixOp::Kind::SafeArrow) &&
+                    currentType == "ptr" && pointerStructTypes_.count(baseName)) {
+                    std::string ptrVal = freshTemp();
+                    out_ << "    " << ptrVal << " = load ptr " << currentReg << "\n";
+                    currentReg = ptrVal;
+                    segStruct = pointerStructTypes_[baseName];
+                }
 
-            int idx = 0;
-            std::string fType = "i32";
-            if (structDefinitions_.count(segStruct)) {
-                for (const auto& f : structDefinitions_[segStruct].fields) {
-                    if (f.name == seg.name) {
-                        idx = f.index;
-                        fType = f.type;
-                        break;
+                int fieldIndex = 0;
+                std::string fieldType = "i32";
+                if (structDefinitions_.count(segStruct)) {
+                    for (const auto& f : structDefinitions_[segStruct].fields) {
+                        if (f.name == op.name) {
+                            fieldIndex = f.index;
+                            fieldType = f.type;
+                            break;
+                        }
                     }
                 }
-            }
-            std::string fAddr = freshTemp();
-            out_ << "    " << fAddr << " = field addr " << segStruct << ", " << currentReg << ", " << idx << "\n";
-            if (fType.rfind("[", 0) == 0) {
-                currentReg = fAddr;
-                currentType = fType;
-            } else {
-                std::string fVal = freshTemp();
-                out_ << "    " << fVal << " = load " << fType << " " << fAddr << "\n";
-                currentReg = fVal;
-                currentType = fType;
-            }
-        } else if (seg.kind == Expr::PostfixOp::Kind::Index) {
-            std::string idxVal = emitExpr(seg.index.get());
-            std::string elemType = getIndexElemType(baseName, currentType);
-            std::string elemAddr = freshTemp();
-            out_ << "    " << elemAddr << " = elem addr " << elemType << " " << currentReg << ", " << idxVal << "\n";
-            if (elemType == "ptr") {
-                std::string eVal = freshTemp();
-                out_ << "    " << eVal << " = load ptr " << elemAddr << "\n";
-                currentReg = eVal;
-                currentType = "ptr";
-            } else {
-                currentReg = elemAddr;
-                currentType = elemType;
+
+                std::string fieldAddr = freshTemp();
+                out_ << "    " << fieldAddr << " = field addr " << segStruct << ", " << currentReg << ", " << fieldIndex << "\n";
+                if (fieldType.rfind("[", 0) == 0) {
+                    currentReg = fieldAddr;
+                    currentType = fieldType;
+                } else {
+                    std::string fVal = freshTemp();
+                    out_ << "    " << fVal << " = load " << fieldType << " " << fieldAddr << "\n";
+                    currentReg = fVal;
+                    currentType = fieldType;
+                }
+            } else if (op.kind == Expr::PostfixOp::Kind::Index) {
+                std::string idxVal = emitExpr(op.index.get());
+                std::string elemType = getIndexElemType(baseName, currentType);
+                std::string elemAddr = freshTemp();
+                out_ << "    " << elemAddr << " = elem addr " << elemType << " " << currentReg << ", " << idxVal << "\n";
+                if (elemType == "ptr") {
+                    std::string eVal = freshTemp();
+                    out_ << "    " << eVal << " = load ptr " << elemAddr << "\n";
+                    currentReg = eVal;
+                    currentType = "ptr";
+                } else {
+                    currentReg = elemAddr;
+                    currentType = elemType;
+                }
             }
         }
-    }
+
 
     std::string targetStruct = currentType;
     if (op.kind == Expr::PostfixOp::Kind::Arrow &&
