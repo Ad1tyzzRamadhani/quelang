@@ -159,7 +159,11 @@ private:
         if (currentType.rfind("[", 0) == 0) {
             size_t bracketPos = currentType.find("]");
             if (bracketPos != std::string::npos) {
-                return currentType.substr(bracketPos + 1);
+                std::string elem = currentType.substr(bracketPos + 1);
+                if (elem == "ptr" && !baseName.empty() && pointerStructTypes_.count(baseName)) {
+                    return "ptr";
+                }
+                return elem;
             }
         }
         if (currentType == "ptr") {
@@ -480,15 +484,27 @@ private:
     std::string emitType(Type* type) {
         if (!type) return "void";
 
+        bool has_pointer = false;
+        for (const auto& mod : type->modifiers) {
+            if (mod.kind == TypeModifier::Kind::Pointer ||
+                mod.kind == TypeModifier::Kind::Reference ||
+                mod.kind == TypeModifier::Kind::FuncPtr) {
+                has_pointer = true;
+                break;
+            }
+        }
+
         if (type->is_array) {
             if (type->array_dims.empty()) {
                 return "ptr";
             }
-            
+
             std::string sizeStr = type->array_dims[0]->value;
             std::string elemType = "i32";
-            
-            if (type->base && !type->base->parts.empty()) {
+
+            if (has_pointer) {
+                elemType = "ptr";
+            } else if (type->base && !type->base->parts.empty()) {
                 std::string name = type->base->parts.back();
                 if (name == "int") elemType = "i32";
                 else if (name == "char") elemType = "i8";
@@ -508,54 +524,13 @@ private:
             return "[" + sizeStr + "]" + elemType;
         }
 
-        bool has_pointer = false;
-        for (const auto& mod : type->modifiers) {
-            if (mod.kind == TypeModifier::Kind::Pointer || 
-                mod.kind == TypeModifier::Kind::Reference ||
-                mod.kind == TypeModifier::Kind::FuncPtr) {
-                has_pointer = true;
-                break;
-            }
-        }
-
-        if (type->is_array) {
-        if (type->array_dims.empty()) {
+        if (has_pointer) {
             return "ptr";
-        }
-        
-        std::string sizeStr = type->array_dims[0]->value;
-        std::string elemType = "i32";
-        
-        // JIKA ELEMEN ARRAY ADALAH POINTER (misal: []char* atau []int*):
-        if (has_pointer) {
-            elemType = "ptr";
-        } else if (type->base && !type->base->parts.empty()) {
-            std::string name = type->base->parts.back();
-            if (name == "int") return "i32";
-            else if (name == "char") return "i8";
-            else if (name == "short") return "i16";
-            else if (name == "long") return "i64";
-            else if (name == "isize") return "isize";
-            else if (name == "unchar") return "u8";
-            else if (name == "unshort") return "u16";
-            else if (name == "unint") return "u32";
-            else if (name == "unlong") return "u64";
-            else if (name == "usize") return "usize";
-            else if (name == "float") return "f32";
-            else if (name == "flong") return "f64";
-            else if (name == "bool") return "bool";
-            else elemType = name; // untuk struct/tipe kustom
-        }
-        return "[" + sizeStr + "]" + elemType;
-        }
-
-        if (has_pointer) {
-        return "ptr";
         }
 
         if (type->base && !type->base->parts.empty() && type->modifiers.empty()) {
             std::string name = type->base->parts.back();
-            
+
             if (name == "int") return "i32";
             if (name == "char") return "i8";
             if (name == "short") return "i16";
@@ -569,7 +544,7 @@ private:
             if (name == "float") return "f32";
             if (name == "flong") return "f64";
             if (name == "bool") return "bool";
-            
+
             return name;
         }
 
