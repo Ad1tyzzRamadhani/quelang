@@ -190,6 +190,9 @@ private:
         if (symbolElementTypes_.count(name)) return symbolElementTypes_[name];
         if (paramElementTypes_.count(name)) return paramElementTypes_[name];
     }
+    if (expr->kind == Expr::Kind::Group && expr->group.expr) {
+        return getPointeeType(expr->group.expr.get());
+    }
 
     if (expr->kind == Expr::Kind::Postfix) {
         std::string currentType = getExprType(expr->postfix.base.get());
@@ -407,6 +410,11 @@ private:
                     }
                 }
                 break;
+            case Expr::Kind::Group:
+                if (expr->group.expr) {
+                    return getExprType(expr->group.expr.get());
+                }
+                return "i32";
             case Expr::Kind::Intrinsic:
                 if (expr->intrinsic.type) {
                     return emitType(expr->intrinsic.type.get());
@@ -1282,6 +1290,12 @@ private:
                 }
                 return allocRes;
             }
+
+            case Expr::Kind::Group:
+                if (expr->group.expr) {
+                    return emitExpr(expr->group.expr.get());
+                }
+                return "0";
 
             case Expr::Kind::Binary: {
                 std::string lhs = emitExpr(expr->binary.lhs.get());
