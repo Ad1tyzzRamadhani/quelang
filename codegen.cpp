@@ -1411,12 +1411,9 @@ private:
                                 op.kind == Expr::PostfixOp::Kind::Arrow ||
                                 op.kind == Expr::PostfixOp::Kind::SafeArrow) {
                                 std::string segStruct = currentType;
-                                if ((op.kind == Expr::PostfixOp::Kind::Arrow || op.kind == Expr::PostfixOp::Kind::SafeArrow) &&
-                                    currentType == "ptr" && pointerStructTypes_.count(baseName)) {
-                                    std::string ptrVal = freshTemp();
-                                    out_ << "    " << ptrVal << " = load ptr " << currentReg << "\n";
-                                    currentReg = ptrVal;
+                                if (currentType == "ptr" && pointerStructTypes_.count(baseName)) {
                                     segStruct = pointerStructTypes_[baseName];
+                                    currentType = segStruct;
                                 }
 
                                 int fieldIndex = 0;
