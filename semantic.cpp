@@ -1446,9 +1446,9 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
     switch (expr->kind) {
         case Expr::Kind::Literal: return analyzeLiteral(expr->literal.get());
         case Expr::Kind::Try: {
-            /*if (function_stack_.empty() || function_stack_.back().catch_depth == 0) {
+            if (function_stack_.empty() || function_stack_.back().catch_depth == 0) {
                 error(expr, "'try' can only be used inside a 'do ... catch' block");
-            }*/
+            }
             if (!expr->try_expr.expr) {
                 error(expr, "'try' requires an expression");
                 return invalid;
@@ -2397,7 +2397,7 @@ std::cout << "CURRENT MODIFIERS: "
 
                 current = m.is_function
                 ? TypeView{}
-                : view(m.type);
+                : resolveTypeView(view(m.type), pending_owner);
                 if (!m.is_function) {
                     current.array_size = m.array_size;
                     current.is_array = !current.array_size.empty();
@@ -2678,20 +2678,12 @@ std::cerr << "==================\n";*/
                         error(expr, "array index out of bounds");
                         return {};
                     }
+                    current.array_size.erase(current.array_size.begin());
+                    if (current.array_size.empty()) {
+                        current.is_array = false;
+                    }
+                    break;
                 }
-
-                // Fixed-size array: consume one dimension.
-                if (!current.array_size.empty()) {
-                current.array_size.erase(current.array_size.begin());
-
-                // No dimensions left: expression is an element.
-                if (current.array_size.empty()) {
-                    current.is_array = false;
-                }
-
-                break;
-            }
-
             if (current.unsized_array || current.is_array) {
                 // Unsized array tetap menghasilkan tipe elemen dasarnya saat di-index
                 current.is_array = false;
