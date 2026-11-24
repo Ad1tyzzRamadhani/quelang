@@ -257,7 +257,7 @@ int main(int argc, char* argv[]) {
                 targetCro = stripExtension(cro_output_file) + "_" + std::to_string(i) + ".cro";
                 tempCroFiles.push_back(targetCro);
             } else if (!binary_output_file.empty() || compile_only_obj) {
-                targetCro = "/tmp/quelang_" + fs::path(qFile).stem().string() + "_" + std::to_string(i) + ".cro";
+                targetCro = fs::path(qFile).stem().string() + "_" + std::to_string(i) + ".cro";
                 tempCroFiles.push_back(targetCro);
             } else {
                 targetCro = stripExtension(qFile) + ".cro";
