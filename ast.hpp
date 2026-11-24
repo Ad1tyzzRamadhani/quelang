@@ -86,7 +86,8 @@ struct Expr : Node {
         Assign,
         Ternary,
         Postfix,
-        Try, 
+        Try,
+        Group, 
 
         Cast,
         New,
@@ -116,6 +117,10 @@ struct Expr : Node {
         std::unique_ptr<Expr> lhs;
         std::unique_ptr<Expr> rhs;
     } binary;
+
+    struct {
+        std::unique_ptr<Expr> expr;
+    } group;
 
     // Single Assign Expr -> a = add(5,7);
     struct {
