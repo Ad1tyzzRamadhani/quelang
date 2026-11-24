@@ -1555,12 +1555,16 @@ private:
                             }
 
                             std::string targetStruct = currentType;
-                            if ((lastOp.kind == Expr::PostfixOp::Kind::Arrow || lastOp.kind == Expr::PostfixOp::Kind::SafeArrow) &&
+                            /*if ((lastOp.kind == Expr::PostfixOp::Kind::Arrow || lastOp.kind == Expr::PostfixOp::Kind::SafeArrow) &&
                                 currentType == "ptr" && pointerStructTypes_.count(baseName)) {
                                 std::string ptrVal = freshTemp();
                                 out_ << "    " << ptrVal << " = load ptr " << currentReg << "\n";
                                 currentReg = ptrVal;
                                 targetStruct = pointerStructTypes_[baseName];
+                            }*/
+                            if (currentType == "ptr" && pointerStructTypes_.count(baseName)) {
+                                targetStruct = pointerStructTypes_[baseName];
+                                currentType = targetStruct;
                             }
 
                             int fieldIndex = 0;
