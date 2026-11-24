@@ -82,7 +82,7 @@ std::unique_ptr<Type> ParseState::parseType() {
         break;
     }
     if (std::find_if(type->modifiers.begin(), type->modifiers.end(), [](const TypeModifier& t) {return t.kind == TypeModifier::Kind::Pointer;}) != type->modifiers.end()) {
-        if(type->is_array) {
+        if(type->is_array && type->array_dims.empty()) {
             TypeModifier mod;
             mod.kind = TypeModifier::Kind::Pointer;
             type->modifiers.push_back(std::move(mod));
