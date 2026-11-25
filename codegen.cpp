@@ -224,14 +224,22 @@ private:
                     if (closeBracket != std::string::npos) {
                         std::string elem = currentType.substr(closeBracket + 1);
                         if (elem == "ptr") {
-                            currentType = "ptr";
-                            lastElemType = "ptr";
-                            continue;
+                            std::string baseName = "";
+                            if (expr->postfix.base && expr->postfix.base->kind == Expr::Kind::Ident &&
+                                expr->postfix.base->ident && !expr->postfix.base->ident->parts.empty()) {
+                                baseName = expr->postfix.base->ident->parts.back();
+                            }
+                            if (!baseName.empty() && pointerStructTypes_.count(baseName)) {
+                                currentType = pointerStructTypes_[baseName];
+                                lastElemType = pointerStructTypes_[baseName];
+                                continue;
+                            }
                         }
                     }
                 }
                 currentType = lastElemType;
             }
+
 
         }
         return lastElemType;
