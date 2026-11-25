@@ -239,8 +239,6 @@ private:
                 }
                 currentType = lastElemType;
             }
-
-
         }
         return lastElemType;
     }
