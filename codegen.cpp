@@ -218,27 +218,23 @@ private:
                     }
                 }
                         
-            } else if (op.kind == Expr::PostfixOp::Kind::Index) {
+             
+            
+             } else if (op.kind == Expr::PostfixOp::Kind::Index) {
                 if (currentType.rfind("[", 0) == 0) {
                     size_t closeBracket = currentType.find("]");
                     if (closeBracket != std::string::npos) {
                         std::string elem = currentType.substr(closeBracket + 1);
                         if (elem == "ptr") {
-                            std::string baseName = "";
-                            if (expr->postfix.base && expr->postfix.base->kind == Expr::Kind::Ident &&
-                                expr->postfix.base->ident && !expr->postfix.base->ident->parts.empty()) {
-                                baseName = expr->postfix.base->ident->parts.back();
-                            }
-                            if (!baseName.empty() && pointerStructTypes_.count(baseName)) {
-                                currentType = pointerStructTypes_[baseName];
-                                lastElemType = pointerStructTypes_[baseName];
-                                continue;
-                            }
+                            currentType = "ptr";
+                            lastElemType = "ptr";
+                            continue;
                         }
                     }
                 }
                 currentType = lastElemType;
             }
+
         }
         return lastElemType;
     }
@@ -1851,15 +1847,22 @@ private:
                         currentType = symbolTypes_[baseName];
                     } else if (unwrappedBase && unwrappedBase->kind == Expr::Kind::Unary &&
                         unwrappedBase->unary.op == UnaryOp::Deref) {
-                        currentReg = emitExpr(unwrappedBase);
                         std::string pStruct = resolvePointeeStructType(unwrappedBase->unary.expr.get());
-                        currentType = pStruct.empty() ? getPointeeType(unwrappedBase->unary.expr.get()) : pStruct;
+                        bool followedByField = !expr->postfix.ops.empty() &&
+                            (expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::MemberAccess ||
+                             expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::Arrow ||
+                             expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::SafeArrow);
+                        if (followedByField && !pStruct.empty()) {
+                            currentReg = emitExpr(unwrappedBase->unary.expr.get());
+                            currentType = pStruct;
+                        } else {
+                            currentReg = emitExpr(unwrappedBase);
+                            currentType = pStruct.empty() ? getPointeeType(unwrappedBase->unary.expr.get()) : pStruct;
+                        }
                     } else if (unwrappedBase) {
                         currentReg = emitExpr(unwrappedBase);
                         currentType = getExprType(unwrappedBase);
                     }
-
-
                 if (currentType == "ptr" && !expr->postfix.ops.empty() &&
                     expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::Index) {
                     std::string loadedPtr = freshTemp();
