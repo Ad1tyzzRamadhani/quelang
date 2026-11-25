@@ -502,6 +502,44 @@ private:
         return "i32";
     }
 
+    std::string resolvePointeeStructType(Expr* ptrExpr) const {
+        Expr* e = unwrapGroup(ptrExpr);
+        if (!e) return "";
+
+        if (e->kind == Expr::Kind::Ident && e->ident && !e->ident->parts.empty()) {
+            std::string name = e->ident->parts.back();
+            if (pointerStructTypes_.count(name)) return pointerStructTypes_.at(name);
+            if (symbolElementTypes_.count(name) && structDefinitions_.count(symbolElementTypes_.at(name))) {
+                return symbolElementTypes_.at(name);
+            }
+            if (paramElementTypes_.count(name) && structDefinitions_.count(paramElementTypes_.at(name))) {
+                return paramElementTypes_.at(name);
+            }
+        }
+
+        if (e->kind == Expr::Kind::Postfix && e->postfix.base) {
+            Expr* b = unwrapGroup(e->postfix.base.get());
+            if (b && b->kind == Expr::Kind::Ident && b->ident && !b->ident->parts.empty()) {
+                std::string baseName = b->ident->parts.back();
+                for (const auto& op : e->postfix.ops) {
+                    if (op.kind == Expr::PostfixOp::Kind::Index) {
+                        if (symbolElementTypes_.count(baseName) && structDefinitions_.count(symbolElementTypes_.at(baseName))) {
+                            return symbolElementTypes_.at(baseName);
+                        }
+                        if (paramElementTypes_.count(baseName) && structDefinitions_.count(paramElementTypes_.at(baseName))) {
+                            return paramElementTypes_.at(baseName);
+                        }
+                        if (pointerStructTypes_.count(baseName)) {
+                            return pointerStructTypes_.at(baseName);
+                        }
+                    }
+                }
+            }
+        }
+        return "";
+    }
+
+
     Expr* unwrapGroup(Expr* e) const {
         while (e && e->kind == Expr::Kind::Group && e->group.expr) {
             e = e->group.expr.get();
@@ -1763,23 +1801,31 @@ private:
             }
 
             case Expr::Kind::Postfix: {
-                std::string baseName = "";
-                if (expr->postfix.base && expr->postfix.base->kind == Expr::Kind::Ident) {
-                    if (expr->postfix.base->ident && !expr->postfix.base->ident->parts.empty()) {
-                        baseName = expr->postfix.base->ident->parts.back();
+                    Expr* unwrappedBase = unwrapGroup(expr->postfix.base.get());
+                    std::string baseName = "";
+                    if (unwrappedBase && unwrappedBase->kind == Expr::Kind::Ident &&
+                        unwrappedBase->ident && !unwrappedBase->ident->parts.empty()) {
+                        baseName = unwrappedBase->ident->parts.back();
                     }
-                }
 
-                std::string currentReg = "%" + baseName;
-                std::string currentType = "i32";
-                std::string varReg, varType;
-                if (lookupVar(baseName, varReg, varType)) {
-                    currentReg = varReg;
-                    currentType = varType;
-                }
-                else if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
-                    currentType = symbolTypes_[baseName];
-                }
+                    std::string currentReg = "%" + baseName;
+                    std::string currentType = "i32";
+                    std::string varReg, varType;
+                    if (!baseName.empty() && lookupVar(baseName, varReg, varType)) {
+                        currentReg = varReg;
+                        currentType = varType;
+                    } else if (!baseName.empty() && symbolTypes_.find(baseName) != symbolTypes_.end()) {
+                        currentType = symbolTypes_[baseName];
+                    } else if (unwrappedBase && unwrappedBase->kind == Expr::Kind::Unary &&
+                        unwrappedBase->unary.op == UnaryOp::Deref) {
+                        currentReg = emitExpr(unwrappedBase);
+                        std::string pStruct = resolvePointeeStructType(unwrappedBase->unary.expr.get());
+                        currentType = pStruct.empty() ? getPointeeType(unwrappedBase->unary.expr.get()) : pStruct;
+                    } else if (unwrappedBase) {
+                        currentReg = emitExpr(unwrappedBase);
+                        currentType = getExprType(unwrappedBase);
+                    }
+
 
                 if (currentType == "ptr" && !expr->postfix.ops.empty() &&
                     expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::Index) {
