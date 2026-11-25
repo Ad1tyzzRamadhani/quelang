@@ -1895,17 +1895,18 @@ private:
                             std::string loadRes = freshTemp();
                             out_ << "    " << loadRes << " = load " << elemType << " " << elemAddrRes << "\n";
                             currentReg = loadRes;
-                            if (elemType == "ptr" && !baseName.empty() && pointerStructTypes_.count(baseName)) {
+                            currentType = elemType;
+                            /*if (elemType == "ptr" && !baseName.empty() && pointerStructTypes_.count(baseName)) {
                                 currentType = pointerStructTypes_[baseName];
                             } else if (elemType == "ptr" && !baseName.empty() && symbolElementTypes_.count(baseName) &&
-                                       structDefinitions_.count(symbolElementTypes_[baseName])) {
+                                structDefinitions_.count(symbolElementTypes_[baseName])) {
                                 currentType = symbolElementTypes_[baseName];
                             } else {
                                 std::string loadRes = freshTemp();
                                 out_ << "    " << loadRes << " = load " << elemType << " " << elemAddrRes << "\n";
                                 currentReg = loadRes;
                                 currentType = elemType;
-                            }
+                            }*/
 
                         }
                     } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess ||
