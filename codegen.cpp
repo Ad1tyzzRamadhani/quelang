@@ -1550,20 +1550,29 @@ private:
                             lastOp.kind == Expr::PostfixOp::Kind::Arrow ||
                             lastOp.kind == Expr::PostfixOp::Kind::SafeArrow) {
 
+                            Expr* unwrappedBase = unwrapGroup(postfix.base.get());
                             std::string baseName = "";
-                            if (postfix.base && postfix.base->kind == Expr::Kind::Ident &&
-                                postfix.base->ident && !postfix.base->ident->parts.empty()) {
-                                baseName = postfix.base->ident->parts.back();
+                            if (unwrappedBase && unwrappedBase->kind == Expr::Kind::Ident &&
+                                unwrappedBase->ident && !unwrappedBase->ident->parts.empty()) {
+                                baseName = unwrappedBase->ident->parts.back();
                             }
 
                             std::string currentReg = "%" + baseName;
                             std::string currentType = "i32";
                             std::string varReg, varType;
-                            if (lookupVar(baseName, varReg, varType)) {
+                            if (!baseName.empty() && lookupVar(baseName, varReg, varType)) {
                                 currentReg = varReg;
                                 currentType = varType;
-                            } else if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
+                            } else if (!baseName.empty() && symbolTypes_.find(baseName) != symbolTypes_.end()) {
                                 currentType = symbolTypes_[baseName];
+                            } else if (unwrappedBase && unwrappedBase->kind == Expr::Kind::Unary &&
+                                       unwrappedBase->unary.op == UnaryOp::Deref) {
+                                currentReg = emitExpr(unwrappedBase);
+                                std::string pStruct = resolvePointeeStructType(unwrappedBase->unary.expr.get());
+                                currentType = pStruct.empty() ? getPointeeType(unwrappedBase->unary.expr.get()) : pStruct;
+                            } else if (unwrappedBase) {
+                                currentReg = emitExpr(unwrappedBase);
+                                currentType = getExprType(unwrappedBase);
                             }
 
                             if (currentType == "ptr" && pointerStructTypes_.count(baseName)) {
