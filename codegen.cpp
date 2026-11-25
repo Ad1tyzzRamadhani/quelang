@@ -1465,7 +1465,7 @@ private:
                                 currentType = symbolTypes_[baseName];
                             } else if (unwrappedBase && unwrappedBase->kind == Expr::Kind::Unary &&
                                        unwrappedBase->unary.op == UnaryOp::Deref) {
-                                currentReg = emitExpr(unwrappedBase);
+                                currentReg = emitExpr(unwrappedBase->unary.expr.get());
                                 std::string pStruct = resolvePointeeStructType(unwrappedBase->unary.expr.get());
                                 currentType = pStruct.empty() ? getPointeeType(unwrappedBase->unary.expr.get()) : pStruct;
                             } else if (unwrappedBase) {
@@ -1567,7 +1567,7 @@ private:
                                 currentType = symbolTypes_[baseName];
                             } else if (unwrappedBase && unwrappedBase->kind == Expr::Kind::Unary &&
                                        unwrappedBase->unary.op == UnaryOp::Deref) {
-                                currentReg = emitExpr(unwrappedBase);
+                                currentReg = emitExpr(unwrappedBase->unary.expr.get());
                                 std::string pStruct = resolvePointeeStructType(unwrappedBase->unary.expr.get());
                                 currentType = pStruct.empty() ? getPointeeType(unwrappedBase->unary.expr.get()) : pStruct;
                             } else if (unwrappedBase) {
