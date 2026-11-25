@@ -217,9 +217,22 @@ private:
                         }
                     }
                 }
+                        
             } else if (op.kind == Expr::PostfixOp::Kind::Index) {
+                if (currentType.rfind("[", 0) == 0) {
+                    size_t closeBracket = currentType.find("]");
+                    if (closeBracket != std::string::npos) {
+                        std::string elem = currentType.substr(closeBracket + 1);
+                        if (elem == "ptr") {
+                            currentType = "ptr";
+                            lastElemType = "ptr";
+                            continue;
+                        }
+                    }
+                }
                 currentType = lastElemType;
             }
+
         }
         return lastElemType;
     }
