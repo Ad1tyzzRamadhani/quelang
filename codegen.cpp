@@ -1901,19 +1901,27 @@ private:
                                        structDefinitions_.count(symbolElementTypes_[baseName])) {
                                 currentType = symbolElementTypes_[baseName];
                             } else {
+                                std::string loadRes = freshTemp();
+                                out_ << "    " << loadRes << " = load " << elemType << " " << elemAddrRes << "\n";
+                                currentReg = loadRes;
                                 currentType = elemType;
                             }
+
                         }
                     } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess ||
                                op.kind == Expr::PostfixOp::Kind::Arrow ||
                                op.kind == Expr::PostfixOp::Kind::SafeArrow) {
                         std::string structType = currentType;
-                        if ((op.kind == Expr::PostfixOp::Kind::Arrow || op.kind == Expr::PostfixOp::Kind::SafeArrow) &&
-                            currentType == "ptr" && pointerStructTypes_.count(baseName)) {
-                            std::string ptrVal = freshTemp();
-                            out_ << "    " << ptrVal << " = load ptr " << currentReg << "\n";
-                            currentReg = ptrVal;
-                            structType = pointerStructTypes_[baseName];
+                        if(currentType == "ptr") {
+                            if (!baseName.empty() && pointerStructTypes_.count(baseName)) {
+                                structType = pointerStructTypes_[baseName];
+                            } else if (!baseName.empty() && symbolElementTypes_.count(baseName) &&
+                                       structDefinitions_.count(symbolElementTypes_[baseName])) {
+                                structType = symbolElementTypes_[baseName];
+                            } else if (!baseName.empty() && paramElementTypes_.count(baseName) &&
+                                       structDefinitions_.count(paramElementTypes_[baseName])) {
+                                structType = paramElementTypes_[baseName];
+                            }
                         }
 
                         int fieldIndex = 0;
