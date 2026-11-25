@@ -427,7 +427,21 @@ private:
                         baseName = expr->postfix.base->ident->parts.back();
                     }
                 }
+
                 std::string currentType = "i32";
+                Expr* unwrappedBase = unwrapGroup(expr->postfix.base.get());
+                if (unwrappedBase && unwrappedBase->kind == Expr::Kind::Ident &&
+                    unwrappedBase->ident && !unwrappedBase->ident->parts.empty()) {
+                    std::string baseName = unwrappedBase->ident->parts.back();
+                    if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
+                        currentType = symbolTypes_[baseName];
+                    } else if (paramTypes_.find(baseName) != paramTypes_.end()) {
+                        currentType = paramTypes_[baseName];
+                    }
+                } else if (expr->postfix.base) {
+                    currentType = getExprType(expr->postfix.base.get());
+                }
+
                 if (symbolTypes_.find(baseName) != symbolTypes_.end()) {
                     currentType = symbolTypes_[baseName];
                 } else if (paramTypes_.find(baseName) != paramTypes_.end()) {
@@ -488,6 +502,12 @@ private:
         return "i32";
     }
 
+    Expr* unwrapGroup(Expr* e) const {
+        while (e && e->kind == Expr::Kind::Group && e->group.expr) {
+            e = e->group.expr.get();
+        }
+        return e;
+    }
 
     std::string emitType(Type* type) {
         if (!type) return "void";
