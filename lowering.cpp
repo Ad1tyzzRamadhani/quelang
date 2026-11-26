@@ -849,6 +849,18 @@ void flattenNodeWithNs(Node* node, std::vector<std::unique_ptr<Node>>& outDecls)
                         op.args.push_back(makeNullLiteral());
                         isThrowingCall = false;
                     }
+                    // Di resolveExprNs -> Expr::Kind::Postfix (saat Ns::member diubah menjadi Ident):
+                    if (firstOp.kind == Expr::PostfixOp::Kind::MemberAccess) {
+                    bool isNsVar = !isShadowedByLocal(firstOp.name) && isNamespaceVar(mangled);
+                    expr->postfix.base->ident->is_absolute = isNsVar;
+                    expr->postfix.ops.erase(expr->postfix.ops.begin());
+                    if (expr->postfix.ops.empty()) {
+                    auto identExpr = std::move(expr->postfix.base);
+                    *expr = std::move(*identExpr);
+                    break;
+                    }
+                    } 
+
                 }
                 break;
             }
