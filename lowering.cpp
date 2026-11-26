@@ -578,6 +578,8 @@ void resolveExprNs(Expr* expr) {
     switch (expr->kind) {
         case Expr::Kind::Ident: {
             if (expr->ident && !expr->ident->parts.empty()) {
+                std::string resolved = resolveQualifiedParts(expr->ident->parts);
+                bool isNsVar = !isShadowedByLocal(expr->ident->parts.back()) && isNamespaceVar(resolved);
                 if (expr->ident->parts.size() == 1 && expr->ident->is_absolute) {
             // Jika ::nama ternyata merujuk ke simbol di namespace aktif (misal ::data -> Data_data),
             // pakai nama ter-mangle-nya; jika tidak, pertahankan nama aslinya.
@@ -587,7 +589,7 @@ void resolveExprNs(Expr* expr) {
                 }
                 break;
                 }
-                std::string resolved = resolveQualifiedParts(expr->ident->parts);
+                
                 expr->ident->parts = {resolved};
                 expr->ident->is_absolute = false;
             }
