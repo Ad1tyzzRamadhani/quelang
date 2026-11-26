@@ -40,6 +40,214 @@ private:
         }
         return false;
     }
+    int coalesce_counter = 0;
+
+std::string nextCoalesceVarName() {
+    return "__coalesce_" + std::to_string(coalesce_counter++);
+}
+
+void collectAndLowerCoalesceInExpr(Expr* expr, std::vector<std::unique_ptr<Stmt>>& prefixStmts) {
+    if (!expr) return;
+
+    switch (expr->kind) {
+        case Expr::Kind::Unary:
+            collectAndLowerCoalesceInExpr(expr->unary.expr.get(), prefixStmts);
+            break;
+        case Expr::Kind::Try:
+            collectAndLowerCoalesceInExpr(expr->try_expr.expr.get(), prefixStmts);
+            break;
+        case Expr::Kind::Group:
+            collectAndLowerCoalesceInExpr(expr->group.expr.get(), prefixStmts);
+            break;
+        case Expr::Kind::Cast:
+            collectAndLowerCoalesceInExpr(expr->cast.base.get(), prefixStmts);
+            break;
+        case Expr::Kind::Assign:
+            collectAndLowerCoalesceInExpr(expr->assign.lhs.get(), prefixStmts);
+            collectAndLowerCoalesceInExpr(expr->assign.rhs.get(), prefixStmts);
+            break;
+        case Expr::Kind::Ternary:
+            collectAndLowerCoalesceInExpr(expr->ternary.cond.get(), prefixStmts);
+            collectAndLowerCoalesceInExpr(expr->ternary.then_expr.get(), prefixStmts);
+            collectAndLowerCoalesceInExpr(expr->ternary.else_expr.get(), prefixStmts);
+            break;
+        case Expr::Kind::Postfix:
+            collectAndLowerCoalesceInExpr(expr->postfix.base.get(), prefixStmts);
+            for (auto& op : expr->postfix.ops) {
+                for (auto& a : op.args) collectAndLowerCoalesceInExpr(a.get(), prefixStmts);
+                if (op.index) collectAndLowerCoalesceInExpr(op.index.get(), prefixStmts);
+            }
+            break;
+        case Expr::Kind::Binary: {
+            // Turunkan anak-anaknya dulu (termasuk coalesce di rhs atau nested di lhs)
+            collectAndLowerCoalesceInExpr(expr->binary.lhs.get(), prefixStmts);
+            collectAndLowerCoalesceInExpr(expr->binary.rhs.get(), prefixStmts);
+
+            if (expr->binary.op == BinaryOp::Coalesce) {
+                auto lhs = std::move(expr->binary.lhs);
+                auto rhs = std::move(expr->binary.rhs);
+
+                // Kasus sederhana: null ?? rhs -> langsung rhs
+                if (lhs && lhs->kind == Expr::Kind::Literal &&
+                    lhs->literal && lhs->literal->kind == Literal::Kind::Null) {
+                    if (rhs) {
+                        *expr = std::move(*rhs);
+                    }
+                    return;
+                }
+
+                std::string varName = nextCoalesceVarName();
+
+                // 1. ptr __coalesce_N = <lhs>;
+                VarDecl decl;
+                auto ptrType = std::make_unique<Type>();
+                ptrType->base = std::make_unique<QualifiedName>();
+                ptrType->base->parts.push_back("ptr");
+                decl.type = std::move(ptrType);
+
+                VarDecl::Item item;
+                item.name = varName;
+                item.init = std::move(lhs);
+                decl.items.push_back(std::move(item));
+
+                auto declStmt = std::make_unique<Stmt>();
+                declStmt->kind = Stmt::Kind::VarDecl;
+                declStmt->var_decl = std::move(decl);
+                prefixStmts.push_back(std::move(declStmt));
+
+                // 2. if (__coalesce_N == null) { __coalesce_N = <rhs>; }
+                auto assignExpr = std::make_unique<Expr>();
+                assignExpr->kind = Expr::Kind::Assign;
+                assignExpr->assign.op = AssignOp::Assign;
+                assignExpr->assign.lhs = makeIdentExpr(varName);
+                assignExpr->assign.rhs = std::move(rhs);
+
+                auto assignStmt = std::make_unique<Stmt>();
+                assignStmt->kind = Stmt::Kind::ExprStmt;
+                assignStmt->expr_stmt = std::move(assignExpr);
+
+                auto thenBlock = std::make_unique<Stmt>();
+                thenBlock->kind = Stmt::Kind::Block;
+                thenBlock->block.stmts.push_back(std::move(assignStmt));
+
+                auto condExpr = std::make_unique<Expr>();
+                condExpr->kind = Expr::Kind::Binary;
+                condExpr->binary.op = BinaryOp::Eq;
+                condExpr->binary.lhs = makeIdentExpr(varName);
+                condExpr->binary.rhs = makeNullLiteral();
+
+                auto ifStmt = std::make_unique<Stmt>();
+                ifStmt->kind = Stmt::Kind::If;
+                ifStmt->if_stmt.cond = std::move(condExpr);
+                ifStmt->if_stmt.then_block = std::move(thenBlock);
+
+                prefixStmts.push_back(std::move(ifStmt));
+
+                // 3. Ganti ekspresi saat ini menjadi __coalesce_N
+                auto replacement = makeIdentExpr(varName);
+                *expr = std::move(*replacement);
+            }
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+
+std::unique_ptr<Expr> cloneExpr(const Expr* src) const {
+    if (!src) return nullptr;
+
+    auto dst = std::make_unique<Expr>();
+    dst->kind = src->kind;
+    dst->file = src->file;
+    dst->line_start = src->line_start;
+    dst->column_start = src->column_start;
+    dst->line_end = src->line_end;
+    dst->column_end = src->column_end;
+    dst->array_size = src->array_size;
+
+    if (src->literal) {
+        dst->literal = std::make_unique<Literal>();
+        dst->literal->kind = src->literal->kind;
+        dst->literal->value = src->literal->value;
+    }
+
+    if (src->ident) {
+        dst->ident = std::make_unique<QualifiedName>();
+        dst->ident->parts = src->ident->parts;
+        dst->ident->is_absolute = src->ident->is_absolute;
+    }
+
+    dst->unary.op = src->unary.op;
+    dst->unary.expr = cloneExpr(src->unary.expr.get());
+
+    dst->try_expr.expr = cloneExpr(src->try_expr.expr.get());
+
+    dst->binary.op = src->binary.op;
+    dst->binary.lhs = cloneExpr(src->binary.lhs.get());
+    dst->binary.rhs = cloneExpr(src->binary.rhs.get());
+
+    dst->group.expr = cloneExpr(src->group.expr.get());
+
+    dst->assign.op = src->assign.op;
+    dst->assign.lhs = cloneExpr(src->assign.lhs.get());
+    dst->assign.rhs = cloneExpr(src->assign.rhs.get());
+
+    dst->ternary.cond = cloneExpr(src->ternary.cond.get());
+    dst->ternary.then_expr = cloneExpr(src->ternary.then_expr.get());
+    dst->ternary.else_expr = cloneExpr(src->ternary.else_expr.get());
+
+    dst->intrinsic.name = src->intrinsic.name;
+    dst->intrinsic.type = cloneType(src->intrinsic.type.get());
+    for (const auto& a : src->intrinsic.args) {
+        dst->intrinsic.args.push_back(cloneExpr(a.get()));
+    }
+
+    dst->postfix.base = cloneExpr(src->postfix.base.get());
+    for (const auto& op : src->postfix.ops) {
+        Expr::PostfixOp copiedOp;
+        copiedOp.kind = op.kind;
+        copiedOp.name = op.name;
+        copiedOp.index = cloneExpr(op.index.get());
+        for (const auto& a : op.args) {
+            copiedOp.args.push_back(cloneExpr(a.get()));
+        }
+        dst->postfix.ops.push_back(std::move(copiedOp));
+    }
+
+    dst->cast.base = cloneExpr(src->cast.base.get());
+    dst->cast.target = cloneType(src->cast.target.get());
+
+    if (src->new_expr.type) {
+        dst->new_expr.type = std::make_unique<QualifiedName>();
+        dst->new_expr.type->parts = src->new_expr.type->parts;
+        dst->new_expr.type->is_absolute = src->new_expr.type->is_absolute;
+    }
+    for (const auto& a : src->new_expr.args) {
+        dst->new_expr.args.push_back(cloneExpr(a.get()));
+    }
+    for (const auto& d : src->new_expr.array_dims) {
+        dst->new_expr.array_dims.push_back(cloneExpr(d.get()));
+    }
+    if (src->new_expr.alloc_size) {
+        dst->new_expr.alloc_size = std::make_unique<Literal>();
+        dst->new_expr.alloc_size->kind = src->new_expr.alloc_size->kind;
+        dst->new_expr.alloc_size->value = src->new_expr.alloc_size->value;
+    }
+
+    dst->struct_init.type_name = cloneType(src->struct_init.type_name.get());
+    for (const auto& f : src->struct_init.fields) {
+        dst->struct_init.fields.push_back({f.first, cloneExpr(f.second.get())});
+    }
+
+    for (const auto& item : src->array_items) {
+        dst->array_items.push_back(cloneExpr(item.get()));
+    }
+
+    return dst;
+}
+
     int label_counter = 0;
     bool consumeTryAndInjectSlot(Expr* expr, const std::string& slotName) {
         if (!expr) return false;
@@ -405,21 +613,58 @@ private:
         switch (stmt->kind) {
              case Stmt::Kind::ExprStmt: {
                 lowerExpr(stmt->expr_stmt.get());
+                std::vector<std::unique_ptr<Stmt>> prefix;
+                collectAndLowerCoalesceInExpr(stmt->expr_stmt.get(), prefix);
+                if (!prefix.empty()) {
+                    auto blk = std::make_unique<Stmt>();
+                    blk->kind = Stmt::Kind::Block;
+                    for (auto& p : prefix) blk->block.stmts.push_back(std::move(p));
+                    auto selfCopy = std::make_unique<Stmt>();
+                    selfCopy->kind = Stmt::Kind::ExprStmt;
+                    selfCopy->expr_stmt = std::move(stmt->expr_stmt);
+                    blk->block.stmts.push_back(std::move(selfCopy));
+                    *stmt = std::move(*blk);
+                }
                 break;
             }
 
             case Stmt::Kind::VarDecl: {
+                std::vector<std::unique_ptr<Stmt>> prefix;
                 for (auto& it : stmt->var_decl.items) {
                     lowerExpr(it.init.get());
+                    collectAndLowerCoalesceInExpr(it.init.get(), prefix);
                     for (auto& a : it.args) {
                         lowerExpr(a.get());
+                        collectAndLowerCoalesceInExpr(a.get(), prefix);
                     }
+                }
+                if (!prefix.empty()) {
+                    auto blk = std::make_unique<Stmt>();
+                    blk->kind = Stmt::Kind::Block;
+                    for (auto& p : prefix) blk->block.stmts.push_back(std::move(p));
+                    auto declStmt = std::make_unique<Stmt>();
+                    declStmt->kind = Stmt::Kind::VarDecl;
+                    declStmt->var_decl = std::move(stmt->var_decl);
+                    blk->block.stmts.push_back(std::move(declStmt));
+                    *stmt = std::move(*blk);
                 }
                 break;
             }
 
             case Stmt::Kind::Return: {
                 lowerExpr(stmt->return_values.get());
+                std::vector<std::unique_ptr<Stmt>> prefix;
+                collectAndLowerCoalesceInExpr(stmt->return_values.get(), prefix);
+                if (!prefix.empty()) {
+                    auto blk = std::make_unique<Stmt>();
+                    blk->kind = Stmt::Kind::Block;
+                    for (auto& p : prefix) blk->block.stmts.push_back(std::move(p));
+                    auto retStmt = std::make_unique<Stmt>();
+                    retStmt->kind = Stmt::Kind::Return;
+                    retStmt->return_values = std::move(stmt->return_values);
+                    blk->block.stmts.push_back(std::move(retStmt));
+                    *stmt = std::move(*blk);
+                }
                 break;
             }
             case Stmt::Kind::Block: {
