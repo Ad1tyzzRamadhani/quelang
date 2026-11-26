@@ -579,7 +579,13 @@ void resolveExprNs(Expr* expr) {
         case Expr::Kind::Ident: {
             if (expr->ident && !expr->ident->parts.empty()) {
                 if (expr->ident->parts.size() == 1 && expr->ident->is_absolute) {
-                    break;
+            // Jika ::nama ternyata merujuk ke simbol di namespace aktif (misal ::data -> Data_data),
+            // pakai nama ter-mangle-nya; jika tidak, pertahankan nama aslinya.
+                if (resolved != expr->ident->parts[0]) {
+                expr->ident->parts = {resolved};
+                expr->ident->is_absolute = isNsVar;
+                }
+                break;
                 }
                 std::string resolved = resolveQualifiedParts(expr->ident->parts);
                 expr->ident->parts = {resolved};
