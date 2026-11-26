@@ -475,6 +475,7 @@ private:
 };
 
 std::vector<NamespaceContext> ns_stack_;
+std::unordered_set<std::string> ns_vars_;
 std::unordered_map<std::string, std::unordered_set<std::string>> ns_all_symbols_;
 std::vector<std::unordered_set<std::string>> local_scopes_;
 
@@ -485,6 +486,10 @@ std::string currentNsPrefix() const {
         p += "_" + ns_stack_[i].prefix;
     }
     return p;
+}
+
+bool isNamespaceVar(const std::string& name) const {
+    return ns_vars_.count(name) > 0;
 }
 
 std::string qualifyNsName(const std::string& name) const {
