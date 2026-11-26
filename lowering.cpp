@@ -442,8 +442,21 @@ public:
                 if (func->is_throws && func->name && !func->name->parts.empty()) {
                     throwing_functions.insert(func->name->parts.back());
                 }
+            } else if (auto ns = dynamic_cast<NamespaceDecl*>(node.get())) {
+                collectNamespaceSymbols(ns, "");
             }
         }
+
+        std::vector<std::unique_ptr<Node>> nextDecls;
+        for (auto& node : program->decls) {
+            if (auto ns = dynamic_cast<NamespaceDecl*>(node.get())) {
+                flattenNodeWithNs(ns, nextDecls);
+            } else {
+                flattenNodeWithNs(node.get(), nextDecls);
+                nextDecls.push_back(std::move(node));
+            }
+        }
+        program->decls = std::move(nextDecls);
 
         // Pass 2: Lowering deklarasi (fungsi, dll)
         for (auto& node : program->decls) {
@@ -456,6 +469,339 @@ public:
 private:
 
         // --- Tambah di private LoweringEngine ---
+    struct NamespaceContext {
+    std::string prefix;
+    std::unordered_set<std::string> symbols;
+};
+
+std::vector<NamespaceContext> ns_stack_;
+std::unordered_map<std::string, std::unordered_set<std::string>> ns_all_symbols_;
+std::vector<std::unordered_set<std::string>> local_scopes_;
+
+std::string currentNsPrefix() const {
+    if (ns_stack_.empty()) return "";
+    std::string p = ns_stack_[0].prefix;
+    for (size_t i = 1; i < ns_stack_.size(); ++i) {
+        p += "_" + ns_stack_[i].prefix;
+    }
+    return p;
+}
+
+std::string qualifyNsName(const std::string& name) const {
+    std::string p = currentNsPrefix();
+    return p.empty() ? name : (p + "_" + name);
+}
+
+bool isShadowedByLocal(const std::string& name) const {
+    for (auto it = local_scopes_.rbegin(); it != local_scopes_.rend(); ++it) {
+        if (it->count(name)) return true;
+    }
+    return false;
+}
+
+std::string resolveUnqualifiedInNs(const std::string& name) const {
+    if (isShadowedByLocal(name)) return name;
+    for (auto it = ns_stack_.rbegin(); it != ns_stack_.rend(); ++it) {
+        if (it->symbols.count(name)) {
+            return it->prefix + "_" + name;
+        }
+    }
+    return name;
+}
+
+std::string resolveQualifiedParts(const std::vector<std::string>& parts) const {
+    if (parts.empty()) return "";
+    if (parts.size() == 1) {
+        return resolveUnqualifiedInNs(parts[0]);
+    }
+    std::string joined = parts[0];
+    for (size_t i = 1; i < parts.size(); ++i) {
+        joined += "_" + parts[i];
+    }
+    std::string cur = currentNsPrefix();
+    if (!cur.empty()) {
+        std::string curCandidate = cur + "_" + joined;
+        if (ns_all_symbols_.count(parts[0]) && ns_all_symbols_.at(parts[0]).count(parts.back())) {
+            return curCandidate;
+        }
+    }
+    return joined;
+}
+
+void collectNamespaceSymbols(NamespaceDecl* ns, const std::string& fullPrefix) {
+    if (!ns) return;
+    std::string nsName = (ns->name && !ns->name->parts.empty()) ? ns->name->parts.back() : "anon";
+    std::string thisPrefix = fullPrefix.empty() ? nsName : (fullPrefix + "_" + nsName);
+    auto& symSet = ns_all_symbols_[thisPrefix];
+
+    for (auto& item : ns->items) {
+        if (auto fn = dynamic_cast<Function*>(item.get())) {
+            if (fn->name && !fn->name->parts.empty()) symSet.insert(fn->name->parts.back());
+        } else if (auto st = dynamic_cast<StructDef*>(item.get())) {
+            if (st->name && !st->name->parts.empty()) symSet.insert(st->name->parts.back());
+        } else if (auto un = dynamic_cast<UnionDef*>(item.get())) {
+            if (un->name && !un->name->parts.empty()) symSet.insert(un->name->parts.back());
+        } else if (auto en = dynamic_cast<EnumDef*>(item.get())) {
+            if (en->name && !en->name->parts.empty()) symSet.insert(en->name->parts.back());
+        } else if (auto vd = dynamic_cast<VarDecl*>(item.get())) {
+            for (const auto& it : vd->items) symSet.insert(it.name);
+        } else if (auto childNs = dynamic_cast<NamespaceDecl*>(item.get())) {
+            if (childNs->name && !childNs->name->parts.empty()) {
+                symSet.insert(childNs->name->parts.back());
+                collectNamespaceSymbols(childNs, thisPrefix);
+            }
+        }
+    }
+}
+
+void resolveTypeNs(Type* t) {
+    if (!t) return;
+    if (t->base && !t->base->parts.empty()) {
+        std::string resolved = resolveQualifiedParts(t->base->parts);
+        t->base->parts = {resolved};
+        t->base->is_absolute = false;
+    }
+    for (auto& mod : t->modifiers) {
+        for (auto& p : mod.func_params) resolveTypeNs(p.get());
+        resolveTypeNs(mod.func_return.get());
+        resolveTypeNs(mod.throws_type.get());
+    }
+}
+
+void resolveExprNs(Expr* expr) {
+    if (!expr) return;
+    switch (expr->kind) {
+        case Expr::Kind::Ident: {
+            if (expr->ident && !expr->ident->parts.empty()) {
+                if (expr->ident->parts.size() == 1 && expr->ident->is_absolute) {
+                    break;
+                }
+                std::string resolved = resolveQualifiedParts(expr->ident->parts);
+                expr->ident->parts = {resolved};
+                expr->ident->is_absolute = false;
+            }
+            break;
+        }
+        case Expr::Kind::Postfix: {
+            // Tangani bentuk Data::data atau Data::func() bila di-parse sebagai Postfix
+            if (expr->postfix.base &&
+                expr->postfix.base->kind == Expr::Kind::Ident &&
+                expr->postfix.base->ident &&
+                expr->postfix.base->ident->parts.size() == 1) {
+                const std::string& firstPart = expr->postfix.base->ident->parts[0];
+                if (!isShadowedByLocal(firstPart) && ns_all_symbols_.count(firstPart) &&
+                    !expr->postfix.ops.empty()) {
+                    const auto& firstOp = expr->postfix.ops[0];
+                    if ((firstOp.kind == Expr::PostfixOp::Kind::MemberAccess ||
+                         firstOp.kind == Expr::PostfixOp::Kind::Call) &&
+                        !firstOp.name.empty() &&
+                        ns_all_symbols_[firstPart].count(firstOp.name)) {
+                        std::string mangled = firstPart + "_" + firstOp.name;
+                        expr->postfix.base->ident->parts = {mangled};
+                        if (firstOp.kind == Expr::PostfixOp::Kind::MemberAccess) {
+                            expr->postfix.ops.erase(expr->postfix.ops.begin());
+                            if (expr->postfix.ops.empty()) {
+                                auto identExpr = std::move(expr->postfix.base);
+                                *expr = std::move(*identExpr);
+                                break;
+                            }
+                        } else if (firstOp.kind == Expr::PostfixOp::Kind::Call) {
+                            // Biarkan op Call tetap ada di ops[0], nama fungsinya sudah jadi Data_func
+                        }
+                    }
+                }
+            }
+            resolveExprNs(expr->postfix.base.get());
+            for (auto& op : expr->postfix.ops) {
+                for (auto& a : op.args) resolveExprNs(a.get());
+                if (op.index) resolveExprNs(op.index.get());
+            }
+            break;
+        }
+        case Expr::Kind::Unary:
+            resolveExprNs(expr->unary.expr.get());
+            break;
+        case Expr::Kind::Try:
+            resolveExprNs(expr->try_expr.expr.get());
+            break;
+        case Expr::Kind::Group:
+            resolveExprNs(expr->group.expr.get());
+            break;
+        case Expr::Kind::Cast:
+            resolveTypeNs(expr->cast.target.get());
+            resolveExprNs(expr->cast.base.get());
+            break;
+        case Expr::Kind::Binary:
+            resolveExprNs(expr->binary.lhs.get());
+            resolveExprNs(expr->binary.rhs.get());
+            break;
+        case Expr::Kind::Assign:
+            resolveExprNs(expr->assign.lhs.get());
+            resolveExprNs(expr->assign.rhs.get());
+            break;
+        case Expr::Kind::Ternary:
+            resolveExprNs(expr->ternary.cond.get());
+            resolveExprNs(expr->ternary.then_expr.get());
+            resolveExprNs(expr->ternary.else_expr.get());
+            break;
+        case Expr::Kind::StructInit:
+            resolveTypeNs(expr->struct_init.type_name.get());
+            for (auto& f : expr->struct_init.fields) resolveExprNs(f.second.get());
+            break;
+        case Expr::Kind::ArrayLiteral:
+            for (auto& item : expr->array_items) resolveExprNs(item.get());
+            break;
+        case Expr::Kind::Intrinsic:
+            resolveTypeNs(expr->intrinsic.type.get());
+            for (auto& a : expr->intrinsic.args) resolveExprNs(a.get());
+            break;
+        default:
+            break;
+    }
+}
+
+void resolveStmtNs(Stmt* stmt) {
+    if (!stmt) return;
+    switch (stmt->kind) {
+        case Stmt::Kind::Block:
+            local_scopes_.push_back({});
+            for (auto& s : stmt->block.stmts) resolveStmtNs(s.get());
+            local_scopes_.pop_back();
+            break;
+        case Stmt::Kind::VarDecl:
+            resolveTypeNs(stmt->var_decl.type.get());
+            for (auto& it : stmt->var_decl.items) {
+                resolveExprNs(it.init.get());
+                for (auto& a : it.args) resolveExprNs(a.get());
+                if (!local_scopes_.empty()) local_scopes_.back().insert(it.name);
+            }
+            break;
+        case Stmt::Kind::Return:
+            resolveExprNs(stmt->return_values.get());
+            break;
+        case Stmt::Kind::ExprStmt:
+            resolveExprNs(stmt->expr_stmt.get());
+            break;
+        case Stmt::Kind::If:
+            resolveExprNs(stmt->if_stmt.cond.get());
+            if (stmt->if_stmt.then_block) resolveStmtNs(stmt->if_stmt.then_block.get());
+            for (auto& elif : stmt->if_stmt.elifs) {
+                resolveExprNs(elif.cond.get());
+                if (elif.block) resolveStmtNs(elif.block.get());
+            }
+            if (stmt->if_stmt.else_block) resolveStmtNs(stmt->if_stmt.else_block.get());
+            break;
+        case Stmt::Kind::While:
+            resolveExprNs(stmt->while_stmt.cond.get());
+            if (stmt->while_stmt.body) resolveStmtNs(stmt->while_stmt.body.get());
+            break;
+        case Stmt::Kind::DoStmt:
+            if (stmt->do_stmt.body) resolveStmtNs(stmt->do_stmt.body.get());
+            if (stmt->do_stmt.cond) resolveExprNs(stmt->do_stmt.cond.get());
+            if (stmt->do_stmt.catch_body) resolveStmtNs(stmt->do_stmt.catch_body.get());
+            break;
+        case Stmt::Kind::SwitchCase:
+            resolveExprNs(stmt->switch_stmt.expr.get());
+            for (auto& c : stmt->switch_stmt.cases) {
+                for (auto& v : c.values) resolveExprNs(v.get());
+                if (c.body) resolveStmtNs(c.body.get());
+            }
+            break;
+        case Stmt::Kind::Unsafe:
+            if (stmt->unsafe_stmt.stmt) resolveStmtNs(stmt->unsafe_stmt.stmt.get());
+            break;
+        case Stmt::Kind::ThrowStmt:
+            resolveExprNs(stmt->throw_stmt.expr.get());
+            break;
+        default:
+            break;
+    }
+}
+
+void flattenNodeWithNs(Node* node, std::vector<std::unique_ptr<Node>>& outDecls) {
+    if (auto ns = dynamic_cast<NamespaceDecl*>(node)) {
+        std::string nsName = (ns->name && !ns->name->parts.empty()) ? ns->name->parts.back() : "anon";
+        std::string fullPrefix = qualifyNsName(nsName);
+        ns_stack_.push_back({nsName, ns_all_symbols_[fullPrefix]});
+
+        for (auto& item : ns->items) {
+            flattenNodeWithNs(item.get(), outDecls);
+            if (item) {
+                outDecls.push_back(std::move(item));
+            }
+        }
+
+        ns_stack_.pop_back();
+        return;
+    }
+
+    if (auto fn = dynamic_cast<Function*>(node)) {
+        if (fn->name && !fn->name->parts.empty()) {
+            std::string rawName = fn->name->parts.back();
+            std::string qName = qualifyNsName(rawName);
+            fn->name->parts = {qName};
+            if (fn->is_throws) {
+                throwing_functions.insert(qName);
+            }
+        }
+        resolveTypeNs(fn->return_types.get());
+        resolveTypeNs(fn->throws_type.get());
+        local_scopes_.clear();
+        local_scopes_.push_back({});
+        for (auto& p : fn->params) {
+            resolveTypeNs(p.type.get());
+            resolveExprNs(p.init.get());
+            local_scopes_.back().insert(p.name);
+        }
+        if (fn->body) resolveStmtNs(fn->body.get());
+        local_scopes_.clear();
+    } else if (auto st = dynamic_cast<StructDef*>(node)) {
+        if (st->name && !st->name->parts.empty()) {
+            st->name->parts = {qualifyNsName(st->name->parts.back())};
+        }
+        for (auto& mem : st->members) {
+            if (auto vd = dynamic_cast<VarDecl*>(mem.get())) {
+                resolveTypeNs(vd->type.get());
+                for (auto& it : vd->items) resolveExprNs(it.init.get());
+            } else if (auto mfn = dynamic_cast<Function*>(mem.get())) {
+                if (mfn->name && !mfn->name->parts.empty()) {
+                    std::string mName = mfn->name->parts.back();
+                    if (!currentNsPrefix().empty()) {
+                        mfn->name->parts = {qualifyNsName(mName)};
+                    }
+                }
+                resolveTypeNs(mfn->return_types.get());
+                local_scopes_.clear();
+                local_scopes_.push_back({});
+                for (auto& p : mfn->params) {
+                    resolveTypeNs(p.type.get());
+                    local_scopes_.back().insert(p.name);
+                }
+                if (mfn->body) resolveStmtNs(mfn->body.get());
+                local_scopes_.clear();
+            }
+        }
+    } else if (auto un = dynamic_cast<UnionDef*>(node)) {
+        if (un->name && !un->name->parts.empty()) {
+            un->name->parts = {qualifyNsName(un->name->parts.back())};
+        }
+        for (auto& f : un->fields) resolveTypeNs(f.type.get());
+    } else if (auto en = dynamic_cast<EnumDef*>(node)) {
+        if (en->name && !en->name->parts.empty()) {
+            en->name->parts = {qualifyNsName(en->name->parts.back())};
+        }
+        for (auto& it : en->items) resolveExprNs(it.value.get());
+    } else if (auto vd = dynamic_cast<VarDecl*>(node)) {
+        resolveTypeNs(vd->type.get());
+        for (auto& it : vd->items) {
+            if (!currentNsPrefix().empty()) {
+                it.name = qualifyNsName(it.name);
+            }
+            resolveExprNs(it.init.get());
+        }
+    }
+}
+
     void lowerExpr(Expr* expr) {
         if (!expr) return;
 
