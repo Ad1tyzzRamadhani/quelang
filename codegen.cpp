@@ -742,34 +742,73 @@ private:
         out_ << "end\n\n";
     }
 
-    void emitGlobalVar(VarDecl* varDecl) {
-        for (const auto& item : varDecl->items) {
-            bool is_const = false;
-            for(auto& kind : varDecl->type->qualifiers) {
-                if(kind == TypeQualifier::Const) is_const = true;
-            }
-            std::string t = emitType(varDecl->type.get());
-            globalTypes_[item.name] = t;
-            std::string initStr = "";
-            if (item.init && item.init->kind == Expr::Kind::Literal && item.init->literal) {
-                if (item.init->literal->kind == Literal::Kind::String) {
-                    initStr = " = \"" + escapeString(item.init->literal->value) + "\"";
-                } else if (item.init->literal->kind == Literal::Kind::Char) {
-                    initStr = " = '" + item.init->literal->value + "'";
-                } else {
-                    initStr = " = " + item.init->literal->value;
-                }
-            }
+    bool tryFormatGlobalLiteral(Expr* expr, std::string& outStr) {
+    if (!expr) return false;
 
-            if (varDecl->is_atomic) {
-                out_ << "global " << item.name << ": " << t << initStr << "\n";
-            } else if(is_const) {
-                out_ << "constant " << item.name << ": " << t << initStr << "\n";
-            } else {
-                out_ << "global " << item.name << ": " << t << initStr << "\n";
-            }
+    if (expr->kind == Expr::Kind::Literal && expr->literal) {
+        switch (expr->literal->kind) {
+            case Literal::Kind::String:
+                outStr = "\"" + escapeString(expr->literal->value) + "\"";
+                return true;
+            case Literal::Kind::Char:
+                outStr = "'" + escapeString(expr->literal->value) + "'";
+                return true;
+            case Literal::Kind::True:
+                outStr = "true";
+                return true;
+            case Literal::Kind::False:
+                outStr = "false";
+                return true;
+            case Literal::Kind::Number:
+            case Literal::Kind::Float:
+            case Literal::Kind::Hex:
+            case Literal::Kind::Binary:
+                outStr = expr->literal->value;
+                return true;
+            default:
+                return false;
         }
     }
+
+    // Dukung literal negatif seperti -10 atau -2.5 bila direpresentasikan sebagai Unary Neg
+    if (expr->kind == Expr::Kind::Unary &&
+        expr->unary.op == UnaryOp::Neg &&
+        expr->unary.expr &&
+        expr->unary.expr->kind == Expr::Kind::Literal &&
+        expr->unary.expr->literal) {
+        auto k = expr->unary.expr->literal->kind;
+        if (k == Literal::Kind::Number || k == Literal::Kind::Float) {
+            outStr = "-" + expr->unary.expr->literal->value;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void emitGlobalVar(VarDecl* varDecl) {
+    if (!varDecl || !varDecl->type) return;
+
+    for (const auto& item : varDecl->items) {
+        bool is_const = false;
+        for (auto& kind : varDecl->type->qualifiers) {
+            if (kind == TypeQualifier::Const) is_const = true;
+        }
+
+        std::string t = emitType(varDecl->type.get());
+        globalTypes_[item.name] = t;
+
+        std::string initStr = "";
+        std::string litStr;
+        if (item.init && tryFormatGlobalLiteral(item.init.get(), litStr)) {
+            initStr = " = " + litStr;
+        }
+
+        std::string prefix = is_const ? "constant " : "global ";
+        out_ << prefix << item.name << ": " << t << initStr << "\n";
+    }
+}
+
 
     std::string flattenQualifiedName(QualifiedName* qname, const std::string& fallback = "anonymous") {
         if (!qname || qname->parts.empty()) {
