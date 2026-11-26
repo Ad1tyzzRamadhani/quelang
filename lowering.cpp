@@ -796,8 +796,10 @@ void flattenNodeWithNs(Node* node, std::vector<std::unique_ptr<Node>>& outDecls)
         for (auto& it : vd->items) {
             if (!currentNsPrefix().empty()) {
                 it.name = qualifyNsName(it.name);
+                ns_vars_.insert(it.name);
             }
             resolveExprNs(it.init.get());
+            for (auto& a : it.args) resolveExprNs(a.get());
         }
     }
 }
@@ -806,6 +808,20 @@ void flattenNodeWithNs(Node* node, std::vector<std::unique_ptr<Node>>& outDecls)
         if (!expr) return;
 
         switch (expr->kind) {
+            case Expr::Kind::Ident: {
+            if (expr->ident && !expr->ident->parts.empty()) {
+        // Jika sudah is_absolute dengan 1 bagian, pertahankan hanya jika memang ns_var;
+        // kalau bukan ns_var, biarkan tetap true bila memang ::global asli.
+                if (expr->ident->parts.size() == 1 && expr->ident->is_absolute) {
+                    break;
+                }
+                std::string resolved = resolveQualifiedParts(expr->ident->parts);
+                bool isNsVar = !isShadowedByLocal(expr->ident->parts.back()) && isNamespaceVar(resolved);
+                expr->ident->parts = {resolved};
+                expr->ident->is_absolute = isNsVar;
+                }
+            break;
+            }
             case Expr::Kind::Postfix: {
                 lowerExpr(expr->postfix.base.get());
 
