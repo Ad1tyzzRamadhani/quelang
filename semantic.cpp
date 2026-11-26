@@ -1533,6 +1533,19 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
             if (expr->ident->is_absolute) {
                 const std::string name = qualifiedName(*expr->ident);
                 SemanticSymbol* symbol = symbols_.lookupGlobal(name);
+
+                if (!symbol && raw_name.find("::") == std::string::npos) {
+                    std::string ns = currentNamespace();
+                    while (!ns.empty()) {
+                        if (auto* ns_sym = symbols_.lookupGlobal(ns + "::" + name)) {
+                            symbol = ns_sym;
+                            break;
+                        }
+                        const size_t pos = ns.rfind("::");
+                        if (pos == std::string::npos) break;
+                        ns.erase(pos);
+                    }
+                }
                 
                 if (!symbol) {
                     error(expr, "unknown global identifier '" + name + "'");
