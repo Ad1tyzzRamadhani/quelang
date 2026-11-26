@@ -1534,7 +1534,7 @@ SemanticAnalyzer::TypeView SemanticAnalyzer::analyzeExpr(Expr* expr) {
                 const std::string name = qualifiedName(*expr->ident);
                 SemanticSymbol* symbol = symbols_.lookupGlobal(name);
 
-                if (!symbol && raw_name.find("::") == std::string::npos) {
+                if (!symbol && name.find("::") == std::string::npos) {
                     std::string ns = currentNamespace();
                     while (!ns.empty()) {
                         if (auto* ns_sym = symbols_.lookupGlobal(ns + "::" + name)) {
