@@ -1283,16 +1283,17 @@ private:
                         }
                         if (symbolTypes_.find(varName) != symbolTypes_.end()) {
                             std::string vType = symbolTypes_[varName];
+                            std::string addrReg = "%" + varName;
                             if (vType == "ptr") {
                                 std::string ptrVal = freshTemp();
-                                out_ << "    " << ptrVal << " = load ptr " << varReg << "\n";
+                                out_ << "    " << ptrVal << " = load ptr " << addrReg << "\n";
                                 return ptrVal;
                             }
                             if (vType.rfind("[", 0) == 0) {
-                                return "%" + varName;
+                                return addrReg;
                             }
                             std::string loadRes = freshTemp();
-                            out_ << "    " << loadRes << " = load " << vType << " %" << varName << "\n";
+                            out_ << "    " << loadRes << " = load " << vType << " " << addrReg << "\n";
                             return loadRes;
                         }
                         return "%" + varName;
