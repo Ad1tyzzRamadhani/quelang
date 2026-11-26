@@ -816,12 +816,18 @@ void flattenNodeWithNs(Node* node, std::vector<std::unique_ptr<Node>>& outDecls)
             case Expr::Kind::Ident: {
             if (expr->ident && !expr->ident->parts.empty()) {
         // Jika sudah is_absolute dengan 1 bagian, pertahankan hanya jika memang ns_var;
-        // kalau bukan ns_var, biarkan tetap true bila memang ::global asli.
-                if (expr->ident->parts.size() == 1 && expr->ident->is_absolute) {
-                    break;
-                }
+        // kalau bukan ns_var, biarkan tetap true bila memang ::global asli
                 std::string resolved = resolveQualifiedParts(expr->ident->parts);
                 bool isNsVar = !isShadowedByLocal(expr->ident->parts.back()) && isNamespaceVar(resolved);
+                if (expr->ident->parts.size() == 1 && expr->ident->is_absolute) {
+            // Jika ::nama ternyata merujuk ke simbol di namespace aktif (misal ::data -> Data_data),
+            // pakai nama ter-mangle-nya; jika tidak, pertahankan nama aslinya.
+                    if (resolved != expr->ident->parts[0]) {
+                        expr->ident->parts = {resolved};
+                        expr->ident->is_absolute = isNsVar;
+                    }
+                    break;
+                }
                 expr->ident->parts = {resolved};
                 expr->ident->is_absolute = isNsVar;
                 }
