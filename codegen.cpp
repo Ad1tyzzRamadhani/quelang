@@ -17,7 +17,17 @@ public:
         structDefinitions_.clear();
         pointerStructTypes_.clear();
 
+                for (const auto& node : program->decls) {
+            if (auto structDef = dynamic_cast<StructDef*>(node.get())) {
+                emitStruct(structDef);
+            } else if (auto unionDef = dynamic_cast<UnionDef*>(node.get())) {
+                emitUnion(unionDef);
+            }
+        }
         for (const auto& node : program->decls) {
+            if (dynamic_cast<StructDef*>(node.get()) || dynamic_cast<UnionDef*>(node.get())) {
+                continue;
+            }
             emitNode(node.get());
         }
 
