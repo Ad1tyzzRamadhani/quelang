@@ -330,53 +330,20 @@ private:
         return "0";
     }
 
-    Expr* baseExpr = unwrapGroup(expr->postfix.base.get());
     std::string baseName;
-    std::string curReg;
+    if (expr->postfix.base && expr->postfix.base->kind == Expr::Kind::Ident &&
+        expr->postfix.base->ident && !expr->postfix.base->ident->parts.empty()) {
+        baseName = expr->postfix.base->ident->parts.back();
+    }
+
+    std::string curReg = "%" + baseName;
     std::string curType = "i32";
-
-    if (baseExpr && baseExpr->kind == Expr::Kind::Unary && baseExpr->unary.op == UnaryOp::Deref) {
-        Expr* ptrExpr = unwrapGroup(baseExpr->unary.expr.get());
-        if (ptrExpr && ptrExpr->kind == Expr::Kind::Ident && ptrExpr->ident && !ptrExpr->ident->parts.empty()) {
-            baseName = ptrExpr->ident->parts.back();
-        }
-        // Evaluasi ptrExpr menjadi nilai pointer (misal load ptr slot atau %this)
-        curReg = emitExpr(ptrExpr);
-        curType = resolvePointeeStructType(ptrExpr);
-        if (curType.empty() && !baseName.empty()) {
-            if (pointerStructTypes_.count(baseName)) curType = pointerStructTypes_[baseName];
-            else if (paramElementTypes_.count(baseName)) curType = paramElementTypes_[baseName];
-            else if (symbolElementTypes_.count(baseName)) curType = symbolElementTypes_[baseName];
-        }
-    } else {
-        if (baseExpr && baseExpr->kind == Expr::Kind::Ident && baseExpr->ident && !baseExpr->ident->parts.empty()) {
-            baseName = baseExpr->ident->parts.back();
-        }
-
-        std::string varReg, varType;
-        if (!baseName.empty() && lookupVar(baseName, varReg, varType)) {
-            if (!resolveStructTypeName(varType).empty()) {
-                curReg = varReg;
-                curType = resolveStructTypeName(varType);
-            } else if (varType == "ptr") {
-                std::string loadedPtr = freshTemp();
-                out_ << "    " << loadedPtr << " = load ptr " << varReg << "\n";
-                curReg = loadedPtr;
-                curType = pointerStructTypes_.count(baseName)
-                              ? pointerStructTypes_[baseName]
-                              : (paramElementTypes_.count(baseName) ? paramElementTypes_[baseName] : "ptr");
-            } else {
-                std::string loadedVal = freshTemp();
-                out_ << "    " << loadedVal << " = load " << varType << " " << varReg << "\n";
-                curReg = loadedVal;
-                curType = varType;
-            }
-        } else if (baseExpr) {
-            curReg = emitExpr(baseExpr);
-            curType = getExprType(baseExpr);
-        } else {
-            curReg = "%" + baseName;
-        }
+    std::string varReg, varType;
+    if (lookupVar(baseName, varReg, varType)) {
+        curReg = varReg;
+        curType = varType;
+    } else if (symbolTypes_.count(baseName)) {
+        curType = symbolTypes_[baseName];
     }
 
     for (size_t i = 0; i < expr->postfix.ops.size(); ++i) {
@@ -385,12 +352,13 @@ private:
             op.kind == Expr::PostfixOp::Kind::Arrow ||
             op.kind == Expr::PostfixOp::Kind::SafeArrow) {
 
-            std::string structType = resolveStructTypeName(curType);
-            if (structType.empty() && !baseName.empty() && pointerStructTypes_.count(baseName)) {
+            std::string structType = curType;
+            if ((op.kind == Expr::PostfixOp::Kind::Arrow || op.kind == Expr::PostfixOp::Kind::SafeArrow) &&
+                curType == "ptr" && pointerStructTypes_.count(baseName)) {
+                std::string ptrLoaded = freshTemp();
+                out_ << "    " << ptrLoaded << " = load ptr " << curReg << "\n";
+                curReg = ptrLoaded;
                 structType = pointerStructTypes_[baseName];
-            }
-            if (structType.empty()) {
-                structType = curType;
             }
 
             int fieldIndex = 0;
@@ -414,7 +382,7 @@ private:
                 return fieldAddr;
             }
 
-            if (!resolveStructTypeName(fieldType).empty() || fieldType.rfind("[", 0) == 0) {
+            if (fieldType.rfind("[", 0) == 0) {
                 curReg = fieldAddr;
                 curType = fieldType;
             } else {
@@ -428,8 +396,7 @@ private:
 
     outFieldType = curType;
     return curReg;
-}
-
+    }
 
 
 
