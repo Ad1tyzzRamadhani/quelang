@@ -1348,6 +1348,7 @@ private:
 
             case Stmt::Kind::VarDecl: {
                 std::vector<std::unique_ptr<Stmt>> prefix;
+                std::vector<std::unique_ptr<Stmt>> suffixCtorCalls;
                 for (auto& it : stmt->var_decl.items) {
                     lowerExpr(it.init.get());
                     collectAndLowerCoalesceInExpr(it.init.get(), prefix);
