@@ -237,6 +237,43 @@ private:
         }
     }
 
+    void lowerArrowInPostfix(Expr* expr) {
+        if (!expr || expr->kind != Expr::Kind::Postfix || !expr->postfix.base) return;
+
+        for (size_t i = 0; i < expr->postfix.ops.size(); ++i) {
+            auto& op = expr->postfix.ops[i];
+            if (op.kind == Expr::PostfixOp::Kind::Arrow ||
+                op.kind == Expr::PostfixOp::Kind::SafeArrow) {
+                if (i == 0) {
+                    auto derefExpr = std::make_unique<Expr>();
+                    derefExpr->kind = Expr::Kind::Unary;
+                    derefExpr->unary.op = UnaryOp::Deref;
+                    derefExpr->unary.expr = std::move(expr->postfix.base);
+                    expr->postfix.base = std::move(derefExpr);
+                } else {
+                    auto subPostfix = std::make_unique<Expr>();
+                    subPostfix->kind = Expr::Kind::Postfix;
+                    subPostfix->postfix.base = std::move(expr->postfix.base);
+                    for (size_t k = 0; k < i; ++k) {
+                        subPostfix->postfix.ops.push_back(std::move(expr->postfix.ops[k]));
+                    }
+
+                    auto derefExpr = std::make_unique<Expr>();
+                    derefExpr->kind = Expr::Kind::Unary;
+                    derefExpr->unary.op = UnaryOp::Deref;
+                    derefExpr->unary.expr = std::move(subPostfix);
+
+                    expr->postfix.base = std::move(derefExpr);
+                    expr->postfix.ops.erase(expr->postfix.ops.begin(),
+                                            expr->postfix.ops.begin() + static_cast<long>(i));
+                    i = 0;
+                }
+                expr->postfix.ops[0].kind = Expr::PostfixOp::Kind::MemberAccess;
+            }
+        }
+    }
+
+
     TypeModifier cloneTypeModifier(const TypeModifier& src) const {
         TypeModifier dst;
         dst.kind = src.kind;
