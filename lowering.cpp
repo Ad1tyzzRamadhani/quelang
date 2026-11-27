@@ -1351,6 +1351,22 @@ private:
                 for (auto& it : stmt->var_decl.items) {
                     lowerExpr(it.init.get());
                     collectAndLowerCoalesceInExpr(it.init.get(), prefix);
+                    lowerConstructorCallInInit(it.name, it.init.get());
+
+                    if (it.init && it.init->kind == Expr::Kind::Postfix &&
+                        it.init->postfix.base &&
+                        it.init->postfix.base->kind == Expr::Kind::Ident &&
+                        it.init->postfix.base->ident &&
+                        !it.init->postfix.base->ident->parts.empty()) {
+                        const std::string& fnName = it.init->postfix.base->ident->parts.back();
+                        if (fnName.size() > 10 &&
+                            fnName.rfind("_construct") == fnName.size() - 10) {
+                            auto callStmt = std::make_unique<Stmt>();
+                            callStmt->kind = Stmt::Kind::ExprStmt;
+                            callStmt->expr_stmt = std::move(it.init);
+                            suffixCtorCalls.push_back(std::move(callStmt));
+                        }
+                    }
                     for (auto& a : it.args) {
                         lowerExpr(a.get());
                         collectAndLowerCoalesceInExpr(a.get(), prefix);
