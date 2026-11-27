@@ -325,7 +325,6 @@ private:
     }
 
     std::string emitFieldAddr(Expr* expr, std::string& outFieldType) {
-    std::string emitFieldAddr(Expr* expr, std::string& outFieldType) {
     if (!expr) {
         outFieldType = "i32";
         return "0";
