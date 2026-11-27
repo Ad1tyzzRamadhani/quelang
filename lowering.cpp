@@ -174,28 +174,26 @@ private:
         return t;
     }
 
-    // Ganti bagian recordVarStructType menjadi:
-void recordVarStructType(const std::string& varName, const Type* type) {
-    if (varName.empty() || !type || !type->base || type->base->parts.empty()) return;
-    std::string joined;
-    for (size_t i = 0; i < type->base->parts.size(); ++i) {
-        if (i > 0) joined += "_";
-        joined += type->base->parts[i];
+    void recordVarStructType(const std::string& varName, const Type* type) {
+        if (varName.empty() || !type || !type->base || type->base->parts.empty()) return;
+        std::string joined;
+        for (size_t i = 0; i < type->base->parts.size(); ++i) {
+            if (i > 0) joined += "_";
+            joined += type->base->parts[i];
+        }
+        std::string resolvedBase = resolveKnownStructName(joined);
+        if (resolvedBase.empty()) {
+            resolvedBase = resolveQualifiedParts(type->base->parts);
+        }
+        // Simpan langsung meski belum ada di struct_methods_, selama bukan tipe primitif
+        if (!resolvedBase.empty() &&
+            resolvedBase != "int" && resolvedBase != "i32" && resolvedBase != "i64" &&
+            resolvedBase != "char" && resolvedBase != "i8" && resolvedBase != "void" &&
+            resolvedBase != "bool" && resolvedBase != "float" && resolvedBase != "double" &&
+            resolvedBase != "ptr") {
+            var_struct_types_[varName] = resolvedBase;
+        }
     }
-    std::string resolvedBase = resolveKnownStructName(joined);
-    if (resolvedBase.empty()) {
-        resolvedBase = resolveQualifiedParts(type->base->parts);
-    }
-    // Simpan langsung meski belum ada di struct_methods_, selama bukan tipe primitif
-    if (!resolvedBase.empty() &&
-        resolvedBase != "int" && resolvedBase != "i32" && resolvedBase != "i64" &&
-        resolvedBase != "char" && resolvedBase != "i8" && resolvedBase != "void" &&
-        resolvedBase != "bool" && resolvedBase != "float" && resolvedBase != "double" &&
-        resolvedBase != "ptr") {
-        var_struct_types_[varName] = resolvedBase;
-    }
-}
-
 
     std::string getFieldStructType(const std::string& structName, const std::string& fieldName) const {
         std::string sName = resolveKnownStructName(structName);
@@ -215,7 +213,7 @@ void recordVarStructType(const std::string& varName, const Type* type) {
 
         if (expr->kind == Expr::Kind::Ident && expr->ident && !expr->ident->parts.empty()) {
             const std::string& name = expr->ident->parts.back();
-            if (!isShadowedByLocal(name) && var_struct_types_.count(name)) {
+            if (var_struct_types_.count(name)) {
                 return var_struct_types_.at(name);
             }
             std::string known = resolveKnownStructName(name);
@@ -1037,9 +1035,37 @@ void recordVarStructType(const std::string& varName, const Type* type) {
                             }
 
                             std::string structType = inferExprStructType(receiverExpr.get());
-                            if (!structType.empty() &&
+                            if (structType.empty() && receiverExpr &&
+                                receiverExpr->kind == Expr::Kind::Ident &&
+                                receiverExpr->ident && !receiverExpr->ident->parts.empty()) {
+                                const std::string& rName = receiverExpr->ident->parts.back();
+                                if (var_struct_types_.count(rName)) {
+                                    structType = var_struct_types_.at(rName);
+                                }
+                            }
+
+                            bool isKnownMethod = (!structType.empty() &&
                                 struct_methods_.count(structType) &&
-                                struct_methods_.at(structType).count(memOp.name)) {
+                                struct_methods_.at(structType).count(memOp.name));
+
+                            // Fallback: jika structType diketahui dan memOp.name bukan nama field struct,
+                            // anggap sebagai pemanggilan method struct tersebut
+                            if (!isKnownMethod && !structType.empty()) {
+                                bool isField = false;
+                                if (struct_fields_.count(structType)) {
+                                    for (const auto& f : struct_fields_.at(structType)) {
+                                        if (f.name == memOp.name) {
+                                            isField = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (!isField) {
+                                    isKnownMethod = true;
+                                }
+                            }
+
+                            if (isKnownMethod) {
                                 std::string mangledMethod = structType + "_" + memOp.name;
                                 std::vector<std::unique_ptr<Expr>> newArgs;
                                 newArgs.push_back(makeReceiverPointerExpr(receiverExpr.get()));
@@ -1070,27 +1096,6 @@ void recordVarStructType(const std::string& varName, const Type* type) {
                                     }
                                     break;
                                 }
-                                // Ganti bagian recordVarStructType menjadi:
-                                bool isKnownMethod = (!structType.empty() &&
-              struct_methods_.count(structType) &&
-    struct_methods_.at(structType).count(memOp.name));
-
-// Fallback: jika structType diketahui dan memOp.name bukan nama field struct,
-// anggap sebagai pemanggilan method struct tersebut
-if (!isKnownMethod && !structType.empty()) {
-    bool isField = false;
-    if (struct_fields_.count(structType)) {
-        for (const auto& f : struct_fields_.at(structType)) {
-            if (f.name == memOp.name) {
-                isField = true;
-                break;
-            }
-        }
-    }
-    if (!isField) {
-        isKnownMethod = true;
-    }
-}
                             }
                         }
                     }
