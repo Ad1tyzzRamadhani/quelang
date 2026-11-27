@@ -630,6 +630,35 @@ private:
         return nullLit;
     }
 
+    void lowerConstructorCallInInit(const std::string& targetVarName, Expr* initExpr) {
+        if (!initExpr || initExpr->kind != Expr::Kind::Postfix) return;
+        if (!initExpr->postfix.base ||
+            initExpr->postfix.base->kind != Expr::Kind::Ident ||
+            !initExpr->postfix.base->ident ||
+            initExpr->postfix.base->ident->parts.empty()) return;
+
+        const std::string& fnName = initExpr->postfix.base->ident->parts.back();
+        if (fnName.size() > 10 &&
+            fnName.rfind("_construct") == fnName.size() - 10 &&
+            !initExpr->postfix.ops.empty() &&
+            initExpr->postfix.ops[0].kind == Expr::PostfixOp::Kind::Call) {
+            auto& callOp = initExpr->postfix.ops[0];
+            bool hasThisArg = !callOp.args.empty() &&
+                              callOp.args[0] &&
+                              callOp.args[0]->kind == Expr::Kind::Unary &&
+                              callOp.args[0]->unary.op == UnaryOp::Ref &&
+                              callOp.args[0]->unary.expr &&
+                              callOp.args[0]->unary.expr->kind == Expr::Kind::Ident &&
+                              callOp.args[0]->unary.expr->ident &&
+                              !callOp.args[0]->unary.expr->ident->parts.empty() &&
+                              callOp.args[0]->unary.expr->ident->parts.back() == targetVarName;
+            if (!hasThisArg) {
+                callOp.args.insert(callOp.args.begin(), makeRefExpr(targetVarName));
+            }
+        }
+    }
+
+
     void collectNamespaceSymbols(NamespaceDecl* ns, const std::string& fullPrefix) {
         if (!ns) return;
         std::string nsName = (ns->name && !ns->name->parts.empty()) ? ns->name->parts.back() : "anon";
