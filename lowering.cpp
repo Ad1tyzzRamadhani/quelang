@@ -1412,7 +1412,7 @@ private:
                         collectAndLowerCoalesceInExpr(a.get(), prefix);
                     }
                 }
-                if (!prefix.empty()) {
+                if (!prefix.empty() || !suffixCtorCalls.empty()) {
                     auto blk = std::make_unique<Stmt>();
                     blk->kind = Stmt::Kind::Block;
                     for (auto& p : prefix) blk->block.stmts.push_back(std::move(p));
@@ -1420,6 +1420,9 @@ private:
                     declStmt->kind = Stmt::Kind::VarDecl;
                     declStmt->var_decl = std::move(stmt->var_decl);
                     blk->block.stmts.push_back(std::move(declStmt));
+                    for (auto& cStmt : suffixCtorCalls) {
+                        blk->block.stmts.push_back(std::move(cStmt));
+                    }
                     *stmt = std::move(*blk);
                 }
                 break;
