@@ -1070,6 +1070,27 @@ void recordVarStructType(const std::string& varName, const Type* type) {
                                     }
                                     break;
                                 }
+                                // Ganti bagian recordVarStructType menjadi:
+                                bool isKnownMethod = (!structType.empty() &&
+              struct_methods_.count(structType) &&
+    struct_methods_.at(structType).count(memOp.name));
+
+// Fallback: jika structType diketahui dan memOp.name bukan nama field struct,
+// anggap sebagai pemanggilan method struct tersebut
+if (!isKnownMethod && !structType.empty()) {
+    bool isField = false;
+    if (struct_fields_.count(structType)) {
+        for (const auto& f : struct_fields_.at(structType)) {
+            if (f.name == memOp.name) {
+                isField = true;
+                break;
+            }
+        }
+    }
+    if (!isField) {
+        isKnownMethod = true;
+    }
+}
                             }
                         }
                     }
