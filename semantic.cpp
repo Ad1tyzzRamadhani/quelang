@@ -909,17 +909,21 @@ void SemanticAnalyzer::analyzeSwitch(Stmt& stmt) {
 }
 
 void SemanticAnalyzer::analyzeDo(Stmt& stmt) {
-    analyzeStmt(*stmt.do_stmt.body);
+    if (stmt.do_stmt.iscatch && !function_stack_.empty()) {
+        function_stack_.back().catch_depth++;
+    }
+
+    if (stmt.do_stmt.body) {
+        analyzeStmt(*stmt.do_stmt.body);
+    }
+
     if (stmt.do_stmt.cond) {
         TypeView cond = analyzeExpr(stmt.do_stmt.cond.get());
         requireBoolean(cond, stmt.do_stmt.cond.get(), "do/while condition");
     }
+
     if (stmt.do_stmt.iscatch) {
-        /*if (!function_stack_.back().is_throws && !function_stack_.back().throws_type) {
-            warning(&stmt, "do/catch is used in a function without a throws contract");
-        }*/
         symbols_.enterScope("catch");
-        function_stack_.back().catch_depth++;
         if (!stmt.do_stmt.error_var.items.empty()) {
             VarDecl& err = stmt.do_stmt.error_var;
             validateType(err.type.get(), &err, false);
@@ -934,10 +938,14 @@ void SemanticAnalyzer::analyzeDo(Stmt& stmt) {
             }
         }
         if (stmt.do_stmt.catch_body) analyzeStmt(*stmt.do_stmt.catch_body);
-        function_stack_.back().catch_depth--;
         symbols_.exitScope();
+
+        if (!function_stack_.empty()) {
+            function_stack_.back().catch_depth--;
+        }
     }
 }
+
 
 void SemanticAnalyzer::analyzeStmt(Stmt& stmt) {
     switch (stmt.kind) {
