@@ -804,6 +804,8 @@ private:
                     if (op.index) resolveExprNs(op.index.get());
                 }
 
+                lowerArrowInPostfix(expr);
+
                 // 2. Ubah pemanggilan method `obj.meth1(args)` / `ptr->meth1(args)`
                 //    menjadi `<StructMangled>_meth1(&obj, args)` / `<StructMangled>_meth1(ptr, args)`
                     // 2. Ubah pemanggilan method `obj.meth1(args)` / `ptr->meth1(args)`
