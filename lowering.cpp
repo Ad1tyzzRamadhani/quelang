@@ -740,60 +740,61 @@ private:
 
                 // 2. Ubah pemanggilan method `obj.meth1(args)` / `ptr->meth1(args)`
                 //    menjadi `<StructMangled>_meth1(&obj, args)` / `<StructMangled>_meth1(ptr, args)`
-                if (expr->postfix.base && expr->postfix.ops.size() >= 2) {
-                    for (size_t i = 0; i + 1 < expr->postfix.ops.size(); ++i) {
-                        const auto& memOp = expr->postfix.ops[i];
-                        auto& callOp = expr->postfix.ops[i + 1];
+                    // 2. Ubah pemanggilan method `obj.meth1(args)` / `ptr->meth1(args)`
+    //    menjadi `<StructMangled>_meth1(&obj, args)` / `<StructMangled>_meth1(ptr, args)`
+    if (expr->postfix.base && expr->postfix.ops.size() >= 2) {
+        for (size_t i = 0; i + 1 < expr->postfix.ops.size(); ++i) {
+            const auto& memOp = expr->postfix.ops[i];
+            auto& callOp = expr->postfix.ops[i + 1];
 
-                        bool isMemberOrArrow =
-                            (memOp.kind == Expr::PostfixOp::Kind::MemberAccess ||
-                             memOp.kind == Expr::PostfixOp::Kind::Arrow ||
-                             memOp.kind == Expr::PostfixOp::Kind::SafeArrow);
+            bool isMemberOrArrow =
+                (memOp.kind == Expr::PostfixOp::Kind::MemberAccess ||
+                 memOp.kind == Expr::PostfixOp::Kind::Arrow ||
+                 memOp.kind == Expr::PostfixOp::Kind::SafeArrow);
 
-                        if (isMemberOrArrow && callOp.kind == Expr::PostfixOp::Kind::Call) {
-                            // Bangun ekspresi receiver sampai sebelum memOp
-                            std::unique_ptr<Expr> receiverExpr;
-                            if (i == 0) {
-                                receiverExpr = cloneExpr(expr->postfix.base.get());
-                            } else {
-                                auto subPostfix = std::make_unique<Expr>();
-                                subPostfix->kind = Expr::Kind::Postfix;
-                                subPostfix->postfix.base = cloneExpr(expr->postfix.base.get());
-                                for (size_t k = 0; k < i; ++k) {
-                                    Expr::PostfixOp subOp;
-                                    subOp.kind = expr->postfix.ops[k].kind;
-                                    subOp.name = expr->postfix.ops[k].name;
-                                    subOp.index = cloneExpr(expr->postfix.ops[k].index.get());
-                                    for (auto& a : expr->postfix.ops[k].args) {
-                                        subOp.args.push_back(cloneExpr(a.get()));
-                                    }
-                                    subPostfix->postfix.ops.push_back(std::move(subOp));
-                                }
-                                receiverExpr = std::move(subPostfix);
-                            }
-
-                            std::string structType = inferExprStructType(receiverExpr.get());
-                            if (!structType.empty() &&
-                                struct_methods_.count(structType) &&
-                                struct_methods_.at(structType).count(memOp.name)) {
-                                std::string mangledMethod = structType + "_" + memOp.name;
-                                std::vector<std::unique_ptr<Expr>> newArgs;
-                                newArgs.push_back(makeReceiverPointerExpr(receiverExpr.get()));
-                                for (auto& a : callOp.args) {
-                                    newArgs.push_back(std::move(a));
-                                }
-                                callOp.args = std::move(newArgs);
-
-                                // Jika i == 0, jadikan panggilan langsung ke fungsi mangledMethod(this*, args...)
-                                if (i == 0) {
-                                    expr->postfix.base = makeIdentExpr(mangledMethod, false);
-                                    expr->postfix.ops.erase(expr->postfix.ops.begin());
-                                    break;
-                                }
-                            }
+            if (isMemberOrArrow && callOp.kind == Expr::PostfixOp::Kind::Call) {
+                std::unique_ptr<Expr> receiverExpr;
+                if (i == 0) {
+                    receiverExpr = cloneExpr(expr->postfix.base.get());
+                } else {
+                    auto subPostfix = std::make_unique<Expr>();
+                    subPostfix->kind = Expr::Kind::Postfix;
+                    subPostfix->postfix.base = cloneExpr(expr->postfix.base.get());
+                    for (size_t k = 0; k < i; ++k) {
+                        Expr::PostfixOp subOp;
+                        subOp.kind = expr->postfix.ops[k].kind;
+                        subOp.name = expr->postfix.ops[k].name;
+                        subOp.index = cloneExpr(expr->postfix.ops[k].index.get());
+                        for (auto& a : expr->postfix.ops[k].args) {
+                            subOp.args.push_back(cloneExpr(a.get()));
                         }
+                        subPostfix->postfix.ops.push_back(std::move(subOp));
+                    }
+                    receiverExpr = std::move(subPostfix);
+                }
+
+                std::string structType = inferExprStructType(receiverExpr.get());
+                if (!structType.empty() &&
+                    struct_methods_.count(structType) &&
+                    struct_methods_.at(structType).count(memOp.name)) {
+                    std::string mangledMethod = structType + "_" + memOp.name;
+                    std::vector<std::unique_ptr<Expr>> newArgs;
+                    newArgs.push_back(makeReceiverPointerExpr(receiverExpr.get()));
+                    for (auto& a : callOp.args) {
+                        newArgs.push_back(std::move(a));
+                    }
+                    callOp.args = std::move(newArgs);
+
+                    if (i == 0) {
+                        expr->postfix.base = makeIdentExpr(mangledMethod, false);
+                        expr->postfix.ops.erase(expr->postfix.ops.begin());
+                        break;
                     }
                 }
+            }
+        }
+    }
+
 
                 // 3. Jika panggilan langsung `Data(args)` merujuk ke struct ber-constructor,
                 //    arahkan ke `Data_construct(args)` (atau `Ns_Data_construct(args)`)
