@@ -174,22 +174,28 @@ private:
         return t;
     }
 
-    void recordVarStructType(const std::string& varName, const Type* type) {
-        if (!type || !type->base || type->base->parts.empty()) return;
-        std::string joined;
-        for (size_t i = 0; i < type->base->parts.size(); ++i) {
-            if (i > 0) joined += "_";
-            joined += type->base->parts[i];
-        }
-        std::string resolvedBase = resolveKnownStructName(joined);
-        if (resolvedBase.empty()) {
-            resolvedBase = resolveQualifiedParts(type->base->parts);
-            resolvedBase = resolveKnownStructName(resolvedBase);
-        }
-        if (!resolvedBase.empty()) {
-            var_struct_types_[varName] = resolvedBase;
-        }
+    // Ganti bagian recordVarStructType menjadi:
+void recordVarStructType(const std::string& varName, const Type* type) {
+    if (varName.empty() || !type || !type->base || type->base->parts.empty()) return;
+    std::string joined;
+    for (size_t i = 0; i < type->base->parts.size(); ++i) {
+        if (i > 0) joined += "_";
+        joined += type->base->parts[i];
     }
+    std::string resolvedBase = resolveKnownStructName(joined);
+    if (resolvedBase.empty()) {
+        resolvedBase = resolveQualifiedParts(type->base->parts);
+    }
+    // Simpan langsung meski belum ada di struct_methods_, selama bukan tipe primitif
+    if (!resolvedBase.empty() &&
+        resolvedBase != "int" && resolvedBase != "i32" && resolvedBase != "i64" &&
+        resolvedBase != "char" && resolvedBase != "i8" && resolvedBase != "void" &&
+        resolvedBase != "bool" && resolvedBase != "float" && resolvedBase != "double" &&
+        resolvedBase != "ptr") {
+        var_struct_types_[varName] = resolvedBase;
+    }
+}
+
 
     std::string getFieldStructType(const std::string& structName, const std::string& fieldName) const {
         std::string sName = resolveKnownStructName(structName);
