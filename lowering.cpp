@@ -15,10 +15,16 @@ private:
     int err_var_counter = 0;
     int coalesce_counter = 0;
     int label_counter = 0;
+    int temp_var_counter = 0;
 
     struct NamespaceContext {
         std::string prefix;
         std::unordered_set<std::string> symbols;
+    };
+
+    struct StructFieldMeta {
+        std::string name;
+        std::string mangledType;
     };
 
     std::vector<NamespaceContext> ns_stack_;
@@ -26,13 +32,17 @@ private:
     std::unordered_map<std::string, std::unordered_set<std::string>> ns_all_symbols_;
     std::vector<std::unordered_set<std::string>> local_scopes_;
 
-    // Metadata struct & method:
-    // struct_methods_[mangledStructName] = daftar nama method asli (misal "meth1")
+    // Metadata struct, field, method, dan constructor:
+    // struct_methods_[mangledStructName] = daftar nama method asli (misal "add")
     // struct_has_ctor_[mangledStructName] = true jika punya ctor / default_ctor
-    // var_struct_types_[varName] = mangledStructName (misal "Data" atau "Ns_Data")
+    // struct_fields_[mangledStructName] = daftar field (nama & tipe)
+    // var_struct_types_[varName] = mangledStructName (misal "Counter" atau "App_Counter")
+    // func_return_struct_types_[funcName] = mangledStructName bila fungsi me-return struct/pointer struct
     std::unordered_map<std::string, std::unordered_set<std::string>> struct_methods_;
     std::unordered_map<std::string, bool> struct_has_ctor_;
+    std::unordered_map<std::string, std::vector<StructFieldMeta>> struct_fields_;
     std::unordered_map<std::string, std::string> var_struct_types_;
+    std::unordered_map<std::string, std::string> func_return_struct_types_;
 
     std::string nextErrVarName() {
         return "__err_slot_" + std::to_string(err_var_counter++);
@@ -40,6 +50,10 @@ private:
 
     std::string nextCoalesceVarName() {
         return "__coalesce_" + std::to_string(coalesce_counter++);
+    }
+
+    std::string nextTempObjName() {
+        return "__tmp_obj_" + std::to_string(temp_var_counter++);
     }
 
     std::string currentNsPrefix() const {
@@ -57,7 +71,9 @@ private:
 
     std::string qualifyNsName(const std::string& name) const {
         std::string p = currentNsPrefix();
-        return p.empty() ? name : (p + "_" + name);
+        if (p.empty()) return name;
+        if (name.rfind(p + "_", 0) == 0) return name;
+        return p + "_" + name;
     }
 
     bool isShadowedByLocal(const std::string& name) const {
@@ -67,13 +83,53 @@ private:
         return false;
     }
 
+    std::string resolveKnownStructName(const std::string& candidate) const {
+        if (candidate.empty()) return "";
+        if (struct_methods_.count(candidate) || struct_has_ctor_.count(candidate) || struct_fields_.count(candidate)) {
+            return candidate;
+        }
+        std::string cur = currentNsPrefix();
+        if (!cur.empty()) {
+            std::string prefixed = (candidate.rfind(cur + "_", 0) == 0) ? candidate : (cur + "_" + candidate);
+            if (struct_methods_.count(prefixed) || struct_has_ctor_.count(prefixed) || struct_fields_.count(prefixed)) {
+                return prefixed;
+            }
+        }
+        // Cocokkan suffix "_<candidate>" jika nama struct sudah di-mangle dengan namespace
+        for (const auto& kv : struct_methods_) {
+            const std::string& sName = kv.first;
+            if (sName.size() > candidate.size() &&
+                sName.compare(sName.size() - candidate.size() - 1, candidate.size() + 1, "_" + candidate) == 0) {
+                return sName;
+            }
+        }
+        for (const auto& kv : struct_has_ctor_) {
+            const std::string& sName = kv.first;
+            if (sName.size() > candidate.size() &&
+                sName.compare(sName.size() - candidate.size() - 1, candidate.size() + 1, "_" + candidate) == 0) {
+                return sName;
+            }
+        }
+        for (const auto& kv : struct_fields_) {
+            const std::string& sName = kv.first;
+            if (sName.size() > candidate.size() &&
+                sName.compare(sName.size() - candidate.size() - 1, candidate.size() + 1, "_" + candidate) == 0) {
+                return sName;
+            }
+        }
+        return "";
+    }
+
     std::string resolveUnqualifiedInNs(const std::string& name) const {
         if (isShadowedByLocal(name)) return name;
         for (auto it = ns_stack_.rbegin(); it != ns_stack_.rend(); ++it) {
             if (it->symbols.count(name)) {
+                if (name.rfind(it->prefix + "_", 0) == 0) return name;
                 return it->prefix + "_" + name;
             }
         }
+        std::string knownStruct = resolveKnownStructName(name);
+        if (!knownStruct.empty()) return knownStruct;
         return name;
     }
 
@@ -87,12 +143,14 @@ private:
             joined += "_" + parts[i];
         }
         std::string cur = currentNsPrefix();
-        if (!cur.empty()) {
+        if (!cur.empty() && parts[0] != cur && joined.rfind(cur + "_", 0) != 0) {
             std::string curCandidate = cur + "_" + joined;
             if (ns_all_symbols_.count(parts[0]) && ns_all_symbols_.at(parts[0]).count(parts.back())) {
                 return curCandidate;
             }
         }
+        std::string knownStruct = resolveKnownStructName(joined);
+        if (!knownStruct.empty()) return knownStruct;
         return joined;
     }
 
@@ -108,37 +166,124 @@ private:
         return t;
     }
 
+    std::unique_ptr<Type> makeStructValueType(const std::string& mangledStructName) const {
+        auto t = std::make_unique<Type>();
+        t->base = std::make_unique<QualifiedName>();
+        t->base->parts.push_back(mangledStructName);
+        t->base->is_absolute = false;
+        return t;
+    }
+
     void recordVarStructType(const std::string& varName, const Type* type) {
         if (!type || !type->base || type->base->parts.empty()) return;
-        std::string resolvedBase = resolveQualifiedParts(type->base->parts);
-        if (struct_methods_.count(resolvedBase) || struct_has_ctor_.count(resolvedBase)) {
+        std::string joined;
+        for (size_t i = 0; i < type->base->parts.size(); ++i) {
+            if (i > 0) joined += "_";
+            joined += type->base->parts[i];
+        }
+        std::string resolvedBase = resolveKnownStructName(joined);
+        if (resolvedBase.empty()) {
+            resolvedBase = resolveQualifiedParts(type->base->parts);
+            resolvedBase = resolveKnownStructName(resolvedBase);
+        }
+        if (!resolvedBase.empty()) {
             var_struct_types_[varName] = resolvedBase;
         }
     }
 
+    std::string getFieldStructType(const std::string& structName, const std::string& fieldName) const {
+        std::string sName = resolveKnownStructName(structName);
+        if (sName.empty()) sName = structName;
+        auto it = struct_fields_.find(sName);
+        if (it == struct_fields_.end()) return "";
+        for (const auto& f : it->second) {
+            if (f.name == fieldName) {
+                return resolveKnownStructName(f.mangledType);
+            }
+        }
+        return "";
+    }
+
     std::string inferExprStructType(const Expr* expr) const {
         if (!expr) return "";
+
         if (expr->kind == Expr::Kind::Ident && expr->ident && !expr->ident->parts.empty()) {
-            std::string name = expr->ident->parts.back();
+            const std::string& name = expr->ident->parts.back();
             if (!isShadowedByLocal(name) && var_struct_types_.count(name)) {
                 return var_struct_types_.at(name);
             }
+            std::string known = resolveKnownStructName(name);
+            if (!known.empty() && var_struct_types_.count(name)) {
+                return known;
+            }
         }
+
         if (expr->kind == Expr::Kind::Group && expr->group.expr) {
             return inferExprStructType(expr->group.expr.get());
         }
-        if (expr->kind == Expr::Kind::Unary && expr->unary.op == UnaryOp::Deref) {
+
+        if (expr->kind == Expr::Kind::Unary &&
+            (expr->unary.op == UnaryOp::Deref || expr->unary.op == UnaryOp::Ref)) {
             return inferExprStructType(expr->unary.expr.get());
         }
+
         if (expr->kind == Expr::Kind::StructInit && expr->struct_init.type_name &&
             expr->struct_init.type_name->base && !expr->struct_init.type_name->base->parts.empty()) {
+            std::string joined;
+            for (size_t i = 0; i < expr->struct_init.type_name->base->parts.size(); ++i) {
+                if (i > 0) joined += "_";
+                joined += expr->struct_init.type_name->base->parts[i];
+            }
+            std::string known = resolveKnownStructName(joined);
+            if (!known.empty()) return known;
             return expr->struct_init.type_name->base->parts.back();
         }
+
+        if (expr->kind == Expr::Kind::Postfix && expr->postfix.base) {
+            std::string curStruct = inferExprStructType(expr->postfix.base.get());
+
+            if (curStruct.empty() && expr->postfix.base->kind == Expr::Kind::Ident &&
+                expr->postfix.base->ident && !expr->postfix.base->ident->parts.empty()) {
+                std::string fnName = expr->postfix.base->ident->parts.back();
+                if (!expr->postfix.ops.empty() && expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::Call) {
+                    if (func_return_struct_types_.count(fnName)) {
+                        curStruct = func_return_struct_types_.at(fnName);
+                    } else if (fnName.size() > 10 &&
+                               fnName.rfind("_construct") == fnName.size() - 10) {
+                        curStruct = fnName.substr(0, fnName.size() - 10);
+                    }
+                }
+            }
+
+            for (const auto& op : expr->postfix.ops) {
+                if (op.kind == Expr::PostfixOp::Kind::MemberAccess ||
+                    op.kind == Expr::PostfixOp::Kind::Arrow ||
+                    op.kind == Expr::PostfixOp::Kind::SafeArrow) {
+                    if (!curStruct.empty()) {
+                        curStruct = getFieldStructType(curStruct, op.name);
+                    }
+                } else if (op.kind == Expr::PostfixOp::Kind::Call) {
+                    if (!curStruct.empty()) {
+                        std::string mangledCall = curStruct + "_" + op.name;
+                        if (func_return_struct_types_.count(mangledCall)) {
+                            curStruct = func_return_struct_types_.at(mangledCall);
+                        } else {
+                            curStruct = "";
+                        }
+                    }
+                }
+            }
+            return curStruct;
+        }
+
         return "";
     }
 
     bool isExprAlreadyPointer(const Expr* expr) const {
         if (!expr) return false;
+        if (expr->kind == Expr::Kind::Group && expr->group.expr) {
+            return isExprAlreadyPointer(expr->group.expr.get());
+        }
         if (expr->kind == Expr::Kind::Unary && expr->unary.op == UnaryOp::Ref) {
             return true;
         }
@@ -162,7 +307,7 @@ private:
     }
 
     // Mengubah `Constructor` menjadi `Function` bernama `<mangledStructName>_construct`
-    // dengan parameter pertama `this*` (`<mangledStructName>* this`)
+    // dengan parameter pertama `<mangledStructName>* this`
     std::unique_ptr<Function> lowerConstructorToFunction(
         Constructor* ctor,
         const std::string& mangledStructName
@@ -185,7 +330,6 @@ private:
         fn->return_types->base = std::make_unique<QualifiedName>();
         fn->return_types->base->parts = {"void"};
 
-        // Parameter pertama wajib: <mangledStructName>* this
         Function::Param thisParam;
         thisParam.type = makeStructPointerType(mangledStructName);
         thisParam.name = "this";
@@ -223,6 +367,19 @@ private:
 
         if (mfn->is_throws) {
             throwing_functions.insert(mangledMethodName);
+            throwing_functions.insert(rawMethodName);
+        }
+
+        if (mfn->return_types && mfn->return_types->base && !mfn->return_types->base->parts.empty()) {
+            std::string rJoined;
+            for (size_t i = 0; i < mfn->return_types->base->parts.size(); ++i) {
+                if (i > 0) rJoined += "_";
+                rJoined += mfn->return_types->base->parts[i];
+            }
+            std::string retStruct = resolveKnownStructName(rJoined);
+            if (!retStruct.empty()) {
+                func_return_struct_types_[mangledMethodName] = retStruct;
+            }
         }
 
         if (!mfn->is_static) {
@@ -272,7 +429,6 @@ private:
             }
         }
     }
-
 
     TypeModifier cloneTypeModifier(const TypeModifier& src) const {
         TypeModifier dst;
@@ -667,34 +823,63 @@ private:
         return nullLit;
     }
 
-    void lowerConstructorCallInInit(const std::string& targetVarName, Expr* initExpr) {
-        if (!initExpr || initExpr->kind != Expr::Kind::Postfix) return;
-        if (!initExpr->postfix.base ||
-            initExpr->postfix.base->kind != Expr::Kind::Ident ||
-            !initExpr->postfix.base->ident ||
-            initExpr->postfix.base->ident->parts.empty()) return;
+    bool isConstructCallExpr(const Expr* expr, std::string& outStructName) const {
+        if (!expr || expr->kind != Expr::Kind::Postfix) return false;
+        if (!expr->postfix.base ||
+            expr->postfix.base->kind != Expr::Kind::Ident ||
+            !expr->postfix.base->ident ||
+            expr->postfix.base->ident->parts.empty()) return false;
 
-        const std::string& fnName = initExpr->postfix.base->ident->parts.back();
+        const std::string& fnName = expr->postfix.base->ident->parts.back();
         if (fnName.size() > 10 &&
             fnName.rfind("_construct") == fnName.size() - 10 &&
-            !initExpr->postfix.ops.empty() &&
-            initExpr->postfix.ops[0].kind == Expr::PostfixOp::Kind::Call) {
-            auto& callOp = initExpr->postfix.ops[0];
-            bool hasThisArg = !callOp.args.empty() &&
-                              callOp.args[0] &&
-                              callOp.args[0]->kind == Expr::Kind::Unary &&
-                              callOp.args[0]->unary.op == UnaryOp::Ref &&
-                              callOp.args[0]->unary.expr &&
-                              callOp.args[0]->unary.expr->kind == Expr::Kind::Ident &&
-                              callOp.args[0]->unary.expr->ident &&
-                              !callOp.args[0]->unary.expr->ident->parts.empty() &&
-                              callOp.args[0]->unary.expr->ident->parts.back() == targetVarName;
-            if (!hasThisArg) {
-                callOp.args.insert(callOp.args.begin(), makeRefExpr(targetVarName));
-            }
+            !expr->postfix.ops.empty() &&
+            expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::Call) {
+            outStructName = fnName.substr(0, fnName.size() - 10);
+            return true;
+        }
+        return false;
+    }
+
+    void lowerConstructorCallInInit(const std::string& targetVarName, Expr* initExpr) {
+        std::string structName;
+        if (!isConstructCallExpr(initExpr, structName)) return;
+        auto& callOp = initExpr->postfix.ops[0];
+        bool hasThisArg = !callOp.args.empty() &&
+                          callOp.args[0] &&
+                          callOp.args[0]->kind == Expr::Kind::Unary &&
+                          callOp.args[0]->unary.op == UnaryOp::Ref &&
+                          callOp.args[0]->unary.expr &&
+                          callOp.args[0]->unary.expr->kind == Expr::Kind::Ident &&
+                          callOp.args[0]->unary.expr->ident &&
+                          !callOp.args[0]->unary.expr->ident->parts.empty() &&
+                          callOp.args[0]->unary.expr->ident->parts.back() == targetVarName;
+        if (!hasThisArg) {
+            callOp.args.insert(callOp.args.begin(), makeRefExpr(targetVarName));
         }
     }
 
+    void collectStructFields(StructDef* st, const std::string& mangledStructName) {
+        if (!st) return;
+        auto& fieldList = struct_fields_[mangledStructName];
+        fieldList.clear();
+        for (const auto& mem : st->members) {
+            if (auto vd = dynamic_cast<VarDecl*>(mem.get())) {
+                std::string fType;
+                if (vd->type && vd->type->base && !vd->type->base->parts.empty()) {
+                    std::string joined;
+                    for (size_t i = 0; i < vd->type->base->parts.size(); ++i) {
+                        if (i > 0) joined += "_";
+                        joined += vd->type->base->parts[i];
+                    }
+                    fType = resolveQualifiedParts(vd->type->base->parts);
+                }
+                for (const auto& it : vd->items) {
+                    fieldList.push_back({it.name, fType});
+                }
+            }
+        }
+    }
 
     void collectNamespaceSymbols(NamespaceDecl* ns, const std::string& fullPrefix) {
         if (!ns) return;
@@ -704,7 +889,12 @@ private:
 
         for (auto& item : ns->items) {
             if (auto fn = dynamic_cast<Function*>(item.get())) {
-                if (fn->name && !fn->name->parts.empty()) symSet.insert(fn->name->parts.back());
+                if (fn->name && !fn->name->parts.empty()) {
+                    symSet.insert(fn->name->parts.back());
+                    if (fn->is_throws) {
+                        throwing_functions.insert(thisPrefix + "_" + fn->name->parts.back());
+                    }
+                }
             } else if (auto st = dynamic_cast<StructDef*>(item.get())) {
                 if (st->name && !st->name->parts.empty()) {
                     std::string stName = st->name->parts.back();
@@ -720,6 +910,7 @@ private:
                     if (st->ctor || st->default_ctor) {
                         struct_has_ctor_[mangledSt] = true;
                     }
+                    collectStructFields(st, mangledSt);
                 }
             } else if (auto un = dynamic_cast<UnionDef*>(item.get())) {
                 if (un->name && !un->name->parts.empty()) symSet.insert(un->name->parts.back());
@@ -808,61 +999,75 @@ private:
 
                 // 2. Ubah pemanggilan method `obj.meth1(args)` / `ptr->meth1(args)`
                 //    menjadi `<StructMangled>_meth1(&obj, args)` / `<StructMangled>_meth1(ptr, args)`
-                    // 2. Ubah pemanggilan method `obj.meth1(args)` / `ptr->meth1(args)`
-    //    menjadi `<StructMangled>_meth1(&obj, args)` / `<StructMangled>_meth1(ptr, args)`
-    if (expr->postfix.base && expr->postfix.ops.size() >= 2) {
-        for (size_t i = 0; i + 1 < expr->postfix.ops.size(); ++i) {
-            const auto& memOp = expr->postfix.ops[i];
-            auto& callOp = expr->postfix.ops[i + 1];
+                if (expr->postfix.base && expr->postfix.ops.size() >= 2) {
+                    for (size_t i = 0; i + 1 < expr->postfix.ops.size(); ++i) {
+                        const auto& memOp = expr->postfix.ops[i];
+                        auto& callOp = expr->postfix.ops[i + 1];
 
-            bool isMemberOrArrow =
-                (memOp.kind == Expr::PostfixOp::Kind::MemberAccess ||
-                 memOp.kind == Expr::PostfixOp::Kind::Arrow ||
-                 memOp.kind == Expr::PostfixOp::Kind::SafeArrow);
+                        bool isMemberOrArrow =
+                            (memOp.kind == Expr::PostfixOp::Kind::MemberAccess ||
+                             memOp.kind == Expr::PostfixOp::Kind::Arrow ||
+                             memOp.kind == Expr::PostfixOp::Kind::SafeArrow);
 
-            if (isMemberOrArrow && callOp.kind == Expr::PostfixOp::Kind::Call) {
-                std::unique_ptr<Expr> receiverExpr;
-                if (i == 0) {
-                    receiverExpr = cloneExpr(expr->postfix.base.get());
-                } else {
-                    auto subPostfix = std::make_unique<Expr>();
-                    subPostfix->kind = Expr::Kind::Postfix;
-                    subPostfix->postfix.base = cloneExpr(expr->postfix.base.get());
-                    for (size_t k = 0; k < i; ++k) {
-                        Expr::PostfixOp subOp;
-                        subOp.kind = expr->postfix.ops[k].kind;
-                        subOp.name = expr->postfix.ops[k].name;
-                        subOp.index = cloneExpr(expr->postfix.ops[k].index.get());
-                        for (auto& a : expr->postfix.ops[k].args) {
-                            subOp.args.push_back(cloneExpr(a.get()));
+                        if (isMemberOrArrow && callOp.kind == Expr::PostfixOp::Kind::Call) {
+                            std::unique_ptr<Expr> receiverExpr;
+                            if (i == 0) {
+                                receiverExpr = cloneExpr(expr->postfix.base.get());
+                            } else {
+                                auto subPostfix = std::make_unique<Expr>();
+                                subPostfix->kind = Expr::Kind::Postfix;
+                                subPostfix->postfix.base = cloneExpr(expr->postfix.base.get());
+                                for (size_t k = 0; k < i; ++k) {
+                                    Expr::PostfixOp subOp;
+                                    subOp.kind = expr->postfix.ops[k].kind;
+                                    subOp.name = expr->postfix.ops[k].name;
+                                    subOp.index = cloneExpr(expr->postfix.ops[k].index.get());
+                                    for (auto& a : expr->postfix.ops[k].args) {
+                                        subOp.args.push_back(cloneExpr(a.get()));
+                                    }
+                                    subPostfix->postfix.ops.push_back(std::move(subOp));
+                                }
+                                receiverExpr = std::move(subPostfix);
+                            }
+
+                            std::string structType = inferExprStructType(receiverExpr.get());
+                            if (!structType.empty() &&
+                                struct_methods_.count(structType) &&
+                                struct_methods_.at(structType).count(memOp.name)) {
+                                std::string mangledMethod = structType + "_" + memOp.name;
+                                std::vector<std::unique_ptr<Expr>> newArgs;
+                                newArgs.push_back(makeReceiverPointerExpr(receiverExpr.get()));
+                                for (auto& a : callOp.args) {
+                                    newArgs.push_back(std::move(a));
+                                }
+                                callOp.args = std::move(newArgs);
+
+                                if (i == 0) {
+                                    expr->postfix.base = makeIdentExpr(mangledMethod, false);
+                                    expr->postfix.ops.erase(expr->postfix.ops.begin());
+                                    break;
+                                } else {
+                                    auto callPostfix = std::make_unique<Expr>();
+                                    callPostfix->kind = Expr::Kind::Postfix;
+                                    callPostfix->postfix.base = makeIdentExpr(mangledMethod, false);
+                                    Expr::PostfixOp directCall;
+                                    directCall.kind = Expr::PostfixOp::Kind::Call;
+                                    directCall.args = std::move(callOp.args);
+                                    callPostfix->postfix.ops.push_back(std::move(directCall));
+
+                                    if (i + 2 == expr->postfix.ops.size()) {
+                                        *expr = std::move(*callPostfix);
+                                    } else {
+                                        expr->postfix.base = std::move(callPostfix);
+                                        expr->postfix.ops.erase(expr->postfix.ops.begin(),
+                                                                expr->postfix.ops.begin() + static_cast<long>(i + 2));
+                                    }
+                                    break;
+                                }
+                            }
                         }
-                        subPostfix->postfix.ops.push_back(std::move(subOp));
-                    }
-                    receiverExpr = std::move(subPostfix);
-                }
-
-                std::string structType = inferExprStructType(receiverExpr.get());
-                if (!structType.empty() &&
-                    struct_methods_.count(structType) &&
-                    struct_methods_.at(structType).count(memOp.name)) {
-                    std::string mangledMethod = structType + "_" + memOp.name;
-                    std::vector<std::unique_ptr<Expr>> newArgs;
-                    newArgs.push_back(makeReceiverPointerExpr(receiverExpr.get()));
-                    for (auto& a : callOp.args) {
-                        newArgs.push_back(std::move(a));
-                    }
-                    callOp.args = std::move(newArgs);
-
-                    if (i == 0) {
-                        expr->postfix.base = makeIdentExpr(mangledMethod, false);
-                        expr->postfix.ops.erase(expr->postfix.ops.begin());
-                        break;
                     }
                 }
-            }
-        }
-    }
-
 
                 // 3. Jika panggilan langsung `Data(args)` merujuk ke struct ber-constructor,
                 //    arahkan ke `Data_construct(args)` (atau `Ns_Data_construct(args)`)
@@ -873,9 +1078,12 @@ private:
                     !expr->postfix.ops.empty() &&
                     expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::Call) {
                     const std::string& calleeName = expr->postfix.base->ident->parts.back();
-                    if (!isShadowedByLocal(calleeName) && struct_has_ctor_.count(calleeName)) {
-                        expr->postfix.base->ident->parts = {calleeName + "_construct"};
-                        expr->postfix.base->ident->is_absolute = false;
+                    if (!isShadowedByLocal(calleeName)) {
+                        std::string sName = resolveKnownStructName(calleeName);
+                        if (!sName.empty() && struct_has_ctor_.count(sName)) {
+                            expr->postfix.base->ident->parts = {sName + "_construct"};
+                            expr->postfix.base->ident->is_absolute = false;
+                        }
                     }
                 }
 
@@ -1027,6 +1235,19 @@ private:
                 fn->name->is_absolute = false;
                 if (fn->is_throws) {
                     throwing_functions.insert(qName);
+                    throwing_functions.insert(rawName);
+                }
+                if (fn->return_types && fn->return_types->base && !fn->return_types->base->parts.empty()) {
+                    std::string rJoined;
+                    for (size_t i = 0; i < fn->return_types->base->parts.size(); ++i) {
+                        if (i > 0) rJoined += "_";
+                        rJoined += fn->return_types->base->parts[i];
+                    }
+                    std::string retStruct = resolveKnownStructName(rJoined);
+                    if (!retStruct.empty()) {
+                        func_return_struct_types_[qName] = retStruct;
+                        func_return_struct_types_[rawName] = retStruct;
+                    }
                 }
             }
             resolveTypeNs(fn->return_types.get());
@@ -1048,6 +1269,7 @@ private:
                 st->name->parts = {mangledStructName};
                 st->name->is_absolute = false;
             }
+            collectStructFields(st, mangledStructName);
 
             std::vector<std::unique_ptr<Node>> remainingMembers;
             for (auto& mem : st->members) {
@@ -1070,7 +1292,6 @@ private:
                     if (mfn->body) resolveStmtNs(mfn->body.get());
                     local_scopes_.clear();
 
-                    // Keluarkan method menjadi fungsi top-level ter-mangle agar kodegen CRU bisa langsung memancarkannya
                     outDecls.push_back(std::move(mem));
                 } else {
                     remainingMembers.push_back(std::move(mem));
@@ -1151,9 +1372,11 @@ public:
         throwing_functions.clear();
         struct_methods_.clear();
         struct_has_ctor_.clear();
+        struct_fields_.clear();
         var_struct_types_.clear();
+        func_return_struct_types_.clear();
 
-        // Pass 1: Kumpulkan fungsi throws, simbol namespace, serta metadata struct/method/ctor
+        // Pass 1: Kumpulkan fungsi throws, simbol namespace, serta metadata struct/field/method/ctor
         for (auto& node : program->decls) {
             if (auto func = dynamic_cast<Function*>(node.get())) {
                 if (func->is_throws && func->name && !func->name->parts.empty()) {
@@ -1172,6 +1395,7 @@ public:
                     if (st->ctor || st->default_ctor) {
                         struct_has_ctor_[stName] = true;
                     }
+                    collectStructFields(st, stName);
                 }
             } else if (auto ns = dynamic_cast<NamespaceDecl*>(node.get())) {
                 collectNamespaceSymbols(ns, "");
@@ -1275,12 +1499,28 @@ private:
             case Expr::Kind::Cast:
                 lowerExpr(expr->cast.base.get());
                 break;
+            case Expr::Kind::StructInit:
+                for (auto& f : expr->struct_init.fields) {
+                    lowerExpr(f.second.get());
+                }
+                break;
+            case Expr::Kind::ArrayLiteral:
+                for (auto& item : expr->array_items) {
+                    lowerExpr(item.get());
+                }
+                break;
+            case Expr::Kind::Intrinsic:
+                for (auto& a : expr->intrinsic.args) {
+                    lowerExpr(a.get());
+                }
+                break;
             default:
                 break;
         }
     }
 
     void lowerFunction(Function* func) {
+        if (!func) return;
         bool was_throws = func->is_throws && func->throws_type;
 
         if (was_throws) {
@@ -1295,6 +1535,12 @@ private:
             errorParam.init = nullptr;
 
             func->params.push_back(std::move(errorParam));
+        }
+
+        // Daftarkan tipe struct parameter (termasuk `this`) agar inferExprStructType
+        // akurat di dalam lowerFunction
+        for (const auto& p : func->params) {
+            recordVarStructType(p.name, p.type.get());
         }
 
         current_return_type = func->return_types.get();
@@ -1386,26 +1632,21 @@ private:
             }
 
             case Stmt::Kind::VarDecl: {
+                recordVarStructType("", stmt->var_decl.type.get());
                 std::vector<std::unique_ptr<Stmt>> prefix;
                 std::vector<std::unique_ptr<Stmt>> suffixCtorCalls;
                 for (auto& it : stmt->var_decl.items) {
+                    recordVarStructType(it.name, stmt->var_decl.type.get());
                     lowerExpr(it.init.get());
                     collectAndLowerCoalesceInExpr(it.init.get(), prefix);
                     lowerConstructorCallInInit(it.name, it.init.get());
 
-                    if (it.init && it.init->kind == Expr::Kind::Postfix &&
-                        it.init->postfix.base &&
-                        it.init->postfix.base->kind == Expr::Kind::Ident &&
-                        it.init->postfix.base->ident &&
-                        !it.init->postfix.base->ident->parts.empty()) {
-                        const std::string& fnName = it.init->postfix.base->ident->parts.back();
-                        if (fnName.size() > 10 &&
-                            fnName.rfind("_construct") == fnName.size() - 10) {
-                            auto callStmt = std::make_unique<Stmt>();
-                            callStmt->kind = Stmt::Kind::ExprStmt;
-                            callStmt->expr_stmt = std::move(it.init);
-                            suffixCtorCalls.push_back(std::move(callStmt));
-                        }
+                    std::string ctorStruct;
+                    if (isConstructCallExpr(it.init.get(), ctorStruct)) {
+                        auto callStmt = std::make_unique<Stmt>();
+                        callStmt->kind = Stmt::Kind::ExprStmt;
+                        callStmt->expr_stmt = std::move(it.init);
+                        suffixCtorCalls.push_back(std::move(callStmt));
                     }
                     for (auto& a : it.args) {
                         lowerExpr(a.get());
@@ -1592,7 +1833,9 @@ private:
             }
 
             case Stmt::Kind::SwitchCase: {
+                if (stmt->switch_stmt.expr) lowerExpr(stmt->switch_stmt.expr.get());
                 for (auto& c : stmt->switch_stmt.cases) {
+                    for (auto& v : c.values) lowerExpr(v.get());
                     if (c.body) lowerStmt(c.body.get());
                 }
                 break;
