@@ -1926,39 +1926,40 @@ void emitGlobalVar(VarDecl* varDecl) {
             }
 
             case Expr::Kind::Postfix: {
-                    Expr* unwrappedBase = unwrapGroup(expr->postfix.base.get());
-                    std::string baseName = "";
-                    if (unwrappedBase && unwrappedBase->kind == Expr::Kind::Ident &&
-                        unwrappedBase->ident && !unwrappedBase->ident->parts.empty()) {
-                        baseName = unwrappedBase->ident->parts.back();
-                    }
+                Expr* unwrappedBase = unwrapGroup(expr->postfix.base.get());
+                std::string baseName = "";
+                if (unwrappedBase && unwrappedBase->kind == Expr::Kind::Ident &&
+                    unwrappedBase->ident && !unwrappedBase->ident->parts.empty()) {
+                    baseName = unwrappedBase->ident->parts.back();
+                }
 
-                    std::string currentReg = "%" + baseName;
-                    std::string currentType = "i32";
-                    std::string varReg, varType;
-                    if (!baseName.empty() && lookupVar(baseName, varReg, varType)) {
-                        currentReg = varReg;
-                        currentType = varType;
-                    } else if (!baseName.empty() && symbolTypes_.find(baseName) != symbolTypes_.end()) {
-                        currentType = symbolTypes_[baseName];
-                    } else if (unwrappedBase && unwrappedBase->kind == Expr::Kind::Unary &&
-                        unwrappedBase->unary.op == UnaryOp::Deref) {
-                        std::string pStruct = resolvePointeeStructType(unwrappedBase->unary.expr.get());
-                        bool followedByField = !expr->postfix.ops.empty() &&
-                            (expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::MemberAccess ||
-                             expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::Arrow ||
-                             expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::SafeArrow);
-                        if (followedByField && !pStruct.empty()) {
-                            currentReg = emitExpr(unwrappedBase->unary.expr.get());
-                            currentType = pStruct;
-                        } else {
-                            currentReg = emitExpr(unwrappedBase);
-                            currentType = pStruct.empty() ? getPointeeType(unwrappedBase->unary.expr.get()) : pStruct;
-                        }
-                    } else if (unwrappedBase) {
+                std::string currentReg = "%" + baseName;
+                std::string currentType = "i32";
+                std::string varReg, varType;
+                if (!baseName.empty() && lookupVar(baseName, varReg, varType)) {
+                    currentReg = varReg;
+                    currentType = varType;
+                } else if (!baseName.empty() && symbolTypes_.find(baseName) != symbolTypes_.end()) {
+                    currentType = symbolTypes_[baseName];
+                } else if (unwrappedBase && unwrappedBase->kind == Expr::Kind::Unary &&
+                    unwrappedBase->unary.op == UnaryOp::Deref) {
+                    std::string pStruct = resolvePointeeStructType(unwrappedBase->unary.expr.get());
+                    bool followedByField = !expr->postfix.ops.empty() &&
+                        (expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::MemberAccess ||
+                         expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::Arrow ||
+                         expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::SafeArrow);
+                    if (followedByField && !pStruct.empty()) {
+                        currentReg = emitExpr(unwrappedBase->unary.expr.get());
+                        currentType = pStruct;
+                    } else {
                         currentReg = emitExpr(unwrappedBase);
-                        currentType = getExprType(unwrappedBase);
+                        currentType = pStruct.empty() ? getPointeeType(unwrappedBase->unary.expr.get()) : pStruct;
                     }
+                } else if (unwrappedBase) {
+                    currentReg = emitExpr(unwrappedBase);
+                    currentType = getExprType(unwrappedBase);
+                }
+
                 if (currentType == "ptr" && !expr->postfix.ops.empty() &&
                     expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::Index) {
                     std::string loadedPtr = freshTemp();
@@ -1972,28 +1973,44 @@ void emitGlobalVar(VarDecl* varDecl) {
                     const Expr::PostfixOp* nextOp = hasNextOp ? &expr->postfix.ops[i + 1] : nullptr;
 
                     if (op.kind == Expr::PostfixOp::Kind::Call) {
+                        bool isMethodCall = (i > 0) && (
+                            expr->postfix.ops[i - 1].kind == Expr::PostfixOp::Kind::MemberAccess ||
+                            expr->postfix.ops[i - 1].kind == Expr::PostfixOp::Kind::Arrow ||
+                            expr->postfix.ops[i - 1].kind == Expr::PostfixOp::Kind::SafeArrow
+                        );
+
                         std::vector<std::string> argVals;
+                        if (isMethodCall) {
+                            argVals.push_back(currentReg);
+                        }
                         for (const auto& arg : op.args) {
                             argVals.push_back(emitExpr(arg.get()));
                         }
 
-                        // DINAMIS: Resolusi return type fungsi dari map functionReturnTypes_
+                        std::string funcName = baseName;
+                        if (isMethodCall) {
+                            std::string structName = resolveStructTypeName(currentType);
+                            if (structName.empty()) structName = currentType;
+                            funcName = structName + "_" + expr->postfix.ops[i - 1].name;
+                        }
+
                         std::string retType = "i32";
-                        if (functionReturnTypes_.find(baseName) != functionReturnTypes_.end()) {
-                            retType = functionReturnTypes_[baseName];
+                        if (functionReturnTypes_.find(funcName) != functionReturnTypes_.end()) {
+                            retType = functionReturnTypes_[funcName];
                         }
 
                         std::string callRes = freshTemp();
                         if (retType != "void")
-                            out_ << "    " << callRes << " = call " << retType << " @" << baseName << "(";
+                            out_ << "    " << callRes << " = call " << retType << " @" << funcName << "(";
                         else
-                            out_ << "    call " << retType << " @" << baseName << "(";
+                            out_ << "    call " << retType << " @" << funcName << "(";
                         for (size_t a = 0; a < argVals.size(); ++a) {
                             out_ << argVals[a];
                             if (a + 1 < argVals.size()) out_ << ", ";
                         }
                         out_ << ")\n";
-                        return callRes;
+                        currentReg = callRes;
+                        currentType = retType;
                     } else if (op.kind == Expr::PostfixOp::Kind::Index) {
                         std::string indexVal = emitExpr(op.index.get());
                         std::string elemType = getIndexElemType(baseName, currentType);
@@ -2014,33 +2031,25 @@ void emitGlobalVar(VarDecl* varDecl) {
                             out_ << "    " << loadRes << " = load " << elemType << " " << elemAddrRes << "\n";
                             currentReg = loadRes;
                             currentType = elemType;
-                            /*if (elemType == "ptr" && !baseName.empty() && pointerStructTypes_.count(baseName)) {
-                                currentType = pointerStructTypes_[baseName];
-                            } else if (elemType == "ptr" && !baseName.empty() && symbolElementTypes_.count(baseName) &&
-                                structDefinitions_.count(symbolElementTypes_[baseName])) {
-                                currentType = symbolElementTypes_[baseName];
-                            } else {
-                                std::string loadRes = freshTemp();
-                                out_ << "    " << loadRes << " = load " << elemType << " " << elemAddrRes << "\n";
-                                currentReg = loadRes;
-                                currentType = elemType;
-                            }*/
-
                         }
                     } else if (op.kind == Expr::PostfixOp::Kind::MemberAccess ||
                                op.kind == Expr::PostfixOp::Kind::Arrow ||
                                op.kind == Expr::PostfixOp::Kind::SafeArrow) {
-                        std::string structType = currentType;
-                        if(currentType == "ptr") {
-                            if (!baseName.empty() && pointerStructTypes_.count(baseName)) {
-                                structType = pointerStructTypes_[baseName];
-                            } else if (!baseName.empty() && symbolElementTypes_.count(baseName) &&
-                                       structDefinitions_.count(symbolElementTypes_[baseName])) {
-                                structType = symbolElementTypes_[baseName];
-                            } else if (!baseName.empty() && paramElementTypes_.count(baseName) &&
-                                       structDefinitions_.count(paramElementTypes_[baseName])) {
-                                structType = paramElementTypes_[baseName];
-                            }
+                        std::string structType = resolveStructTypeName(currentType);
+                        if (structType.empty()) {
+                            structType = currentType;
+                        }
+
+                        if (currentType == "ptr" && !structType.empty() && structDefinitions_.count(structType)) {
+                            std::string loadedPtr = freshTemp();
+                            out_ << "    " << loadedPtr << " = load ptr " << currentReg << "\n";
+                            currentReg = loadedPtr;
+                        }
+                        currentType = structType;
+
+                        bool nextIsCall = nextOp && nextOp->kind == Expr::PostfixOp::Kind::Call;
+                        if (nextIsCall) {
+                            continue;
                         }
 
                         int fieldIndex = 0;
@@ -2070,7 +2079,7 @@ void emitGlobalVar(VarDecl* varDecl) {
                         }
                     }
                 }
-      
+
                 return currentReg;
             }
 
