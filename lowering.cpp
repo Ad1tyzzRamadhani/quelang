@@ -176,16 +176,21 @@ private:
 
     void recordVarStructType(const std::string& varName, const Type* type) {
         if (varName.empty() || !type || !type->base || type->base->parts.empty()) return;
+
         std::string joined;
         for (size_t i = 0; i < type->base->parts.size(); ++i) {
             if (i > 0) joined += "_";
             joined += type->base->parts[i];
         }
+
         std::string resolvedBase = resolveKnownStructName(joined);
+        if (resolvedBase.empty()) {
+            resolvedBase = resolveKnownStructName(type->base->parts.back());
+        }
         if (resolvedBase.empty()) {
             resolvedBase = resolveQualifiedParts(type->base->parts);
         }
-        // Simpan langsung meski belum ada di struct_methods_, selama bukan tipe primitif
+
         if (!resolvedBase.empty() &&
             resolvedBase != "int" && resolvedBase != "i32" && resolvedBase != "i64" &&
             resolvedBase != "char" && resolvedBase != "i8" && resolvedBase != "void" &&
@@ -965,7 +970,7 @@ private:
                 break;
             }
             case Expr::Kind::Postfix: {
-                // 1. Tangani Ns::member atau Ns::func() bila di-parse sebagai Postfix
+                // 1. Tangani Ns::member atau Ns::func() / Ns::Struct(...) bila di-parse sebagai Postfix
                 if (expr->postfix.base &&
                     expr->postfix.base->kind == Expr::Kind::Ident &&
                     expr->postfix.base->ident &&
@@ -979,6 +984,11 @@ private:
                             !firstOp.name.empty() &&
                             ns_all_symbols_[firstPart].count(firstOp.name)) {
                             std::string mangled = firstPart + "_" + firstOp.name;
+                            std::string knownSt = resolveKnownStructName(mangled);
+                            if (!knownSt.empty() && struct_has_ctor_.count(knownSt) &&
+                                firstOp.kind == Expr::PostfixOp::Kind::Call) {
+                                mangled = knownSt + "_construct";
+                            }
                             expr->postfix.base->ident->parts = {mangled};
                             expr->postfix.base->ident->is_absolute = isNamespaceVar(mangled);
                             if (firstOp.kind == Expr::PostfixOp::Kind::MemberAccess) {
@@ -1043,13 +1053,15 @@ private:
                                     structType = var_struct_types_.at(rName);
                                 }
                             }
+                            if (!structType.empty()) {
+                                std::string resolvedSt = resolveKnownStructName(structType);
+                                if (!resolvedSt.empty()) structType = resolvedSt;
+                            }
 
                             bool isKnownMethod = (!structType.empty() &&
                                 struct_methods_.count(structType) &&
                                 struct_methods_.at(structType).count(memOp.name));
 
-                            // Fallback: jika structType diketahui dan memOp.name bukan nama field struct,
-                            // anggap sebagai pemanggilan method struct tersebut
                             if (!isKnownMethod && !structType.empty()) {
                                 bool isField = false;
                                 if (struct_fields_.count(structType)) {
@@ -1185,9 +1197,11 @@ private:
                 resolveTypeNs(stmt->var_decl.type.get());
                 for (auto& it : stmt->var_decl.items) {
                     recordVarStructType(it.name, stmt->var_decl.type.get());
+                    if (!local_scopes_.empty()) local_scopes_.back().insert(it.name);
+                }
+                for (auto& it : stmt->var_decl.items) {
                     resolveExprNs(it.init.get());
                     for (auto& a : it.args) resolveExprNs(a.get());
-                    if (!local_scopes_.empty()) local_scopes_.back().insert(it.name);
                 }
                 break;
             case Stmt::Kind::Return:
@@ -1669,20 +1683,24 @@ private:
                 std::vector<std::unique_ptr<Stmt>> suffixCtorCalls;
                 for (auto& it : stmt->var_decl.items) {
                     recordVarStructType(it.name, stmt->var_decl.type.get());
-                    lowerExpr(it.init.get());
-                    collectAndLowerCoalesceInExpr(it.init.get(), prefix);
-                    lowerConstructorCallInInit(it.name, it.init.get());
+                    if (it.init) {
+                        lowerExpr(it.init.get());
+                        collectAndLowerCoalesceInExpr(it.init.get(), prefix);
+                        lowerConstructorCallInInit(it.name, it.init.get());
 
-                    std::string ctorStruct;
-                    if (isConstructCallExpr(it.init.get(), ctorStruct)) {
-                        auto callStmt = std::make_unique<Stmt>();
-                        callStmt->kind = Stmt::Kind::ExprStmt;
-                        callStmt->expr_stmt = std::move(it.init);
-                        suffixCtorCalls.push_back(std::move(callStmt));
+                        std::string ctorStruct;
+                        if (isConstructCallExpr(it.init.get(), ctorStruct)) {
+                            auto callStmt = std::make_unique<Stmt>();
+                            callStmt->kind = Stmt::Kind::ExprStmt;
+                            callStmt->expr_stmt = std::move(it.init);
+                            suffixCtorCalls.push_back(std::move(callStmt));
+                        }
                     }
                     for (auto& a : it.args) {
-                        lowerExpr(a.get());
-                        collectAndLowerCoalesceInExpr(a.get(), prefix);
+                        if (a) {
+                            lowerExpr(a.get());
+                            collectAndLowerCoalesceInExpr(a.get(), prefix);
+                        }
                     }
                 }
                 if (!prefix.empty() || !suffixCtorCalls.empty()) {
@@ -1700,7 +1718,6 @@ private:
                 }
                 break;
             }
-
             case Stmt::Kind::Return: {
                 lowerExpr(stmt->return_values.get());
                 std::vector<std::unique_ptr<Stmt>> prefix;
