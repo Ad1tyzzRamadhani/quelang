@@ -160,6 +160,8 @@ private:
         std::string baseName = type->base->parts.back();
         if (structDefinitions_.count(baseName)) {
             pointerStructTypes_[name] = baseName;
+            symbolElementTypes_[name] = baseName;
+            paramElementTypes_[name] = baseName;
         }
     }
 }
@@ -1857,6 +1859,10 @@ void emitGlobalVar(VarDecl* varDecl) {
                 
                 switch (expr->unary.op) {
                     case UnaryOp::Ref: {
+                        Expr* target = unwrapGroup(expr->unary.expr.get());
+                        if (target && target->kind == Expr::Kind::Unary && target->unary.op == UnaryOp::Deref) {
+                            return emitExpr(target->unary.expr.get());
+                        }
                         if (expr->unary.expr && expr->unary.expr->kind == Expr::Kind::Postfix) {
                             std::string ignoredType;
                             return emitFieldAddr(expr->unary.expr.get(), ignoredType);
