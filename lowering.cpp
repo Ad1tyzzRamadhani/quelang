@@ -579,6 +579,71 @@ private:
         }
     }
 
+        void lowerStmtList(std::vector<std::unique_ptr<Stmt>>& stmts) {
+        std::vector<std::unique_ptr<Stmt>> expanded;
+        expanded.reserve(stmts.size());
+
+        for (auto& s : stmts) {
+            if (!s) continue;
+
+            if (s->kind == Stmt::Kind::VarDecl) {
+                recordVarStructType("", s->var_decl.type.get());
+                std::vector<std::unique_ptr<Stmt>> prefix;
+                std::vector<std::unique_ptr<Stmt>> suffixCtorCalls;
+
+                for (auto& it : s->var_decl.items) {
+                    recordVarStructType(it.name, s->var_decl.type.get());
+                    if (it.init) {
+                        lowerExpr(it.init.get());
+                        collectAndLowerCoalesceInExpr(it.init.get(), prefix);
+                        lowerConstructorCallInInit(it.name, it.init.get());
+
+                        std::string ctorStruct;
+                        if (isConstructCallExpr(it.init.get(), ctorStruct)) {
+                            auto callStmt = std::make_unique<Stmt>();
+                            callStmt->kind = Stmt::Kind::ExprStmt;
+                            callStmt->expr_stmt = std::move(it.init);
+                            suffixCtorCalls.push_back(std::move(callStmt));
+                        }
+                    }
+                    for (auto& a : it.args) {
+                        if (a) {
+                            lowerExpr(a.get());
+                            collectAndLowerCoalesceInExpr(a.get(), prefix);
+                        }
+                    }
+                }
+
+                for (auto& p : prefix) {
+                    expanded.push_back(std::move(p));
+                }
+                expanded.push_back(std::move(s));
+                for (auto& cStmt : suffixCtorCalls) {
+                    expanded.push_back(std::move(cStmt));
+                }
+                continue;
+            }
+
+            lowerStmt(s.get());
+            if (s->kind == Stmt::Kind::Block && !prefixNeedsIsolating(s.get())) {
+                // Jika lowerStmt mengubah statement (misal ExprStmt/Return dengan coalesce) menjadi Block,
+                // ratakan isinya langsung ke daftar statement blok induk
+                for (auto& child : s->block.stmts) {
+                    expanded.push_back(std::move(child));
+                }
+            } else {
+                expanded.push_back(std::move(s));
+            }
+        }
+
+        stmts = std::move(expanded);
+    }
+
+    bool prefixNeedsIsolating(Stmt* s) const {
+        return s && s->kind == Stmt::Kind::Block && false;
+    }
+
+
     std::unique_ptr<Expr> cloneExpr(const Expr* src) const {
         if (!src) return nullptr;
 
@@ -1748,9 +1813,7 @@ private:
             }
 
             case Stmt::Kind::Block: {
-                for (auto& s : stmt->block.stmts) {
-                    lowerStmt(s.get());
-                }
+                lowerStmtList(stmt->block.stmts);
                 break;
             }
 
