@@ -185,18 +185,7 @@ private:
         }
 
         std::string resolvedBase = resolveKnownStructName(joined);
-        bool isPtrOrRef = false;
-        for (const auto& mod : type->modifiers) {
-            if (mod.kind == TypeModifier::Kind::Pointer ||
-                mod.kind == TypeModifier::Kind::Reference) {
-                isPtrOrRef = true;
-                break;
-            }
-        }
-        if (isPtrOrRef) {
-            pointer_struct_vars_[varName] = resolvedBase;
-        }
-
+        
         if (resolvedBase.empty()) {
             resolvedBase = resolveKnownStructName(type->base->parts.back());
         }
@@ -211,6 +200,18 @@ private:
             resolvedBase != "ptr") {
             var_struct_types_[varName] = resolvedBase;
         }
+        bool isPtrOrRef = false;
+        for (const auto& mod : type->modifiers) {
+            if (mod.kind == TypeModifier::Kind::Pointer ||
+                mod.kind == TypeModifier::Kind::Reference) {
+                isPtrOrRef = true;
+                break;
+            }
+        }
+        if (isPtrOrRef) {
+            pointer_struct_vars_[varName] = resolvedBase;
+        }
+
     }
 
     std::string getFieldStructType(const std::string& structName, const std::string& fieldName) const {
