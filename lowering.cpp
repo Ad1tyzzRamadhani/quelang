@@ -43,6 +43,7 @@ private:
     std::unordered_map<std::string, std::vector<StructFieldMeta>> struct_fields_;
     std::unordered_map<std::string, std::string> var_struct_types_;
     std::unordered_map<std::string, std::string> func_return_struct_types_;
+    std::unordered_map<std::string, std::string> pointer_struct_vars_;
 
     std::string nextErrVarName() {
         return "__err_slot_" + std::to_string(err_var_counter++);
@@ -184,6 +185,18 @@ private:
         }
 
         std::string resolvedBase = resolveKnownStructName(joined);
+        bool isPtrOrRef = false;
+        for (const auto& mod : type->modifiers) {
+            if (mod.kind == TypeModifier::Kind::Pointer ||
+                mod.kind == TypeModifier::Kind::Reference) {
+                isPtrOrRef = true;
+                break;
+            }
+        }
+        if (isPtrOrRef) {
+            pointer_struct_vars_[varName] = resolvedBase;
+        }
+
         if (resolvedBase.empty()) {
             resolvedBase = resolveKnownStructName(type->base->parts.back());
         }
@@ -299,6 +312,7 @@ private:
         if (expr->kind == Expr::Kind::Ident && expr->ident && !expr->ident->parts.empty()) {
             const std::string& name = expr->ident->parts.back();
             if (name == "this") return true;
+            if (pointer_struct_vars_.count(name)) return true;
         }
         return false;
     }
@@ -1494,6 +1508,7 @@ public:
         local_scopes_.clear();
         throwing_functions.clear();
         struct_methods_.clear();
+        pointer_struct_vars_.clear();
         struct_has_ctor_.clear();
         struct_fields_.clear();
         var_struct_types_.clear();
