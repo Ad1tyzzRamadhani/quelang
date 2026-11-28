@@ -2003,8 +2003,16 @@ void emitGlobalVar(VarDecl* varDecl) {
                         if (isMethodCall) {
                             argVals.push_back(currentReg);
                         }
-                        for (const auto& arg : op.args) {
+                        /*for (const auto& arg : op.args) {
                             argVals.push_back(emitExpr(arg.get()));
+                        }*/
+                        
+                        for (size_t a = 0; a < op.args.size(); ++a) {
+                            std::string emittedArg = emitExpr(op.args[a].get());
+                            std::cerr << "    [ARG " << a << "] kind="
+                                      << (op.args[a] ? static_cast<int>(op.args[a]->kind) : -1)
+                                      << " -> '" << emittedArg << "'\n";
+                            argVals.push_back(emittedArg);
                         }
 
                         std::string funcName = baseName;
