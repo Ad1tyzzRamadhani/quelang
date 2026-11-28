@@ -950,7 +950,7 @@ void emitGlobalVar(VarDecl* varDecl) {
                         }
                     } else {
                         out_ << "    " << reg << " = alloca " << t << "\n";
-                        if (item.init) {
+                        if (item.init && item.init->kind != Expr::Kind::StructInit) {
                             std::string valRes = emitExpr(item.init.get());
                             out_ << "    store " << t << " " << valRes << ", " << reg << "\n";
                         }
@@ -1870,7 +1870,7 @@ void emitGlobalVar(VarDecl* varDecl) {
                         }
                         if (expr->unary.expr->kind == Expr::Kind::Ident && 
                             expr->unary.expr->ident) {
-                            if (expr->unary.expr->ident->is_absolute) {
+                            if (expr->unary.expr && expr->unary.expr->ident->is_absolute) {
                                 std::string globalName = flattenQualifiedName(expr->unary.expr->ident.get());
                                 std::string addrRes = freshTemp();
                                 out_ << "    " << addrRes << " = global addr @" << globalName << "\n";
@@ -1881,6 +1881,11 @@ void emitGlobalVar(VarDecl* varDecl) {
                                 std::string varReg, varType;
                                 // Gunakan lookupVar untuk mendapatkan register stack alloca yang valid (misal: %t_13)
                                 if (lookupVar(varName, varReg, varType)) {
+                                    if (varType == "ptr") {
+                                        std::string ptrVal = freshTemp();
+                                        out_ << "    " << ptrVal << " = load ptr " << varReg << "\n";
+                                        return ptrVal;
+                                    }
                                     return varReg;
                                 }
                                 return "%" + varName;
