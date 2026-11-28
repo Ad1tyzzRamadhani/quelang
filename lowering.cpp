@@ -1058,6 +1058,18 @@ private:
                                 if (!resolvedSt.empty()) structType = resolvedSt;
                             }
 
+                            std::cerr << "[DEBUG method] memOp.name=" << memOp.name
+                                      << " | structType='" << structType << "'"
+                                      << " | known_structs=[";
+                            for (const auto& kv : struct_methods_) {
+                                std::cerr << kv.first << ":{";
+                                for (const auto& m : kv.second) {
+                                    std::cerr << m << ",";
+                                }
+                                std::cerr << "} ";
+                            }
+                            std::cerr << "]\n";
+
                             bool isKnownMethod = (!structType.empty() &&
                                 struct_methods_.count(structType) &&
                                 struct_methods_.at(structType).count(memOp.name));
