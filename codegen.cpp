@@ -907,13 +907,13 @@ void emitGlobalVar(VarDecl* varDecl) {
                         scopes_.back()[item.name] = reg;
                         scopeTypes_.back()[item.name] = t;
                     }
-                    if (item.init && item.init->kind == Expr::Kind::StructInit) {
+                    /*if (item.init && item.init->kind == Expr::Kind::StructInit) {
                         std::string structReg = emitExpr(item.init.get());
                         if (!scopes_.empty()) {
                             scopes_.back()[item.name] = structReg;
                             scopeTypes_.back()[item.name] = t;
                         }
-                    }
+                    }*/
                     if (stmt->var_decl.type->is_array && !stmt->var_decl.type->array_dims.empty()) {
                         std::string sizeStr = stmt->var_decl.type->array_dims[0]->value;
                         int totalSize = std::stoi(sizeStr);
