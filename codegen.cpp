@@ -902,26 +902,19 @@ void emitGlobalVar(VarDecl* varDecl) {
                     std::string elemT = getElementType(stmt->var_decl.type.get());
                     symbolElementTypes_[item.name] = elemT;
                     recordPointerStructType(item.name, stmt->var_decl.type.get());
+
                     std::string reg = "%" + item.name + "_" + std::to_string(tempCounter_++);
                     if (!scopes_.empty()) {
                         scopes_.back()[item.name] = reg;
                         scopeTypes_.back()[item.name] = t;
                     }
-                    /*if (item.init && item.init->kind == Expr::Kind::StructInit) {
-                        std::string structReg = emitExpr(item.init.get());
-                        if (!scopes_.empty()) {
-                            scopes_.back()[item.name] = structReg;
-                            scopeTypes_.back()[item.name] = t;
-                        }
-                    }*/
+
                     if (stmt->var_decl.type->is_array && !stmt->var_decl.type->array_dims.empty()) {
                         std::string sizeStr = stmt->var_decl.type->array_dims[0]->value;
                         int totalSize = std::stoi(sizeStr);
                         out_ << "    " << reg << " = alloca " << t << "\n";
-                        
-                        // String-to-Array Memory Compatibility Handling:
-                        // Jika array diinisialisasi dengan string literal, salin karakter per karakter ke memori array.
-                        if (item.init && item.init->kind == Expr::Kind::Literal && 
+
+                        if (item.init && item.init->kind == Expr::Kind::Literal &&
                             item.init->literal->kind == Literal::Kind::String) {
                             std::string strVal = item.init->literal->value;
                             std::string elemType = "i32";
@@ -941,7 +934,6 @@ void emitGlobalVar(VarDecl* varDecl) {
                                 out_ << "    " << elemAddr << " = elem addr " << elemType << " " << reg << ", " << i << "\n";
                                 out_ << "    store " << elemType << " '" << strVal[i] << "', " << elemAddr << "\n";
                             }
-                            // Tambahkan null terminator jika masih ada sisa kapasitas array
                             if ((int)strVal.size() < totalSize) {
                                 std::string elemAddr = freshTemp();
                                 out_ << "    " << elemAddr << " = elem addr " << elemType << " " << reg << ", " << strVal.size() << "\n";
@@ -1372,13 +1364,14 @@ void emitGlobalVar(VarDecl* varDecl) {
                                 out_ << "    " << ptrVal << " = load ptr " << varReg << "\n";
                                 return ptrVal;
                             }
-                            if (varType.rfind("[", 0) == 0) {
+                            if (varType.rfind("[", 0) == 0 || structDefinitions_.count(varType) > 0) {
                                 return varReg;
                             }
                             std::string loadRes = freshTemp();
                             out_ << "    " << loadRes << " = load " << varType << " " << varReg << "\n";
                             return loadRes;
                         }
+
                         if (symbolTypes_.find(varName) != symbolTypes_.end()) {
                             std::string vType = symbolTypes_[varName];
                             std::string addrReg = "%" + varName;
@@ -1868,9 +1861,9 @@ void emitGlobalVar(VarDecl* varDecl) {
                             std::string ignoredType;
                             return emitFieldAddr(expr->unary.expr.get(), ignoredType);
                         }
-                        if (expr->unary.expr->kind == Expr::Kind::Ident && 
+                        if (expr->unary.expr && expr->unary.expr->kind == Expr::Kind::Ident &&
                             expr->unary.expr->ident) {
-                            if (expr->unary.expr && expr->unary.expr->ident->is_absolute) {
+                            if (expr->unary.expr->ident->is_absolute) {
                                 std::string globalName = flattenQualifiedName(expr->unary.expr->ident.get());
                                 std::string addrRes = freshTemp();
                                 out_ << "    " << addrRes << " = global addr @" << globalName << "\n";
@@ -1879,7 +1872,6 @@ void emitGlobalVar(VarDecl* varDecl) {
                             if (!expr->unary.expr->ident->parts.empty()) {
                                 std::string varName = expr->unary.expr->ident->parts.back();
                                 std::string varReg, varType;
-                                // Gunakan lookupVar untuk mendapatkan register stack alloca yang valid (misal: %t_13)
                                 if (lookupVar(varName, varReg, varType)) {
                                     if (varType == "ptr") {
                                         std::string ptrVal = freshTemp();
