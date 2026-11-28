@@ -1960,6 +1960,26 @@ void emitGlobalVar(VarDecl* varDecl) {
                     currentType = getExprType(unwrappedBase);
                 }
 
+                std::cerr << "[TRACE Postfix] unwrappedBase=" << (unwrappedBase ? static_cast<int>(unwrappedBase->kind) : -1)
+                          << " | baseName='" << baseName << "'"
+                          << " | lookupFound=" << (!baseName.empty() && lookupVar(baseName, varReg, varType))
+                          << " | varReg='" << varReg << "'"
+                          << " | varType='" << varType << "'"
+                          << " | opsCount=" << expr->postfix.ops.size() << "\n";
+                if (unwrappedBase && unwrappedBase->kind == Expr::Kind::Ident && unwrappedBase->ident) {
+                    std::cerr << "    ident parts: ";
+                    for (const auto& p : unwrappedBase->ident->parts) {
+                        std::cerr << "[" << p << "] ";
+                    }
+                    std::cerr << "is_abs=" << unwrappedBase->ident->is_absolute << "\n";
+                }
+                for (size_t idx = 0; idx < expr->postfix.ops.size(); ++idx) {
+                    const auto& o = expr->postfix.ops[idx];
+                    std::cerr << "    op[" << idx << "] kind=" << static_cast<int>(o.kind)
+                              << " name='" << o.name << "' args=" << o.args.size() << "\n";
+                }
+
+
                 if (currentType == "ptr" && !expr->postfix.ops.empty() &&
                     expr->postfix.ops[0].kind == Expr::PostfixOp::Kind::Index) {
                     std::string loadedPtr = freshTemp();
